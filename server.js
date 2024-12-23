@@ -851,6 +851,7 @@ const authRoutes = require('./routes/authRoutes'); // Custom routes
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const User = require('./models/userModel');
+const cors = require('cors');
 
 
 // Initialize app
@@ -1018,6 +1019,8 @@ app.post("/reset-password", async (req, res) => {
   }
 });
 
+//add origin
+app.use(cors())
 
 
 
