@@ -1019,7 +1019,7 @@ app.post("/reset-password", async (req, res) => {
   }
 });
 
-//add origin
+// add origin
 app.use(cors())
 
 
