@@ -57,6 +57,13 @@ const jwt = require('jsonwebtoken');
 
 exports.signUp = async (req, res) => {
     const { email, phone, password, confirmPassword } = req.body;
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|icloud\.com)$/;
+
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: 'Invalid email or password' });
+    }
+    
     if (password !== confirmPassword) {
         return res.status(400).json({ message: 'Passwords do not match' });
     }
