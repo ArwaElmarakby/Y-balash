@@ -86,4 +86,15 @@ router.get('/home', authMiddleware, (req, res) => {
 });
 
 
+const express = require('express');
+const router = express.Router();
+const { signUp, login, changePassword, uploadImage } = require('../controllers/authController');
+const authMiddleware = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware'); // سننشئ هذا لاحقًا
+
+// مسار لرفع الصور
+router.post('/upload-image', upload.single('image'), uploadImage);
+
+
+
 module.exports = router;
