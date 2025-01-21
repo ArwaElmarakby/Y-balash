@@ -133,30 +133,6 @@ exports.changePassword = async (req, res) => {
 
 
 
-const cloudinary = require('../config/cloudinary');
-
-exports.uploadImage = async (req, res) => {
-  try {
-    // تحقق من وجود ملف في الطلب
-    if (!req.files || !req.files.image) {
-      return res.status(400).json({ message: 'No image file provided' });
-    }
-
-    // رفع الصورة إلى Cloudinary
-    const result = await cloudinary.uploader.upload(req.files.image.tempFilePath, {
-      folder: 'products', // مجلد لحفظ الصور (اختياري)
-    });
-
-    // إرجاع رابط الصورة
-    res.status(200).json({ imageUrl: result.secure_url });
-  } catch (error) {
-    console.error('Error uploading image:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-
-
 
 
 

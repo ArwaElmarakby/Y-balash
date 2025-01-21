@@ -852,17 +852,10 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const User = require('./models/userModel');
 const cors = require('cors');
-const fileUpload = require('express-fileupload');
 
 
 // Initialize app
 const app = express();
-
-
-app.use(fileUpload({
-  useTempFiles: true,
-  tempFileDir: path.join(__dirname, 'temp'),
-}));
 
 // Connect to MongoDB
 connectDB();

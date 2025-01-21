@@ -43,73 +43,47 @@
 
 
 
-// const express = require('express');
-// const router = express.Router();
-// const { signUp, login, changePassword } = require('../controllers/authController');
-// const jwt = require('jsonwebtoken');
-// const User = require('../models/userModel'); 
+const express = require('express');
+const router = express.Router();
+const { signUp, login, changePassword } = require('../controllers/authController');
+const jwt = require('jsonwebtoken');
+const User = require('../models/userModel'); 
 
 
-// const authMiddleware = async (req, res, next) => {
-//     const token = req.header('Authorization')?.replace('Bearer ', '');
+const authMiddleware = async (req, res, next) => {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
 
-//     if (!token) {
-//         return res.status(401).json({ message: 'No token, authorization denied' });
-//     }
+    if (!token) {
+        return res.status(401).json({ message: 'No token, authorization denied' });
+    }
 
-//     try {
+    try {
 
-//         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-
-//         const user = await User.findById(decoded.id);
-//         if (!user) {
-//             return res.status(404).json({ message: 'User not found' });
-//         }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
 
-//         req.user = user;
-//         next();
-//     } catch (error) {
-//         res.status(401).json({ message: 'Token is not valid' });
-//     }
-// };
+        const user = await User.findById(decoded.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
 
 
-// router.post('/signup', signUp); 
-// router.post('/login', login); 
-// router.post('/change-password', changePassword); 
+        req.user = user;
+        next();
+    } catch (error) {
+        res.status(401).json({ message: 'Token is not valid' });
+    }
+};
 
 
-// router.get('/home', authMiddleware, (req, res) => {
-//     res.send(`Hi ${req.user.email}`); 
-// });
+router.post('/signup', signUp); 
+router.post('/login', login); 
+router.post('/change-password', changePassword); 
 
 
-// module.exports = router;
-
-
-
-
-const express = require('express'); // استيراد express
-const router = express.Router(); // إنشاء router
-const { signUp, login, changePassword } = require('../controllers/authController'); // استيراد الدوال من authController
-const authMiddleware = require('../middleware/authMiddleware'); // استيراد middleware للمصادقة
-
-// مسار للتسجيل (Signup)
-router.post('/signup', signUp);
-
-// مسار لتسجيل الدخول (Login)
-router.post('/login', login);
-
-// مسار لتغيير كلمة المرور (Change Password)
-router.post('/change-password', changePassword);
-
-// مسار للصفحة الرئيسية (Home) - يتطلب مصادقة
 router.get('/home', authMiddleware, (req, res) => {
-    // إرسال رسالة ترحيبية مع بريد المستخدم
-    res.send(`Hi ${req.user.email}`);
+    res.send(`Hi ${req.user.email}`); 
 });
 
-// تصدير router لاستخدامه في server.js
+
 module.exports = router;
