@@ -848,6 +848,7 @@ const passport = require('passport');
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes'); // Custom routes
+const imageRoutes = require('./routes/imageRoutes'); // Import the new routes
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const User = require('./models/userModel');
@@ -975,6 +976,7 @@ app.post("/verify-otp", (req, res) => {
 
 // Custom API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/images', imageRoutes); // Add the new routes
 
 
 
@@ -1020,7 +1022,7 @@ app.post("/reset-password", async (req, res) => {
 });
 
 // add origin
-app.use(cors())
+app.use(cors());
 
 
 
