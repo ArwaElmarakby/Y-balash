@@ -852,8 +852,6 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const User = require('./models/userModel');
 const cors = require('cors');
-const fs = require('fs'); 
-const path = require('path');
 
 
 // Initialize app
@@ -871,14 +869,6 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
-
-
-const dir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-}
-
-
 
 // Email Transporter Configuration
 const transporter = nodemailer.createTransport({
@@ -985,7 +975,7 @@ app.post("/verify-otp", (req, res) => {
 
 // Custom API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/items', itemRoutes);
+
 
 
 
@@ -1046,4 +1036,4 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
-// arwaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// arwaaaaaaaaaaaaaaaaaaaaaaaaaaa
