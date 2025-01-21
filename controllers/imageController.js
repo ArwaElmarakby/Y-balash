@@ -57,3 +57,20 @@ exports.updateImage = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+exports.searchImage = async (req, res) => {
+    const { name } = req.query; 
+
+    try {
+
+        const images = await Image.find({ name: { $regex: name, $options: 'i' } });
+
+        if (images.length === 0) {
+            return res.status(404).json({ message: 'No items found' });
+        }
+
+        res.status(200).json(images);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
