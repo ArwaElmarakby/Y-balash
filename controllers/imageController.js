@@ -2,10 +2,10 @@
 const Image = require('../models/imageModel');
 
 exports.addImage = async (req, res) => {
-    const { name, imageUrl } = req.body;
+    const { name, quantity, price, imageUrl } = req.body;
 
     try {
-        const newImage = new Image({ name, imageUrl });
+        const newImage = new Image({ name, quantity, price, imageUrl });
         await newImage.save();
         res.status(201).json({ message: 'Image added successfully', image: newImage });
     } catch (error) {
