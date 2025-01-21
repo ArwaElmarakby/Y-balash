@@ -35,3 +35,25 @@ exports.deleteImage = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+exports.updateImage = async (req, res) => {
+    const { id } = req.params;    
+    const { name, imageUrl, quantity, price } = req.body;  
+
+    try {
+
+        const updatedImage = await Image.findByIdAndUpdate(
+            id,
+            { name, imageUrl, quantity, price },
+            { new: true }  
+        );
+
+        if (!updatedImage) {
+            return res.status(404).json({ message: 'Image not found' });
+        }
+
+        res.status(200).json({ message: 'Image updated successfully', image: updatedImage });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
