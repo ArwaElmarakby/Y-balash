@@ -848,12 +848,10 @@ const passport = require('passport');
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes'); // Custom routes
-const itemRoutes = require('./routes/itemRoutes');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const User = require('./models/userModel');
 const cors = require('cors');
-const path = require('path');
 
 
 // Initialize app
@@ -864,7 +862,6 @@ connectDB();
 
 // Middleware
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
     secret: "secret",
     resave: false,
@@ -872,8 +869,6 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
-app.use(cors());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Email Transporter Configuration
 const transporter = nodemailer.createTransport({
@@ -980,7 +975,6 @@ app.post("/verify-otp", (req, res) => {
 
 // Custom API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/items', itemRoutes);
 
 
 
@@ -1026,7 +1020,7 @@ app.post("/reset-password", async (req, res) => {
 });
 
 // add origin
-// app.use(cors())
+app.use(cors())
 
 
 
