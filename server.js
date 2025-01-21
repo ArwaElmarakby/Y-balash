@@ -852,7 +852,6 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const User = require('./models/userModel');
 const cors = require('cors');
-const itemRoutes = require('./routes/itemRoutes');
 
 
 // Initialize app
@@ -976,7 +975,6 @@ app.post("/verify-otp", (req, res) => {
 
 // Custom API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/items', itemRoutes);
 
 
 
@@ -1038,4 +1036,4 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
-// arwaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// arwaaaaaaaaaaaaaaaaaaaaaaaaaaa
