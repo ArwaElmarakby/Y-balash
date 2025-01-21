@@ -1,52 +1,45 @@
 const Product = require('../models/Product');
 const multer = require('multer');
 const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Set storage engine
-const storage = multer.diskStorage({
-    destination: './public/uploads/',
-    filename: function(req, file, cb) {
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// إعداد Multer مع Cloudinary
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'uploads', // اسم المجلد اللي هتتخزن فيه الصور
+        allowed_formats: ['jpg', 'jpeg', 'png', 'gif'] // الصيغ المسموح بيها
     }
 });
 
-// Init upload
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 1000000 }, // 1MB
-    fileFilter: function(req, file, cb) {
-        checkFileType(file, cb);
-    }
-}).single('image');
-
-// Check file type
-function checkFileType(file, cb) {
-    const filetypes = /jpeg|jpg|png|gif/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-        return cb(null, true);
-    } else {
-        cb('Error: Images Only!');
-    }
-}
+const upload = multer({ storage: storage });
 
 exports.createProduct = (req, res) => {
-    upload(req, res, (err) => {
+    upload.single('image')(req, res, async (err) => {
         if (err) {
-            res.status(400).json({ message: err });
-        } else {
-            const newProduct = new Product({
-                name: req.body.name,
-                quantity: req.body.quantity,
-                price: req.body.price,
-                image: req.file ? req.file.filename : ''
-            });
+            return res.status(400).json({ message: err });
+        }
 
-            newProduct.save()
-                .then(product => res.json(product))
-                .catch(err => res.status(400).json({ message: err }));
+        const newProduct = new Product({
+            name: req.body.name,
+            quantity: req.body.quantity,
+            price: req.body.price,
+            image: req.file ? req.file.path : '' // حفظ رابط الصورة من Cloudinary
+        });
+
+        try {
+            await newProduct.save();
+            res.json(newProduct);
+        } catch (error) {
+            res.status(500).json({ message: "Server error" });
         }
     });
 };
