@@ -59,3 +59,22 @@ exports.updateRestaurant = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+
+
+exports.searchRestaurants = async (req, res) => {
+    const { name } = req.query; 
+
+    try {
+
+        const restaurants = await Restaurant.find({ name: { $regex: name, $options: 'i' } });
+
+        if (restaurants.length === 0) {
+            return res.status(404).json({ message: 'No restaurants found' });
+        }
+
+        res.status(200).json(restaurants);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
