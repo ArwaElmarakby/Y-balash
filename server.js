@@ -854,6 +854,7 @@ const crypto = require('crypto');
 const User = require('./models/userModel');
 const cors = require('cors');
 const restaurantRoutes = require('./routes/restaurantRoutes');
+const categoryRoutes = require('./routes/categoryRoutes'); 
 
 
 // Initialize app
@@ -979,6 +980,7 @@ app.post("/verify-otp", (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/images', imageRoutes); 
 app.use('/api/restaurants', restaurantRoutes);
+app.use('/api/categories', categoryRoutes);
 
 
 
