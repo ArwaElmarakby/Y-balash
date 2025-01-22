@@ -7,7 +7,7 @@ exports.addImage = async (req, res) => {
     try {
         const newImage = new Image({ name, quantity, price, imageUrl });
         await newImage.save();
-        res.status(201).json({ message: 'Image added successfully', image: newImage });
+        res.status(201).json({ message: 'Item added successfully', image: newImage });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
@@ -30,7 +30,7 @@ exports.deleteImage = async (req, res) => {
         if (!image) {
             return res.status(404).json({ message: 'Image not found' });
         }
-        res.status(200).json({ message: 'Image deleted successfully' });
+        res.status(200).json({ message: 'Item deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
@@ -52,7 +52,7 @@ exports.updateImage = async (req, res) => {
             return res.status(404).json({ message: 'Image not found' });
         }
 
-        res.status(200).json({ message: 'Image updated successfully', image: updatedImage });
+        res.status(200).json({ message: 'Item updated successfully', image: updatedImage });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
