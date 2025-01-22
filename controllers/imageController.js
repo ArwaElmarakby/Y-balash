@@ -74,3 +74,35 @@ exports.searchImage = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+
+exports.incrementViews = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const image = await Image.findByIdAndUpdate(
+            id,
+            { $inc: { views: 1 } }, 
+            { new: true }
+        );
+
+        if (!image) {
+            return res.status(404).json({ message: 'Image not found' });
+        }
+
+        res.status(200).json({ message: 'Views incremented', image });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
+
+
+exports.getBestSelling = async (req, res) => {
+    try {
+        const bestSelling = await Image.find().sort({ views: -1 }).limit(4); 
+        res.status(200).json(bestSelling);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
