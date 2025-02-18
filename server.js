@@ -865,7 +865,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const app = express();
 
 // Connect to MongoDB
-connectDB();z
+connectDB();
 
 //  Cloudinary
 cloudinary.config({
