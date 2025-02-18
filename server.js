@@ -858,6 +858,9 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const restaurantRoutes = require('./routes/restaurantRoutes');
+const imageRoutes = require('./routes/imageRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 
 
 
@@ -897,6 +900,9 @@ app.post("/upload", upload.single("image"), (req, res) => {
     imageUrl: req.file.path, 
   });
 });
+
+
+
 
 
 // Middleware
@@ -1017,6 +1023,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/images', imageRoutes); 
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/categories', categoryRoutes);
+
 
 
 
