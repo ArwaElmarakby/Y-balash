@@ -861,12 +861,11 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 
 
-dotenv.config();
 // Initialize app
 const app = express();
 
 // Connect to MongoDB
-connectDB();
+connectDB();z
 
 //  Cloudinary
 cloudinary.config({
