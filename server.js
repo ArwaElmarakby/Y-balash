@@ -874,32 +874,19 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// إعداد Multer مع Cloudinary (لـ uploads)
-const uploadStorage = new CloudinaryStorage({
+
+//  Multer  Cloudinary
+const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "uploads", // Folder خاص بالـ uploads
+    folder: "uploads", 
     allowedFormats: ["jpg", "jpeg", "png"],
   },
 });
 
-const upload = multer({ storage: uploadStorage });
+const upload = multer({ storage: storage });
 
-// إعداد Multer مع Cloudinary (لـ restaurants)
-const restaurantStorage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: "restaurants", // Folder خاص بالـ restaurants
-    allowedFormats: ["jpg", "jpeg", "png"],
-  },
-});
-
-const restaurantUpload = multer({ storage: restaurantStorage });
-
-
-app.use(express.json());
-
-// نقطة النهاية القديمة
+// Endpoint 
 app.post("/upload", upload.single("image"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "upload photo" });
@@ -907,26 +894,7 @@ app.post("/upload", upload.single("image"), (req, res) => {
 
   res.status(200).json({
     message: "The image has been uploaded successfully",
-    imageUrl: req.file.path,
-  });
-});
-
-// نقطة النهاية الجديدة
-app.post("/api/restaurants/add", restaurantUpload.single("image"), (req, res) => {
-  const { name } = req.body;
-
-  if (!name || !req.file) {
-    return res.status(400).json({ message: "Name and image are required" });
-  }
-
-  const imageUrl = req.file.path;
-
-  res.status(200).json({
-    message: "Restaurant added successfully",
-    restaurant: {
-      name: name,
-      imageUrl: imageUrl,
-    },
+    imageUrl: req.file.path, 
   });
 });
 
