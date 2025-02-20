@@ -1,46 +1,11 @@
 const Restaurant = require('../models/restaurantModel');
 
-const Restaurant = require('../models/restaurantModel');
-const cloudinary = require('cloudinary').v2;
-
-
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-// exports.addRestaurant = async (req, res) => {
-//     const { name, imageUrl, description } = req.body;
-
-//     try {
-//         const newRestaurant = new Restaurant({ name, imageUrl, description });
-//         await newRestaurant.save();
-//         res.status(201).json({ message: 'Restaurant added successfully', restaurant: newRestaurant });
-//     } catch (error) {
-//         res.status(500).json({ message: 'Server error', error });
-//     }
-// };
-
 
 exports.addRestaurant = async (req, res) => {
-    const { name, description } = req.body;
-    const imageFile = req.file; 
-
-    if (!imageFile) {
-        return res.status(400).json({ message: 'Image is required' });
-    }
+    const { name, imageUrl, description } = req.body;
 
     try {
-       
-        const result = await cloudinary.uploader.upload(imageFile.path);
-
-        const newRestaurant = new Restaurant({
-            name,
-            imageUrl: result.secure_url, 
-            description
-        });
-
+        const newRestaurant = new Restaurant({ name, imageUrl, description });
         await newRestaurant.save();
         res.status(201).json({ message: 'Restaurant added successfully', restaurant: newRestaurant });
     } catch (error) {
