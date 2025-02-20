@@ -876,42 +876,17 @@ cloudinary.config({
 
 
 //  Multer  Cloudinary
-// const storage = new CloudinaryStorage({
-//   cloudinary: cloudinary,
-//   params: {
-//     folder: "uploads", 
-//     allowedFormats: ["jpg", "jpeg", "png"],
-//   },
-// });
-
-// const upload = multer({ storage: storage });
-
-// // Endpoint 
-// app.post("/upload", upload.single("image"), (req, res) => {
-//   if (!req.file) {
-//     return res.status(400).json({ message: "upload photo" });
-//   }
-
-//   res.status(200).json({
-//     message: "The image has been uploaded successfully",
-//     imageUrl: req.file.path, 
-//   });
-// });
-
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "restaurants", // اسم المجلد على Cloudinary
+    folder: "uploads", 
     allowedFormats: ["jpg", "jpeg", "png"],
   },
 });
 
 const upload = multer({ storage: storage });
 
-const app = express();
-app.use(express.json());
-
-// الكود القديم (نقطة النهاية القديمة)
+// Endpoint 
 app.post("/upload", upload.single("image"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "upload photo" });
@@ -919,29 +894,7 @@ app.post("/upload", upload.single("image"), (req, res) => {
 
   res.status(200).json({
     message: "The image has been uploaded successfully",
-    imageUrl: req.file.path,
-  });
-});
-
-// الكود الجديد (نقطة النهاية الجديدة)
-app.post("/api/restaurants/add", upload.single("image"), (req, res) => {
-  const { name } = req.body;
-
-  if (!name || !req.file) {
-    return res.status(400).json({ message: "Name and image are required" });
-  }
-
-  const imageUrl = req.file.path;
-
-  // هنا يمكنك إضافة الكود لحفظ البيانات في قاعدة البيانات
-  // مثلاً: saveRestaurant(name, imageUrl);
-
-  res.status(200).json({
-    message: "Restaurant added successfully",
-    restaurant: {
-      name: name,
-      imageUrl: imageUrl,
-    },
+    imageUrl: req.file.path, 
   });
 });
 
@@ -1125,4 +1078,4 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
-// arwaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// arwaaaaaaaaaaaaaaaaaaaaaaaaaa
