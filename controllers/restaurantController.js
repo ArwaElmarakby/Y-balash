@@ -1,57 +1,17 @@
 const Restaurant = require('../models/restaurantModel');
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const multer = require('multer');
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-
-// Set up Multer storage for Cloudinary
-const restaurantStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-      folder: "restaurants", 
-      allowedFormats: ["jpg", "jpeg", "png"],
-    },
-  });
-
-  const uploadRestaurantImage = multer({ storage: restaurantStorage });
-
-
-
-// exports.addRestaurant = async (req, res) => {
-//     const { name, imageUrl, description } = req.body;
-
-//     try {
-//         const newRestaurant = new Restaurant({ name, imageUrl, description });
-//         await newRestaurant.save();
-//         res.status(201).json({ message: 'Restaurant added successfully', restaurant: newRestaurant });
-//     } catch (error) {
-//         res.status(500).json({ message: 'Server error', error });
-//     }
-// };
 
 
 exports.addRestaurant = async (req, res) => {
-    const { name, description } = req.body;
-  
+    const { name, imageUrl, description } = req.body;
+
     try {
-      const newRestaurant = new Restaurant({ 
-        name, 
-        description, 
-        imageUrl: req.file.path 
-      });
-      await newRestaurant.save();
-      res.status(201).json({ message: 'Restaurant added successfully', restaurant: newRestaurant });
+        const newRestaurant = new Restaurant({ name, imageUrl, description });
+        await newRestaurant.save();
+        res.status(201).json({ message: 'Restaurant added successfully', restaurant: newRestaurant });
     } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ message: 'Server error', error });
     }
-  };
+};
 
 
 exports.getRestaurants = async (req, res) => {
@@ -79,54 +39,26 @@ exports.deleteRestaurant = async (req, res) => {
 };
 
 
-
-// exports.updateRestaurant = async (req, res) => {
-//     const { id } = req.params;
-//     const { name, imageUrl, description } = req.body;
-
-//     try {
-//         const updatedRestaurant = await Restaurant.findByIdAndUpdate(
-//             id,
-//             { name, imageUrl, description },
-//             { new: true } 
-//         );
-
-//         if (!updatedRestaurant) {
-//             return res.status(404).json({ message: 'Restaurant not found' });
-//         }
-
-//         res.status(200).json({ message: 'Restaurant updated successfully', restaurant: updatedRestaurant });
-//     } catch (error) {
-//         res.status(500).json({ message: 'Server error', error });
-//     }
-// };
-
-
-
 exports.updateRestaurant = async (req, res) => {
     const { id } = req.params;
-    const { name, description } = req.body;
-  
+    const { name, imageUrl, description } = req.body;
+
     try {
-      const updatedRestaurant = await Restaurant.findByIdAndUpdate(
-        id,
-        { 
-          name, 
-          description, 
-          imageUrl: req.file ? req.file.path : undefined 
-        },
-        { new: true }
-      );
-  
-      if (!updatedRestaurant) {
-        return res.status(404).json({ message: 'Restaurant not found' });
-      }
-  
-      res.status(200).json({ message: 'Restaurant updated successfully', restaurant: updatedRestaurant });
+        const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+            id,
+            { name, imageUrl, description },
+            { new: true } 
+        );
+
+        if (!updatedRestaurant) {
+            return res.status(404).json({ message: 'Restaurant not found' });
+        }
+
+        res.status(200).json({ message: 'Restaurant updated successfully', restaurant: updatedRestaurant });
     } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ message: 'Server error', error });
     }
-  };
+};
 
 
 
