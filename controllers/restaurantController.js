@@ -1,13 +1,8 @@
 const Restaurant = require('../models/restaurantModel');
-const { cloudinary, storage } = require('../config/cloudinary');
-const multer = require('multer');
-
-const upload = multer({ storage });
 
 
 exports.addRestaurant = async (req, res) => {
-    const { name, description } = req.body;
-    const imageUrl = req.file ? req.file.path : null; 
+    const { name, imageUrl, description } = req.body;
 
     try {
         const newRestaurant = new Restaurant({ name, imageUrl, description });
@@ -46,14 +41,13 @@ exports.deleteRestaurant = async (req, res) => {
 
 exports.updateRestaurant = async (req, res) => {
     const { id } = req.params;
-    const { name, description } = req.body;
-    const imageUrl = req.file ? req.file.path : null;  
+    const { name, imageUrl, description } = req.body;
 
     try {
         const updatedRestaurant = await Restaurant.findByIdAndUpdate(
             id,
             { name, imageUrl, description },
-            { new: true }
+            { new: true } 
         );
 
         if (!updatedRestaurant) {
