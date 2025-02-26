@@ -58,23 +58,17 @@ const authMiddleware = async (req, res, next) => {
     }
 
     try {
-
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-
         const user = await User.findById(decoded.id);
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ message: 'User  not found' });
         }
-
-
         req.user = user;
         next();
     } catch (error) {
         res.status(401).json({ message: 'Token is not valid' });
     }
 };
-
 
 router.post('/signup', signUp); 
 router.post('/login', login); 
@@ -86,4 +80,5 @@ router.get('/home', authMiddleware, (req, res) => {
 });
 
 
-module.exports = router;
+// Export the router and middleware separately
+module.exports = { router, authMiddleware };
