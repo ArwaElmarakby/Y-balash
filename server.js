@@ -847,7 +847,7 @@ const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const connectDB = require('./config/db');
-const authRoutes = require('./routes/authRoutes').router;
+const authRoutes = require('./routes/authRoutes'); // Custom routes
 const imageRoutes = require('./routes/imageRoutes'); // Import the new routes
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
@@ -855,8 +855,6 @@ const User = require('./models/userModel');
 const cors = require('cors');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const categoryRoutes = require('./routes/categoryRoutes'); 
-const cartRoutes = require('./routes/cartRoutes');
-const cartRoutes = require('./routes/cartRoutes');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -1019,7 +1017,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/images', imageRoutes); 
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/cart', cartRoutes); 
+
 
 
 
@@ -1080,4 +1078,4 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
-// arwaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// arwaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
