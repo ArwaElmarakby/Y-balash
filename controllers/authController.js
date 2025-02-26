@@ -51,6 +51,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -58,6 +68,7 @@ const jwt = require('jsonwebtoken');
 exports.signUp = async (req, res) => {
     const { email, phone, password, confirmPassword } = req.body;
 
+    // Regular expression to validate email
     const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|icloud\.com)$/;
 
     if (!emailRegex.test(email)) {
@@ -97,7 +108,7 @@ exports.login = async (req, res) => {
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.status(200).json({ token, message: 'Login successful'   });
+        res.status(200).json({ token, message: 'Login successful'  });
     } catch (error) {
         console.error("Error during login:", error); 
         res.status(500).json({ message: 'Server error' });
