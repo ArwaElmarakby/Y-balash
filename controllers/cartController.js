@@ -38,6 +38,7 @@ exports.getCart = async (req, res) => {
         }
         res.status(200).json(cart);
     } catch (error) {
+        console.error("Error in getCart:", error); 
         res.status(500).json({ message: 'Server error', error });
     }
 };
