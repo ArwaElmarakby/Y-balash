@@ -32,7 +32,8 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true, unique: true },
     password: { type: String },
-    name: { type: String }
+    name: { type: String },
+    cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
 });
 
 userSchema.pre('save', async function (next) {

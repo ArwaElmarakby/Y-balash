@@ -855,6 +855,7 @@ const User = require('./models/userModel');
 const cors = require('cors');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const categoryRoutes = require('./routes/categoryRoutes'); 
+const cartRoutes = require('./routes/cartRoutes');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -1017,6 +1018,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/images', imageRoutes); 
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/cart', cartRoutes);
 
 
 
