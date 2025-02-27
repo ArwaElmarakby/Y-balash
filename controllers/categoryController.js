@@ -76,7 +76,11 @@ exports.addItemToCategory = async (req, res) => {
 
 
 exports.getCategoryItems = async (req, res) => {
-  const { categoryId } = req.params;
+  const { categoryId } = req.body; 
+
+  if (!categoryId) {
+    return res.status(400).json({ message: 'Category ID is required' });
+  }
 
   try {
     const category = await Category.findById(categoryId).populate('items');
@@ -89,7 +93,6 @@ exports.getCategoryItems = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
-
 
 
 exports.removeItemFromCategory = async (req, res) => {
