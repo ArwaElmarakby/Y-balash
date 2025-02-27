@@ -1,5 +1,6 @@
 // controllers/imageController.js
 const Image = require('../models/imageModel');
+const Category = require('../models/categoryModel');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -25,22 +26,55 @@ cloudinary.config({
 
 
 
+// exports.addImage = async (req, res) => {
+//   upload(req, res, async (err) => {
+//     if (err) {
+//       return res.status(500).json({ message: "Image upload failed", error: err });
+//     }
+
+//     const { name, quantity, price } = req.body;
+//     const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
+
+//     if (!name || !quantity || !price || !imageUrl) {
+//       return res.status(400).json({ message: "All fields are required" });
+//     }
+
+//     try {
+//       const newImage = new Image({ name, quantity, price, imageUrl });
+//       await newImage.save();
+//       res.status(201).json({ message: 'Item added successfully', image: newImage });
+//     } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//     }
+//   });
+// };
+
+
 exports.addImage = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, quantity, price } = req.body;
-    const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
+    const { name, quantity, price, categoryId } = req.body;
+    const imageUrl = req.file ? req.file.path : null;
 
-    if (!name || !quantity || !price || !imageUrl) {
+    if (!name || !quantity || !price || !imageUrl || !categoryId) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     try {
-      const newImage = new Image({ name, quantity, price, imageUrl });
+      const category = await Category.findById(categoryId);
+      if (!category) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+
+      const newImage = new Image({ name, quantity, price, imageUrl, category: categoryId });
       await newImage.save();
+
+      category.items.push(newImage._id);
+      await category.save();
+
       res.status(201).json({ message: 'Item added successfully', image: newImage });
     } catch (error) {
       res.status(500).json({ message: 'Server error', error });

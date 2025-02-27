@@ -1,4 +1,5 @@
 const Category = require('../models/categoryModel');
+const Image = require('../models/imageModel');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -44,6 +45,52 @@ exports.addCategory = async (req, res) => {
     }
   });
 };
+
+
+exports.addItemToCategory = async (req, res) => {
+  const { categoryId, itemId } = req.body;
+
+  try {
+    const category = await Category.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    const item = await Image.findById(itemId);
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    category.items.push(itemId);
+    await category.save();
+
+    item.category = categoryId;
+    await item.save();
+
+    res.status(200).json({ message: 'Item added to category successfully', category });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
+
+exports.getCategoryItems = async (req, res) => {
+  const { categoryId } = req.params;
+
+  try {
+    const category = await Category.findById(categoryId).populate('items');
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    res.status(200).json(category.items);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
 
 
 exports.getCategories = async (req, res) => {
