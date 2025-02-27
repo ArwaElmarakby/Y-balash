@@ -8,7 +8,7 @@ router.delete('/delete/:id', deleteCategory);
 router.put('/update/:id', updateCategory); // Image upload is handled inside the controller
 router.get('/search', searchCategories);
 router.post('/add-item', addItemToCategory);
-router.post('/items', getCategoryItems)
+router.get('/:categoryId/items', getCategoryItems);
 router.post('/remove-item', removeItemFromCategory);
 
 module.exports = router;
