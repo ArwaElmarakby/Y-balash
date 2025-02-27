@@ -55,3 +55,53 @@ exports.getOffers = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
+
+
+
+
+// Update Offer
+exports.updateOffer = async (req, res) => {
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(500).json({ message: "Image upload failed", error: err });
+    }
+
+    const { id } = req.params;
+    const { title, subject, description } = req.body;
+    const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
+
+    try {
+      const updatedData = { title, subject, description };
+      if (imageUrl) updatedData.imageUrl = imageUrl; // Update imageUrl only if a new image is uploaded
+
+      const updatedOffer = await Offer.findByIdAndUpdate(
+        id,
+        updatedData,
+        { new: true }
+      );
+
+      if (!updatedOffer) {
+        return res.status(404).json({ message: 'Offer not found' });
+      }
+
+      res.status(200).json({ message: 'Offer updated successfully', offer: updatedOffer });
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+    }
+  });
+};
+
+// Delete Offer
+exports.deleteOffer = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const offer = await Offer.findByIdAndDelete(id);
+    if (!offer) {
+      return res.status(404).json({ message: 'Offer not found' });
+    }
+    res.status(200).json({ message: 'Offer deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
