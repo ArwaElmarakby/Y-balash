@@ -858,6 +858,7 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const cartRoutes = require('./routes/cartRoutes'); 
 const favoriteRoutes = require('./routes/favoriteRoutes'); 
 const offerRoutes = require('./routes/offerRoutes'); 
+const deliveryRoutes = require('./routes/deliveryRoutes');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -1023,6 +1024,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/cart', cartRoutes); 
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/offers', offerRoutes);
+app.use('/api/delivery', deliveryRoutes);
 
 
 
