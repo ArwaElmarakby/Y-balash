@@ -1027,7 +1027,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/delivery', deliveryRoutes);
-app.use('/api/payment', paymentRoutes);
+app.use('/api/purchases', paymentRoutes);
 app.use('/api/coupons', couponRoutes);
 
 
