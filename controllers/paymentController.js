@@ -1,15 +1,31 @@
-// controllers/paymentController.js
+
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const Cart = require('../models/cartModel'); 
 
 exports.createPayment = async (req, res) => {
-    const { amount } = req.body; // نجيب المبلغ من الـ Body
+    const userId = req.user.id; 
 
     try {
-        // ننشئ Payment Intent
+      
+        const cart = await Cart.findOne({ userId }).populate('items.itemId');
+        if (!cart) {
+            return res.status(404).json({ message: 'Cart not found' });
+        }
+
+       
+        let totalAmount = 0;
+        cart.items.forEach(item => {
+            totalAmount += item.quantity * parseFloat(item.itemId.price);
+        });
+
+        
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: amount * 100, // نحول المبلغ إلى سنتات
-            currency: 'usd', // العملة
-            payment_method_types: ['card'], // طريقة الدفع
+            amount: totalAmount * 100, 
+            currency: 'usd', 
+            payment_method_types: ['card'], 
+            metadata: {
+                userId: userId, 
+            },
         });
 
         res.status(200).json({ clientSecret: paymentIntent.client_secret });
