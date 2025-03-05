@@ -1,5 +1,6 @@
 const Cart = require('../models/cartModel');
 const Image = require('../models/imageModel');
+const Coupon = require('../models/couponModel');
 
 // Add item to cart
 exports.addToCart = async (req, res) => {
@@ -117,6 +118,68 @@ exports.getCartSummary = async (req, res) => {
             totalItemsPrice: totalItemsPrice.toFixed(2), 
             shippingCost: shippingCost.toFixed(2), 
             importCharges: importCharges.toFixed(2), 
+            totalPrice: totalPrice.toFixed(2), 
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
+
+
+exports.applyCoupon = async (req, res) => {
+    const { couponCode } = req.body; 
+    const userId = req.user._id; 
+
+    try {
+       
+        const coupon = await Coupon.findOne({ code: couponCode });
+        if (!coupon) {
+            return res.status(404).json({ message: 'Coupon not found' });
+        }
+
+   
+        if (coupon.validUntil < new Date()) {
+            return res.status(400).json({ message: 'Coupon has expired' });
+        }
+
+       
+        const cart = await Cart.findOne({ userId }).populate('items.itemId');
+        if (!cart) {
+            return res.status(404).json({ message: 'Cart not found' });
+        }
+
+    
+        let totalItemsPrice = 0;
+        cart.items.forEach(item => {
+            totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
+        });
+
+
+        const shippingCost = 50; 
+        const importCharges = totalItemsPrice * 0.1;
+
+  
+        let totalPrice = totalItemsPrice + shippingCost + importCharges;
+
+        
+        let discount = 0;
+        if (coupon.discountType === 'percentage') {
+            discount = totalPrice * (coupon.discountValue / 100);
+        } else if (coupon.discountType === 'fixed') {
+            discount = coupon.discountValue;
+        }
+
+     
+        totalPrice -= discount;
+
+
+        res.status(200).json({
+            totalItems: cart.items.length, 
+            totalItemsPrice: totalItemsPrice.toFixed(2), 
+            shippingCost: shippingCost.toFixed(2), 
+            importCharges: importCharges.toFixed(2),
+            discount: discount.toFixed(2), 
             totalPrice: totalPrice.toFixed(2), 
         });
     } catch (error) {
