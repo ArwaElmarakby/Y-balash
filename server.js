@@ -860,6 +860,7 @@ const favoriteRoutes = require('./routes/favoriteRoutes');
 const offerRoutes = require('./routes/offerRoutes'); 
 const deliveryRoutes = require('./routes/deliveryRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const locationRoutes = require('./routes/locationRoutes');
 const couponRoutes = require('./routes/couponRoutes');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
@@ -1029,6 +1030,7 @@ app.use('/api/offers', offerRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/purchases', paymentRoutes);
 app.use('/api/coupons', couponRoutes);
+app.use('/api/location', locationRoutes);
 
 
 
