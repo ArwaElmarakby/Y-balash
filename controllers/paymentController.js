@@ -21,9 +21,15 @@ exports.createPaymentIntent = async (req, res) => {
 
 // Confirm payment
 exports.confirmPayment = async (req, res) => {
-    const { paymentIntentId } = req.body;
+    const { paymentIntentId, paymentMethodId } = req.body;
 
     try {
+       
+        await stripe.paymentIntents.update(paymentIntentId, {
+            payment_method: paymentMethodId,
+        });
+
+        
         const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId);
         res.status(200).json({ message: 'Payment confirmed', paymentIntent });
     } catch (error) {
