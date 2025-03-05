@@ -183,3 +183,22 @@ exports.getBestSelling = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+
+
+exports.getItemDetails = async (req, res) => {
+  const { id } = req.body; 
+
+  try {
+      
+      const item = await Image.findById(id);
+      if (!item) {
+          return res.status(404).json({ message: 'Item not found' });
+      }
+
+     
+      res.status(200).json(item);
+  } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+  }
+};
