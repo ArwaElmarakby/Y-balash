@@ -1,38 +1,23 @@
 // controllers/paymentController.js
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// Create a payment intent
-exports.createPaymentIntent = async (req, res) => {
-    const { amount, currency, paymentMethodType } = req.body;
+exports.createPayment = async (req, res) => {
+    const { amount } = req.body; // نجيب المبلغ من الـ Body
+    const userId = req.user.id; // نجيب الـ User ID من الـ Token
 
     try {
-        // Create a PaymentIntent
+        // ننشئ Payment Intent
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: amount * 100, // Convert to cents
-            currency: currency || 'usd',
-            payment_method_types: [paymentMethodType || 'card'],
+            amount: amount * 100, // نحول المبلغ إلى سنتات
+            currency: 'usd', // العملة
+            payment_method_types: ['card'], // طريقة الدفع
+            metadata: {
+                userId: userId, // نحفظ الـ User ID في metadata
+            },
         });
 
         res.status(200).json({ clientSecret: paymentIntent.client_secret });
     } catch (error) {
         res.status(500).json({ message: 'Payment failed', error: error.message });
-    }
-};
-
-// Confirm payment
-exports.confirmPayment = async (req, res) => {
-    const { paymentIntentId, paymentMethodId } = req.body;
-
-    try {
-       
-        await stripe.paymentIntents.update(paymentIntentId, {
-            payment_method: paymentMethodId,
-        });
-
-        
-        const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId);
-        res.status(200).json({ message: 'Payment confirmed', paymentIntent });
-    } catch (error) {
-        res.status(500).json({ message: 'Payment confirmation failed', error: error.message });
     }
 };

@@ -1,12 +1,10 @@
 // routes/paymentRoutes.js
 const express = require('express');
 const router = express.Router();
-const { createPaymentIntent, confirmPayment } = require('../controllers/paymentController');
+const { createPayment } = require('../controllers/paymentController');
+const { authMiddleware } = require('./authRoutes'); // استيراد الـ Middleware للتأكد من الـ Token
 
-// Create a payment intent
-router.post('/create-payment-intent', createPaymentIntent);
-
-// Confirm payment
-router.post('/confirm-payment', confirmPayment);
+// Create a payment
+router.post('/payment', authMiddleware, createPayment); // Endpoint جديد
 
 module.exports = router;
