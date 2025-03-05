@@ -85,3 +85,41 @@ exports.removeCartItem = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+
+
+exports.getCartSummary = async (req, res) => {
+    const userId = req.user._id; 
+
+    try {
+       
+        const cart = await Cart.findOne({ userId }).populate('items.itemId');
+        if (!cart) {
+            return res.status(404).json({ message: 'Cart not found' });
+        }
+
+        
+        let totalItemsPrice = 0;
+        cart.items.forEach(item => {
+            totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
+        });
+
+        
+        const shippingCost = 50; 
+        const importCharges = totalItemsPrice * 0.1; 
+
+        
+        const totalPrice = totalItemsPrice + shippingCost + importCharges;
+
+        
+        res.status(200).json({
+            totalItems: cart.items.length, 
+            totalItemsPrice: totalItemsPrice.toFixed(2), 
+            shippingCost: shippingCost.toFixed(2), 
+            importCharges: importCharges.toFixed(2), 
+            totalPrice: totalPrice.toFixed(2), 
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
