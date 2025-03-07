@@ -34,7 +34,20 @@ const userSchema = new mongoose.Schema({
     password: { type: String },
     name: { type: String },
     cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
+    location: {
+        type: {
+            type: String,
+            enum: ['Point'],
+            required: true
+        },
+        coordinates: {
+            type: [Number],
+            required: true
+        }
+    }
 });
+
+userSchema.index({ location: '2dsphere' });
 
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();

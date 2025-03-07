@@ -115,7 +115,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { signUp, login, changePassword } = require('../controllers/authController');
+const { signUp, login, changePassword, updateLocation, getLocation } = require('../controllers/authController');
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel'); 
 
@@ -144,6 +144,8 @@ const authMiddleware = async (req, res, next) => {
 router.post('/signup', signUp); 
 router.post('/login', login); 
 router.post('/change-password', changePassword); 
+router.post('/update-location', authMiddleware, updateLocation);
+router.get('/location/:email', authMiddleware, getLocation);
 
 
 router.get('/home', authMiddleware, (req, res) => {
