@@ -7,7 +7,7 @@ const { authMiddleware } = require('./authRoutes');
 router.post('/add', authMiddleware, addToCart);
 router.get('/', authMiddleware, getCart);
 router.put('/update', authMiddleware, updateCartItem);
-router.delete('/remove/:itemId', authMiddleware, removeCartItem); 
+router.delete('/remove', authMiddleware, removeCartItem);
 router.get('/summary', authMiddleware, getCartSummary);
 router.post('/apply-coupon', authMiddleware, applyCoupon);
 
