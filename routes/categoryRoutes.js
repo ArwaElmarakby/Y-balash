@@ -4,8 +4,8 @@ const { addCategory, getCategories, deleteCategory, updateCategory, searchCatego
 
 router.post('/add', addCategory); // Image upload is handled inside the controller
 router.get('/all', getCategories);
-router.delete('/delete/:id', deleteCategory);
-router.put('/update/:id', updateCategory); // Image upload is handled inside the controller
+router.delete('/delete', deleteCategory);
+router.put('/update', updateCategory); // Image upload is handled inside the controller
 router.get('/search', searchCategories);
 router.post('/add-item', addItemToCategory);
 // router.get('/:categoryId/items', getCategoryItems);
