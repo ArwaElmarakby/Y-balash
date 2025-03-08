@@ -11,9 +11,9 @@ router.post('/address', authMiddleware, addAddress);
 router.get('/addresses', authMiddleware, getAddresses);
 
 // Update an address
-router.put('/address/:addressId', authMiddleware, updateAddress);
+router.put('/address', authMiddleware, updateAddress);
 
 // Delete an address
-router.delete('/address/:addressId', authMiddleware, deleteAddress);
+router.delete('/address', authMiddleware, deleteAddress);
 
 module.exports = router;
