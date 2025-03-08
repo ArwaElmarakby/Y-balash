@@ -66,8 +66,7 @@ exports.updateOffer = async (req, res) => {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { id } = req.params;
-    const { title, subject, description } = req.body;
+    const { id, title, subject, description } = req.body;
     const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
 
     try {
@@ -93,7 +92,7 @@ exports.updateOffer = async (req, res) => {
 
 // Delete Offer
 exports.deleteOffer = async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.body;
 
   try {
     const offer = await Offer.findByIdAndDelete(id);
