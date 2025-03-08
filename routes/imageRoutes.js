@@ -5,8 +5,8 @@ const { addImage, getImages, deleteImage, updateImage, searchImage, incrementVie
 
 router.post('/add', addImage); // Image upload is handled inside the controller
 router.get('/all', getImages);
-router.delete('/delete/:id', deleteImage);
-router.put('/update/:id', updateImage); // Image upload is handled inside the controller
+router.delete('/delete', deleteImage);
+router.put('/update', updateImage); // Image upload is handled inside the controller
 router.get('/search', searchImage);
 router.put('/view/:id', incrementViews);
 router.get('/best-selling', getBestSelling);
