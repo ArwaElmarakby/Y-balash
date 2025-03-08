@@ -44,7 +44,7 @@ exports.getFavorites = async (req, res) => {
 
 // Remove image from favorites
 exports.removeFromFavorites = async (req, res) => {
-    const { itemId } = req.params;
+    const { itemId } = req.body;
     const userId = req.user._id;
 
     try {

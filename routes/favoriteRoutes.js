@@ -6,6 +6,6 @@ const { authMiddleware } = require('./authRoutes');
 
 router.post('/add', authMiddleware, addToFavorites);
 router.get('/', authMiddleware, getFavorites);
-router.delete('/remove/:itemId', authMiddleware, removeFromFavorites);
+router.delete('/remove', authMiddleware, removeFromFavorites); 
 
 module.exports = router;
