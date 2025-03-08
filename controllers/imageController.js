@@ -153,7 +153,7 @@ exports.getImages = async (req, res) => {
 
 
 exports.incrementViews = async (req, res) => {
-    const { id } = req.params;
+  const { id } = req.body;
 
     try {
         const image = await Image.findByIdAndUpdate(

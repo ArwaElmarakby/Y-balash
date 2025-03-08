@@ -8,7 +8,7 @@ router.get('/all', getImages);
 router.delete('/delete', deleteImage);
 router.put('/update', updateImage); // Image upload is handled inside the controller
 router.get('/search', searchImage);
-router.put('/view/:id', incrementViews);
+router.put('/view', incrementViews);
 router.get('/best-selling', getBestSelling);
 router.post('/item-details', getItemDetails);
 
