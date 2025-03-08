@@ -5,7 +5,7 @@ const { addOffer, getOffers, updateOffer, deleteOffer } = require('../controller
 
 router.post('/add', addOffer); // Add Today's Offer
 router.get('/all', getOffers); // Get All Offers
-router.put('/update', updateOffer); // Update Offer
-router.delete('/delete', deleteOffer); // Delete Offer
+router.put('/update/:id', updateOffer); // Update Offer
+router.delete('/delete/:id', deleteOffer); // Delete Offer
 
 module.exports = router;

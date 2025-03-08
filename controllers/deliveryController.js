@@ -29,7 +29,8 @@ exports.getAddresses = async (req, res) => {
 
 // Update an address
 exports.updateAddress = async (req, res) => {
-    const { addressId, street, city, state, postalCode, country } = req.body;
+    const { addressId } = req.params;
+    const { street, city, state, postalCode, country } = req.body;
 
     try {
         const updatedAddress = await Address.findByIdAndUpdate(
@@ -50,7 +51,7 @@ exports.updateAddress = async (req, res) => {
 
 // Delete an address
 exports.deleteAddress = async (req, res) => {
-    const { addressId } = req.body;
+    const { addressId } = req.params;
 
     try {
         const address = await Address.findByIdAndDelete(addressId);

@@ -135,7 +135,7 @@ exports.getCategories = async (req, res) => {
 
 
   exports.deleteCategory = async (req, res) => {
-    const { id } = req.body;
+    const { id } = req.params;
   
     try {
       const category = await Category.findByIdAndDelete(id);
@@ -155,7 +155,8 @@ exports.getCategories = async (req, res) => {
         return res.status(500).json({ message: "Image upload failed", error: err });
       }
   
-      const { id, name } = req.body;
+      const { id } = req.params;
+      const { name } = req.body;
       const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
   
       try {

@@ -70,7 +70,7 @@ exports.updateCartItem = async (req, res) => {
 
 // Remove item from cart
 exports.removeCartItem = async (req, res) => {
-    const { itemId } = req.body;
+    const { itemId } = req.params;
     const userId = req.user._id;
 
     try {
