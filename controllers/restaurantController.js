@@ -59,7 +59,7 @@ exports.getRestaurants = async (req, res) => {
 
 
   exports.deleteRestaurant = async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.body;
   
     try {
       const restaurant = await Restaurant.findByIdAndDelete(id);
@@ -79,8 +79,7 @@ exports.getRestaurants = async (req, res) => {
         return res.status(500).json({ message: "Image upload failed", error: err });
       }
   
-      const { id } = req.params;
-      const { name, description } = req.body;
+      const { id, name, description } = req.body;
       const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
   
       try {

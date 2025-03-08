@@ -17,8 +17,8 @@ const { addRestaurant, getRestaurants, deleteRestaurant, updateRestaurant, searc
 
 router.post('/add', addRestaurant); // Image upload is handled inside the controller
 router.get('/all', getRestaurants);
-router.delete('/delete/:id', deleteRestaurant);
-router.put('/update/:id', updateRestaurant); // Image upload is handled inside the controller
+router.delete('/delete', deleteRestaurant);
+router.put('/update', updateRestaurant); // Image upload is handled inside the controller
 router.get('/search', searchRestaurants);
 
 module.exports = router;
