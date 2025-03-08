@@ -92,7 +92,7 @@ exports.getImages = async (req, res) => {
   };
 
   exports.deleteImage = async (req, res) => {
-    const { id } = req.body;
+    const { id } = req.params;
   
     try {
       const image = await Image.findByIdAndDelete(id);
@@ -111,7 +111,8 @@ exports.getImages = async (req, res) => {
         return res.status(500).json({ message: "Image upload failed", error: err });
       }
   
-      const { id, name, quantity, price } = req.body;
+      const { id } = req.params;
+      const { name, quantity, price } = req.body;
       const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
   
       try {
