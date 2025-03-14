@@ -95,7 +95,7 @@ exports.updateCartItem = async (req, res) => {
 
 // Remove item from cart
 exports.removeCartItem = async (req, res) => {
-    const { itemId, offerId } = req.params;
+    const { param1, param2 } = req.params; 
     const userId = req.user._id;
 
     try {
@@ -104,12 +104,24 @@ exports.removeCartItem = async (req, res) => {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
-        if (itemId) {
-            cart.items = cart.items.filter(item => item.itemId.toString() !== itemId);
-        }
+        if (param1 && !param2) {
 
-        if (offerId) {
-            cart.offers = cart.offers.filter(offer => offer.offerId.toString() !== offerId);
+            const isItem = cart.items.some(item => item.itemId.toString() === param1);
+            const isOffer = cart.offers.some(offer => offer.offerId.toString() === param1);
+
+            if (isItem) {
+                cart.items = cart.items.filter(item => item.itemId.toString() !== param1);
+            } else if (isOffer) {
+                cart.offers = cart.offers.filter(offer => offer.offerId.toString() !== param1);
+            } else {
+                return res.status(404).json({ message: 'Item/Offer not found in cart' });
+            }
+        } else if (param1 && param2) {
+
+            cart.items = cart.items.filter(item => item.itemId.toString() !== param1);
+            cart.offers = cart.offers.filter(offer => offer.offerId.toString() !== param2);
+        } else {
+            return res.status(400).json({ message: 'Invalid request' });
         }
 
         await cart.save();
