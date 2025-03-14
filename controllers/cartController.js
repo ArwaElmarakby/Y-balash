@@ -4,25 +4,38 @@ const Coupon = require('../models/couponModel');
 
 // Add item to cart
 exports.addToCart = async (req, res) => {
-    const { itemId, quantity } = req.body;
+    const { itemId, offerId, quantity } = req.body; 
     const userId = req.user._id; // Get user ID from the request
 
     try {
         let cart = await Cart.findOne({ userId });
 
         if (!cart) {
-            cart = new Cart({ userId, items: [] });
+            cart = new Cart({ userId, items: [], offers: [] });
         }
 
-        const existingItem = cart.items.find(item => item.itemId.toString() === itemId);
-        if (existingItem) {
-            existingItem.quantity += quantity; // Update quantity if item already exists
-        } else {
-            cart.items.push({ itemId, quantity });
+        if (itemId) {
+            const existingItem = cart.items.find(item => item.itemId.toString() === itemId);
+            if (existingItem) {
+                existingItem.quantity += quantity; 
+            } else {
+                cart.items.push({ itemId, quantity }); 
+            }
         }
+
+        
+        if (offerId) {
+            const existingOffer = cart.offers.find(offer => offer.offerId.toString() === offerId);
+            if (existingOffer) {
+                existingOffer.quantity += quantity; 
+            } else {
+                cart.offers.push({ offerId, quantity }); 
+            }
+        }
+
 
         await cart.save();
-        res.status(200).json({ message: 'Item added to cart', cart });
+        res.status(200).json({ message: 'Item/Offer added to cart', cart });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
