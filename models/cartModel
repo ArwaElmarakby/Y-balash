@@ -8,6 +8,12 @@ const cartSchema = new mongoose.Schema({
             itemId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'Image' }, 
             quantity: { type: Number, required: true, default: 1 }
         }
+    ],
+    offers: [
+        {
+            offerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Offer' }, 
+            quantity: { type: Number, required: true, default: 1 }
+        }
     ]
 });
 
