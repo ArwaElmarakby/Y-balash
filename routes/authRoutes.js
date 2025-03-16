@@ -118,7 +118,7 @@ const router = express.Router();
 const { signUp, login, changePassword } = require('../controllers/authController');
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel'); 
-
+const { authMiddleware } = require('./authRoutes');
 
 const authMiddleware = async (req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -148,6 +148,31 @@ router.post('/change-password', changePassword);
 
 router.get('/home', authMiddleware, (req, res) => {
     res.send(`Hi ${req.user.email}`); 
+});
+
+
+router.get('/profile', authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id); 
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+
+        const emailPrefix = user.email.split('@')[0];
+
+
+        res.status(200).json({
+            profileImage: user.profileImage, 
+            name: emailPrefix, 
+            email: user.email, 
+            gender: user.gender, 
+            birthday: user.birthday, 
+            phone: user.phone, 
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
 });
 
 
