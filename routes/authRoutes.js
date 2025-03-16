@@ -151,4 +151,44 @@ router.get('/home', authMiddleware, (req, res) => {
 });
 
 
+
+
+// New routes for user profile
+router.get('/profile', authMiddleware, (req, res) => {
+    const { email, gender, birthday, phone, imageUrl } = req.user;
+    const username = email.split('@')[0]; // Extract username from email
+
+    res.status(200).json({
+        username,
+        email,
+        gender: gender || 'Not specified',
+        birthday: birthday || 'Not specified',
+        phone: phone || 'Not specified',
+        imageUrl: imageUrl || 'No image'
+    });
+});
+
+router.put('/profile/update', authMiddleware, async (req, res) => {
+    const { gender, birthday, phone, imageUrl } = req.body;
+
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (gender) user.gender = gender;
+        if (birthday) user.birthday = birthday;
+        if (phone) user.phone = phone;
+        if (imageUrl) user.imageUrl = imageUrl;
+
+        await user.save();
+
+        res.status(200).json({ message: 'Profile updated successfully', user });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
 module.exports = { router, authMiddleware };

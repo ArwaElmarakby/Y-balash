@@ -33,6 +33,9 @@ const userSchema = new mongoose.Schema({
     phone: { type: String, required: true, unique: true },
     password: { type: String },
     name: { type: String },
+    gender: { type: String, enum: ['Male', 'Female', 'Other'], default: 'Not specified' },
+    birthday: { type: Date },
+    imageUrl: { type: String },
     cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
 });
 
