@@ -852,7 +852,6 @@ const imageRoutes = require('./routes/imageRoutes'); // Import the new routes
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const User = require('./models/userModel');
-const userProfileRoutes = require('./routes/userProfileRoutes');
 const cors = require('cors');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
@@ -1032,7 +1031,6 @@ app.use('/api/delivery', deliveryRoutes);
 app.use('/api/purchases', paymentRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/location', locationRoutes); 
-app.use('/api/user', userProfileRoutes);
 
 
 
@@ -1093,4 +1091,4 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
-// arwaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// arwaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
