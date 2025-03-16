@@ -1023,7 +1023,7 @@ app.post("/verify-otp", (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/images', imageRoutes); 
 app.use('/api/restaurants', restaurantRoutes);
-app.use('/api/categories', categoryRoutes);
+app.use('/api/categories', catezgoryRoutes);
 app.use('/api/cart', cartRoutes); 
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/offers', offerRoutes);
@@ -1091,4 +1091,4 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
-// arwaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// arwaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
