@@ -64,6 +64,7 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const UserProfile = require('../models/userProfileModel');
 
 exports.signUp = async (req, res) => {
     const { email, phone, password, confirmPassword } = req.body;
@@ -87,6 +88,12 @@ exports.signUp = async (req, res) => {
 
         const user = new User({ email, phone, password });
         await user.save();
+
+         // Create user profile
+         const name = email.split('@')[0]; // Extract name from email
+         const userProfile = new UserProfile({ userId: user._id, email, name });
+         await userProfile.save();
+ 
         res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
