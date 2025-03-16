@@ -848,7 +848,6 @@ const passport = require('passport');
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes').router;  // Custom routes
-const userRoutes = require('./routes/userRoutes');
 const imageRoutes = require('./routes/imageRoutes'); // Import the new routes
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
@@ -1022,7 +1021,6 @@ app.post("/verify-otp", (req, res) => {
 
 // Custom API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
 app.use('/api/images', imageRoutes); 
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -1093,4 +1091,4 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
-// arwaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// arwaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
