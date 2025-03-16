@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema({
     name: { type: String },
     gender: { type: String, enum: ['Male', 'Female', 'Other'], default: 'Not specified' },
     birthday: { type: Date },
-    imageUrl: { type: String },
+    imageUrl: { type: String }, 
     cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
 });
 

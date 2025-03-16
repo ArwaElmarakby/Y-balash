@@ -118,6 +118,30 @@ const router = express.Router();
 const { signUp, login, changePassword } = require('../controllers/authController');
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel'); 
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+
+
+// Cloudinary Configuration
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Multer + Cloudinary Storage
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'users', // مجلد لتخزين صور المستخدمين
+        allowed_formats: ['jpg', 'jpeg', 'png'], // الصيغ المسموحة
+    },
+});
+
+const upload = multer({ storage: storage });
+
 
 
 const authMiddleware = async (req, res, next) => {
@@ -169,7 +193,8 @@ router.get('/profile', authMiddleware, (req, res) => {
 });
 
 router.put('/profile/update', authMiddleware, async (req, res) => {
-    const { gender, birthday, phone, imageUrl } = req.body;
+    const { gender, birthday, phone } = req.body;
+    const imageUrl = req.file ? req.file.path : null;
 
     try {
         const user = await User.findById(req.user._id);
