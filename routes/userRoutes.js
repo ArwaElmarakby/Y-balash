@@ -28,7 +28,8 @@ router.get('/profile', authMiddleware, async (req, res) => {
         res.status(200).json({
             username,
             email: user.email,
-            name: user.name || null,
+            firstName: user.firstName || null, 
+            lastName: user.lastName || null,
             gender: user.gender,
             birthday: user.birthday || null,
             phone: user.phone,
@@ -39,14 +40,18 @@ router.get('/profile', authMiddleware, async (req, res) => {
     }
 });
 
-// Update User Name
+// routes/userRoutes.js
 router.put('/update-name', authMiddleware, async (req, res) => {
-    const { name } = req.body;
+    const { firstName, lastName } = req.body;
+
+    if (!firstName || !lastName) {
+        return res.status(400).json({ message: 'First name and last name are required' });
+    }
 
     try {
         const user = await User.findByIdAndUpdate(
             req.user._id,
-            { name },
+            { firstName, lastName },
             { new: true }
         ).select('-password');
 
@@ -126,6 +131,32 @@ router.put('/update-profile-image', authMiddleware, upload.single('image'), asyn
 
             res.status(200).json({ message: 'Profile image updated successfully', user });
         }).end(req.file.buffer);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
+router.put('/update-gender', authMiddleware, async (req, res) => {
+    const { gender } = req.body;
+
+    // التحقق من أن القيمة المدخلة صحيحة
+    if (!['male', 'female', 'other'].includes(gender)) {
+        return res.status(400).json({ message: 'Invalid gender value' });
+    }
+
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            { gender },
+            { new: true }
+        ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({ message: 'Gender updated successfully', user });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
