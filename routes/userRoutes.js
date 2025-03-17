@@ -28,11 +28,11 @@ router.get('/profile', authMiddleware, async (req, res) => {
         res.status(200).json({
             username,
             email: user.email,
-            name: user.name,
+            name: user.name || null,
             gender: user.gender,
-            birthday: user.birthday,
+            birthday: user.birthday || null,
             phone: user.phone,
-            profileImage: user.profileImage,
+            profileImage: user.profileImage || null,
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
