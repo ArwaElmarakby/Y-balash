@@ -19,7 +19,7 @@ const orderSchema = new mongoose.Schema({
   ],
   totalAmount: { type: Number, required: true },
   shippingAddress: { type: Object, required: true },
-  paymentStatus: { type: String, default: 'pending' },
+  paymentStatus: { type: String, default: 'pending', enum: ['pending', 'paid', 'failed', 'refunded'] },
   orderDate: { type: Date, default: Date.now }
 });
 

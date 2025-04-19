@@ -1,3 +1,4 @@
+// controllers/orderController.js
 const Order = require('../models/orderModel');
 
 exports.getOrderStatistics = async (req, res) => {
@@ -8,14 +9,16 @@ exports.getOrderStatistics = async (req, res) => {
     const previousMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
     const previousMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
 
-    // Get orders for current month
+    // Get PAID orders for current month
     const currentMonthOrders = await Order.find({
-      orderDate: { $gte: currentMonthStart, $lte: currentDate }
+      orderDate: { $gte: currentMonthStart, $lte: currentDate },
+      paymentStatus: 'paid' // Only count paid orders
     });
 
-    // Get orders for previous month
+    // Get PAID orders for previous month
     const previousMonthOrders = await Order.find({
-      orderDate: { $gte: previousMonthStart, $lte: previousMonthEnd }
+      orderDate: { $gte: previousMonthStart, $lte: previousMonthEnd },
+      paymentStatus: 'paid' // Only count paid orders
     });
 
     // Calculate totals
@@ -30,7 +33,7 @@ exports.getOrderStatistics = async (req, res) => {
       percentageChange = 100; // No previous orders, but we have current orders
     }
 
-    // Prepare simplified response
+    // Prepare response
     const response = {
       totalOrders: currentMonthTotal,
       percentageChange: percentageChange.toFixed(2)
