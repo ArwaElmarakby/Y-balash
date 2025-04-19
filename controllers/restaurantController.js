@@ -159,24 +159,25 @@ exports.addItemToRestaurant = async (req, res) => {
   const { restaurantId, itemId } = req.body;
 
   try {
-
+    // 1. التأكد من وجود المطعم
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    
+    // 2. التأكد من وجود الـ product (image)
     const item = await Image.findById(itemId);
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
 
-
+    // 3. إضافة الـ item إلى المطعم (إذا لم يكن مضافًا من قبل)
     if (!restaurant.items.includes(itemId)) {
       restaurant.items.push(itemId);
       await restaurant.save();
     }
 
+    // 4. تحديث الـ item ليشير إلى المطعم (اختياري)
     item.restaurant = restaurantId;
     await item.save();
 
@@ -185,7 +186,11 @@ exports.addItemToRestaurant = async (req, res) => {
       restaurant 
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    console.error("Error in addItemToRestaurant:", error); // ← طباعة الخطأ في السيرفر
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message // ← إرسال رسالة الخطأ في الـ response
+    });
   }
 };
 
