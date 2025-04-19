@@ -863,7 +863,6 @@ const deliveryRoutes = require('./routes/deliveryRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const couponRoutes = require('./routes/couponRoutes');
-const orderRoutes = require('./routes/orderRoutes');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -1034,7 +1033,6 @@ app.use('/api/delivery', deliveryRoutes);
 app.use('/api/purchases', paymentRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/location', locationRoutes); 
-app.use('/api/orders', orderRoutes);
 
 
 
