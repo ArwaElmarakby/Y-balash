@@ -6,7 +6,8 @@ const imageSchema = new mongoose.Schema({
   quantity: { type: String, required: true },
   imageUrl: { type: String, required: true },
   views: { type: Number, default: 0 },
-  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  restaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' }
 });
 
 module.exports = mongoose.model('Image', imageSchema);

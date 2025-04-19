@@ -1,5 +1,6 @@
 const Restaurant = require('../models/restaurantModel');
 const Order = require('../models/orderModel');
+const Image = require('../models/imageModel');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -150,5 +151,93 @@ exports.getRestaurantById = async (req, res) => {
       res.status(200).json(restaurant);
   } catch (error) {
       res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
+exports.addImageToRestaurant = async (req, res) => {
+  const { restaurantId, imageId } = req.body; 
+
+  try {
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    const image = await Image.findById(imageId); 
+    if (!image) {
+      return res.status(404).json({ message: 'Image not found' });
+    }
+
+    if (!restaurant.images.includes(imageId)) { 
+      restaurant.images.push(imageId);
+      await restaurant.save();
+    }
+
+    image.restaurant = restaurantId;
+    await image.save();
+
+    res.status(200).json({ 
+      message: 'Image added to restaurant successfully', 
+      restaurant 
+    });
+  } catch (error) {
+    console.error("Error in addImageToRestaurant:", error);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+
+exports.getRestaurantById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const restaurant = await Restaurant.findById(id).populate('images'); 
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    res.status(200).json(restaurant);
+  } catch (error) {
+    console.error("Error in getRestaurantById:", error);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+
+exports.removeImageFromRestaurant = async (req, res) => {
+  const { restaurantId, imageId } = req.body;
+
+  try {
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    restaurant.images = restaurant.images.filter(img => img.toString() !== imageId);
+    await restaurant.save();
+
+    const image = await Image.findById(imageId);
+    if (image) {
+      image.restaurant = null;
+      await image.save();
+    }
+
+    res.status(200).json({ 
+      message: 'Image removed from restaurant successfully', 
+      restaurant 
+    });
+  } catch (error) {
+    console.error("Error in removeImageFromRestaurant:", error);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
