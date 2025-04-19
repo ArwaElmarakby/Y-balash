@@ -1,4 +1,5 @@
 const Restaurant = require('../models/restaurantModel');
+const Order = require('../models/orderModel');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -122,3 +123,16 @@ exports.getRestaurants = async (req, res) => {
       res.status(500).json({ message: 'Server error', error });
     }
   };
+
+
+
+  exports.getTotalOrders = async (req, res) => {
+    const { id } = req.params; // Get restaurant ID from the URL
+
+    try {
+        const totalOrders = await Order.countDocuments({ restaurantId: id }); // Count orders for the restaurant
+        res.status(200).json({ totalOrders });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
