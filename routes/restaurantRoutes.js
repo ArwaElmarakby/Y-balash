@@ -13,7 +13,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { addRestaurant, getRestaurants, deleteRestaurant, updateRestaurant, searchRestaurants, getTotalOrders, getRestaurantById  } = require('../controllers/restaurantController');
+const { addRestaurant, getRestaurants, deleteRestaurant, updateRestaurant, searchRestaurants, getTotalOrders ,getRestaurantById} = require('../controllers/restaurantController');
 
 router.post('/add', addRestaurant); // Image upload is handled inside the controller
 router.get('/all', getRestaurants);

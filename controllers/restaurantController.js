@@ -139,7 +139,6 @@ exports.getRestaurants = async (req, res) => {
 
 
 
-
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
@@ -153,5 +152,3 @@ exports.getRestaurantById = async (req, res) => {
       res.status(500).json({ message: 'Server error', error });
   }
 };
-
-
