@@ -140,16 +140,70 @@ exports.getRestaurants = async (req, res) => {
 
 
 
+// exports.getRestaurantById = async (req, res) => {
+//   const { id } = req.params;
+
+//   try {
+//       const restaurant = await Restaurant.findById(id);
+//       if (!restaurant) {
+//           return res.status(404).json({ message: 'Restaurant not found' });
+//       }
+//       res.status(200).json(restaurant);
+//   } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
+
+exports.addItemToRestaurant = async (req, res) => {
+  const { restaurantId, itemId } = req.body;
+
+  try {
+
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    
+    const item = await Image.findById(itemId);
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+
+    if (!restaurant.items.includes(itemId)) {
+      restaurant.items.push(itemId);
+      await restaurant.save();
+    }
+
+    item.restaurant = restaurantId;
+    await item.save();
+
+    res.status(200).json({ 
+      message: 'Item added to restaurant successfully', 
+      restaurant 
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
-      const restaurant = await Restaurant.findById(id);
-      if (!restaurant) {
-          return res.status(404).json({ message: 'Restaurant not found' });
-      }
-      res.status(200).json(restaurant);
+    const restaurant = await Restaurant.findById(id).populate('items'); 
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    res.status(200).json({
+      ...restaurant._doc,
+      items: restaurant.items 
+    });
   } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: 'Server error', error });
   }
 };
