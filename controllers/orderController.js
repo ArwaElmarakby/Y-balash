@@ -52,15 +52,32 @@
 
 
 
-// controllers/orderController.js
-const Order = require('../models/orderModel');
-const User = require('../models/userModel');
+// // controllers/orderController.js
+// const Order = require('../models/orderModel');
+// const User = require('../models/userModel');
 
-exports.getAllOrders = async (req, res) => {
+// exports.getAllOrders = async (req, res) => {
+//     try {
+//         const orders = await Order.find()
+//             .populate('customerId', 'email firstName lastName') // Populate customer details
+//             .populate('products.productId', 'name price'); // Populate product details
+
+//         res.status(200).json(orders);
+//     } catch (error) {
+//         res.status(500).json({ message: 'Server error', error });
+//     }
+// };
+
+
+
+
+
+// controllers/orderController.js
+exports.getPaidOrders = async (req, res) => {
     try {
-        const orders = await Order.find()
-            .populate('customerId', 'email firstName lastName') // Populate customer details
-            .populate('products.productId', 'name price'); // Populate product details
+        const orders = await Order.find({ paymentStatus: 'paid' })
+            .populate('customerId', 'email firstName lastName')
+            .populate('products.productId', 'name price');
 
         res.status(200).json(orders);
     } catch (error) {

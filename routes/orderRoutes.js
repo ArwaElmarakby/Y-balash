@@ -10,11 +10,23 @@
 
 
 
+// // routes/orderRoutes.js
+// const express = require('express');
+// const router = express.Router();
+// const { getAllOrders } = require('../controllers/orderController');
+
+// router.get('/all', getAllOrders);
+
+// module.exports = router;
+
+
+
+
 // routes/orderRoutes.js
 const express = require('express');
 const router = express.Router();
-const { getAllOrders } = require('../controllers/orderController');
+const { getPaidOrders } = require('../controllers/orderController');
 
-router.get('/all', getAllOrders);
+router.get('/paid', getPaidOrders);
 
 module.exports = router;
