@@ -140,75 +140,18 @@ exports.getRestaurants = async (req, res) => {
 
 
 
-// exports.getRestaurantById = async (req, res) => {
-//   const { id } = req.params;
-
-//   try {
-//       const restaurant = await Restaurant.findById(id);
-//       if (!restaurant) {
-//           return res.status(404).json({ message: 'Restaurant not found' });
-//       }
-//       res.status(200).json(restaurant);
-//   } catch (error) {
-//       res.status(500).json({ message: 'Server error', error });
-//   }
-// };
-
-
-exports.addItemToRestaurant = async (req, res) => {
-  const { restaurantId, itemId } = req.body;
-
-  try {
-    // 1. التأكد من وجود المطعم
-    const restaurant = await Restaurant.findById(restaurantId);
-    if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
-    }
-
-    // 2. التأكد من وجود الـ product (image)
-    const image = await Image.findById(imageId);
-    if (!image) {
-      return res.status(404).json({ message: 'Item not found' });
-    }
-
-    // 3. إضافة الـ item إلى المطعم (إذا لم يكن مضافًا من قبل)
-    if (!restaurant.images.includes(imageId)) {
-      restaurant.images.push(imageId);
-      await restaurant.save();
-    }
-
-    // 4. تحديث الـ item ليشير إلى المطعم (اختياري)
-    image.restaurant = restaurantId;
-    await image.save();
-
-    res.status(200).json({ 
-      message: 'Item added to restaurant successfully', 
-      restaurant 
-    });
-  } catch (error) {
-    console.error("Error in addItemToRestaurant:", error); // ← طباعة الخطأ في السيرفر
-    res.status(500).json({ 
-      message: 'Server error',
-      error: error.message // ← إرسال رسالة الخطأ في الـ response
-    });
-  }
-};
-
-
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const restaurant = await Restaurant.findById(id).populate('images'); 
-    if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
-    }
-
-    res.status(200).json({
-      ...restaurant._doc,
-      images: restaurant.images 
-    });
+      const restaurant = await Restaurant.findById(id);
+      if (!restaurant) {
+          return res.status(404).json({ message: 'Restaurant not found' });
+      }
+      res.status(200).json(restaurant);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+      res.status(500).json({ message: 'Server error', error });
   }
 };
+
+
