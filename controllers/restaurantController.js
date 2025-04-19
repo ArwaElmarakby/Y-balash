@@ -166,20 +166,20 @@ exports.addItemToRestaurant = async (req, res) => {
     }
 
     // 2. التأكد من وجود الـ product (image)
-    const item = await Image.findById(itemId);
-    if (!item) {
+    const image = await Image.findById(imageId);
+    if (!image) {
       return res.status(404).json({ message: 'Item not found' });
     }
 
     // 3. إضافة الـ item إلى المطعم (إذا لم يكن مضافًا من قبل)
-    if (!restaurant.items.includes(itemId)) {
-      restaurant.items.push(itemId);
+    if (!restaurant.images.includes(imageId)) {
+      restaurant.images.push(imageId);
       await restaurant.save();
     }
 
     // 4. تحديث الـ item ليشير إلى المطعم (اختياري)
-    item.restaurant = restaurantId;
-    await item.save();
+    image.restaurant = restaurantId;
+    await image.save();
 
     res.status(200).json({ 
       message: 'Item added to restaurant successfully', 
@@ -199,14 +199,14 @@ exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const restaurant = await Restaurant.findById(id).populate('items'); 
+    const restaurant = await Restaurant.findById(id).populate('images'); 
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
     res.status(200).json({
       ...restaurant._doc,
-      items: restaurant.items 
+      images: restaurant.images 
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
