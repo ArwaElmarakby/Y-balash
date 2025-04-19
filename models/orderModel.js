@@ -33,29 +33,6 @@
 
 
 
-// // models/orderModel.js
-// const mongoose = require('mongoose');
-
-// const orderSchema = new mongoose.Schema({
-//     customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User ', required: true },
-//     products: [
-//         {
-//             productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Image', required: true },
-//             quantity: { type: Number, required: true }
-//         }
-//     ],
-//     total: { type: Number, required: true },
-//     status: { type: String, enum: ['pending', 'completed', 'canceled'], default: 'pending' },
-//     createdAt: { type: Date, default: Date.now }
-// });
-
-// module.exports = mongoose.model('Order', orderSchema);
-
-
-
-
-
-
 // models/orderModel.js
 const mongoose = require('mongoose');
 
@@ -69,8 +46,6 @@ const orderSchema = new mongoose.Schema({
     ],
     total: { type: Number, required: true },
     status: { type: String, enum: ['pending', 'completed', 'canceled'], default: 'pending' },
-    paymentStatus: { type: String, enum: ['paid', 'unpaid'], default: 'unpaid' }, // إضافة حقل حالة الدفع
-    paymentIntentId: { type: String }, // لتخزين معرف الدفع من Stripe
     createdAt: { type: Date, default: Date.now }
 });
 
