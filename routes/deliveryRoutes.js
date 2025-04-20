@@ -27,6 +27,6 @@ const { addAddress } = require('../controllers/deliveryController');
 const { authMiddleware } = require('./authRoutes');
 
 router.post('/add-address', authMiddleware, addAddress);
-router.get('/my-addresses', authMiddleware, getUserAddresses);
+
 
 module.exports = router;
