@@ -38,6 +38,7 @@ const userSchema = new mongoose.Schema({
     birthday: { type: Date },
     profileImage: { type: String },
     cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
+    addresses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Address' }]
 });
 
 userSchema.pre('save', async function (next) {
