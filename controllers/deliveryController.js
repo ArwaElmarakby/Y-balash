@@ -106,3 +106,14 @@ exports.addAddress = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
+
+
+
+exports.getUserAddresses = async (req, res) => {
+    try {
+      const addresses = await Address.find({ userId: req.user._id });
+      res.status(200).json(addresses);
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+    }
+  };
