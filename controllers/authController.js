@@ -143,34 +143,7 @@ exports.changePassword = async (req, res) => {
 };
 
 
-// Get all users with their details
-exports.getAllUsers = async (req, res) => {
-    try {
-        // Get all users and populate their addresses
-        const users = await User.find({})
-            .select('email phone')
-            .populate({
-                path: 'addresses',
-                select: 'country cityArea streetName'
-            });
 
-        // Format the response
-        const formattedUsers = users.map(user => ({
-            email: user.email,
-            phone: user.phone,
-            address: user.addresses ? {
-                country: user.addresses.country,
-                cityArea: user.addresses.cityArea,
-                streetName: user.addresses.streetName
-            } : null
-        }));
-
-        res.status(200).json(formattedUsers);
-    } catch (error) {
-        console.error("Error getting users:", error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
 
 
 
