@@ -23,10 +23,11 @@
 
 const express = require('express');
 const router = express.Router();
-const { addAddress } = require('../controllers/deliveryController');
+const { addAddress, getUserAddresses  } = require('../controllers/deliveryController');
 const { authMiddleware } = require('./authRoutes');
 
 router.post('/add-address', authMiddleware, addAddress);
+router.get('/my-addresses', authMiddleware, getUserAddresses);
 
 
 module.exports = router;
