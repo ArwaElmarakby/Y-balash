@@ -241,3 +241,14 @@ exports.removeImageFromRestaurant = async (req, res) => {
     });
   }
 };
+
+
+
+exports.getTotalRestaurants = async (req, res) => {
+  try {
+      const total = await Restaurant.countDocuments();
+      res.status(200).json({ totalRestaurants: total });
+  } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+  }
+};
