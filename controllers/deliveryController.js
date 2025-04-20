@@ -120,3 +120,69 @@ exports.getUserAddresses = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
+
+
+
+exports.updateAddress = async (req, res) => {
+  const { addressId } = req.params; 
+  const {
+    country,
+    fullName,
+    mobileNumber,
+    streetName,
+    buildingNameNo,
+    cityArea,
+    governorate,
+    nearestLandmark
+  } = req.body;
+
+  try {
+
+    const address = await Address.findOne({
+      _id: addressId,
+      userId: req.user._id 
+    });
+
+    if (!address) {
+      return res.status(404).json({ message: 'Address not found or not owned by user' });
+    }
+
+    
+    address.country = country || address.country;
+    address.fullName = fullName || address.fullName;
+    address.mobileNumber = mobileNumber || address.mobileNumber;
+    address.streetName = streetName || address.streetName;
+    address.buildingNameNo = buildingNameNo || address.buildingNameNo;
+    address.cityArea = cityArea || address.cityArea;
+    address.governorate = governorate || address.governorate;
+    address.nearestLandmark = nearestLandmark || address.nearestLandmark;
+
+    await address.save(); 
+
+    res.status(200).json({ message: 'Address updated successfully', address });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
+
+exports.deleteAddress = async (req, res) => {
+  const { addressId } = req.params; 
+
+  try {
+
+    const deletedAddress = await Address.findOneAndDelete({
+      _id: addressId,
+      userId: req.user._id 
+    });
+
+    if (!deletedAddress) {
+      return res.status(404).json({ message: 'Address not found or not owned by user' });
+    }
+
+    res.status(200).json({ message: 'Address deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
