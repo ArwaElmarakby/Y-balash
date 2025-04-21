@@ -144,6 +144,24 @@ exports.changePassword = async (req, res) => {
 
 
 
+exports.makeAdmin = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        user.role = 'admin';
+        await user.save();
+
+        res.status(200).json({ message: 'User promoted to admin successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
 
 
 
