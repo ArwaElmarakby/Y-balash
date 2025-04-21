@@ -144,6 +144,54 @@ exports.changePassword = async (req, res) => {
 
 
 
+const checkAdmin = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user || user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admins only.' });
+        }
+        next();
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
+
+
+
+exports.makeAdmin = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        // التحقق أولاً أن المستخدم الحالي أدمن باستخدام checkAdmin
+        await checkAdmin(req, res, async () => {
+            const userToPromote = await User.findOne({ email });
+            if (!userToPromote) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            userToPromote.role = 'admin';
+            await userToPromote.save();
+
+            res.status(200).json({ message: 'User promoted to admin successfully' });
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
+
+
+exports.getAllUsers = async (req, res) => {
+    try {
+        await checkAdmin(req, res, async () => {
+            const users = await User.find().select('-password');
+            res.status(200).json(users);
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
 
 
 
