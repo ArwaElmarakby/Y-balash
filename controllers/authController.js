@@ -143,6 +143,29 @@ exports.changePassword = async (req, res) => {
 };
 
 
+exports.addPoints = async (req, res) => {
+    const { amount } = req.body; 
+
+
+    const points = Math.floor(amount / 40) * 5;
+
+    try {
+        const user = await User.findById(req.user._id); 
+        if (!user) {
+            return res.status(404).json({ message: 'User  not found' });
+        }
+
+        user.points += points; 
+        await user.save(); 
+
+        res.status(200).json({ message: 'Points added successfully', points: user.points });
+    } catch (error) {
+        console.error("Error adding points:", error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
 
 
 

@@ -144,6 +144,7 @@ const authMiddleware = async (req, res, next) => {
 router.post('/signup', signUp); 
 router.post('/login', login); 
 router.post('/change-password', changePassword); 
+router.post('/add-points', authMiddleware, addPoints);
 
 
 router.get('/home', authMiddleware, (req, res) => {
