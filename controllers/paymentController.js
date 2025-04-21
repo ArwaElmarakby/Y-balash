@@ -147,12 +147,3 @@ exports.createPayment = async (req, res) => {
     }
 };
 
-
-const pointsResponse = await fetch(`${process.env.API_URL}/api/points/calculate`, {
-    method: 'POST',
-    headers: {
-        'Authorization': `Bearer ${req.user.token}`,
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ totalAmount: totalPrice })
-});
