@@ -38,7 +38,8 @@ const userSchema = new mongoose.Schema({
     birthday: { type: Date },
     profileImage: { type: String },
     cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
-    points: { type: Number, default: 0 }
+    points: { type: Number, default: 0 },
+    isAdmin: { type: Boolean, default: false }
 });
 
 userSchema.pre('save', async function (next) {
