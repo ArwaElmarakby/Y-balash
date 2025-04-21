@@ -100,7 +100,6 @@
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Cart = require('../models/cartModel'); 
-const Points = require('../models/pointsModel'); 
 
 exports.createPayment = async (req, res) => {
     const userId = req.user.id; 
@@ -131,36 +130,18 @@ exports.createPayment = async (req, res) => {
 
         // Total price calculation
         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
-    
-         // Calculate points (5 points for every 40 EGP)
-         const pointsToAdd = Math.floor(totalPrice / 40) * 5;
-
-         // Create or update user's points
-         let userPoints = await Points.findOne({ userId });
-         if (!userPoints) {
-             userPoints = new Points({ userId, points: pointsToAdd, totalSpent: totalPrice });
-         } else {
-             userPoints.points += pointsToAdd;
-             userPoints.totalSpent += totalPrice;
-         }
-         await userPoints.save();
 
         // Create payment intent with the total price
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(totalPrice * 100),  // Convert to cents
+            amount: totalPrice * 100, // Convert to cents
             currency: 'usd', 
             payment_method_types: ['card'], 
             metadata: {
                 userId: userId, 
-                pointsEarned: pointsToAdd.toString()
             },
         });
 
-        res.status(200).json({ 
-            clientSecret: paymentIntent.client_secret,
-            pointsEarned: pointsToAdd,
-            totalPoints: userPoints.points
-        });
+        res.status(200).json({ clientSecret: paymentIntent.client_secret });
     } catch (error) {
         res.status(500).json({ message: 'Payment failed', error: error.message });
     }

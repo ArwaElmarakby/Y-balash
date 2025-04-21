@@ -866,7 +866,6 @@ const couponRoutes = require('./routes/couponRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 const { getTotalCategories } = require('./controllers/categoryController');
 const { getTotalRestaurants } = require('./controllers/restaurantController');
-const pointsRoutes = require('./routes/pointsRoutes');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -1040,7 +1039,6 @@ app.use('/api/location', locationRoutes);
 app.use('/api', statsRoutes);
 app.get('/api/total-categories', getTotalCategories);
 app.get('/api/total-restaurants', getTotalRestaurants);
-app.use('/api/points', pointsRoutes);
 
 
 
