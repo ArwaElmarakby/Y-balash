@@ -14,11 +14,13 @@
 const express = require('express');
 const router = express.Router();
 const { addRestaurant, getRestaurants, deleteRestaurant, updateRestaurant, searchRestaurants, getTotalOrders ,getRestaurantById, addImageToRestaurant, removeImageFromRestaurant} = require('../controllers/restaurantController');
+const { authMiddleware } = require('./authRoutes');
+const adminMiddleware = require('../middleware/adminMiddleware');
 
-router.post('/add', addRestaurant); // Image upload is handled inside the controller
+router.post('/add', authMiddleware, adminMiddleware, addRestaurant); // Image upload is handled inside the controller
 router.get('/all', getRestaurants);
-router.delete('/delete/:id', deleteRestaurant);
-router.put('/update/:id', updateRestaurant); // Image upload is handled inside the controller
+router.delete('/delete/:id', authMiddleware, adminMiddleware, deleteRestaurant);
+router.put('/update/:id', authMiddleware, adminMiddleware, updateRestaurant); // Image upload is handled inside the controller
 router.get('/search', searchRestaurants);
 router.get('/:id/orders', getTotalOrders);
 router.get('/:id', getRestaurantById);
