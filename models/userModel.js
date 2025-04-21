@@ -38,12 +38,7 @@ const userSchema = new mongoose.Schema({
     birthday: { type: Date },
     profileImage: { type: String },
     cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
-    points: { type: Number, default: 0 },
-    role: { 
-        type: String, 
-        enum: ['user', 'admin'], 
-        default: 'user' 
-    }
+    points: { type: Number, default: 0 }
 });
 
 userSchema.pre('save', async function (next) {
