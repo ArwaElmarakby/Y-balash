@@ -202,3 +202,14 @@ exports.getItemDetails = async (req, res) => {
       res.status(500).json({ message: 'Server error', error });
   }
 };
+
+
+
+exports.getItemsSummary = async (req, res) => {
+  try {
+      const items = await Image.find({}, 'name quantity price imageUrl'); // Fetch only the required fields
+      res.status(200).json(items);
+  } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+  }
+};
