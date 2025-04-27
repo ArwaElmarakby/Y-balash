@@ -162,4 +162,35 @@ router.put('/update-gender', authMiddleware, async (req, res) => {
     }
 });
 
+
+
+router.put('/make-seller/:userId', authMiddleware, async (req, res) => {
+    try {
+
+        const currentUser = await User.findById(req.user._id);
+        if (currentUser.role !== 'admin') {
+            return res.status(403).json({ message: 'Only admins can make sellers' });
+        }
+
+
+        const userToUpdate = await User.findByIdAndUpdate(
+            req.params.userId,
+            { role: 'seller' },
+            { new: true }
+        );
+
+        if (!userToUpdate) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({ 
+            message: 'User is now a seller', 
+            user: userToUpdate 
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
 module.exports = router;
