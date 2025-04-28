@@ -28,4 +28,29 @@ router.post('/add-product', authMiddleware, sellerMiddleware, (req, res) => {
     res.status(200).json({ message: 'Product added successfully (seller only)' });
 });
 
+
+router.post('/become-seller', authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        
+        if (user.isSeller) {
+            return res.status(400).json({ message: 'You are already a seller!' });
+        }
+
+        user.isSeller = true;
+        await user.save();
+
+        res.status(200).json({ 
+            message: 'Congratulations! You are now a seller.',
+            user: {
+                _id: user._id,
+                email: user.email,
+                isSeller: true
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
 module.exports = router;
