@@ -140,7 +140,6 @@ router.put('/update-profile-image', authMiddleware, upload.single('image'), asyn
 router.put('/update-gender', authMiddleware, async (req, res) => {
     const { gender } = req.body;
 
-    // التحقق من أن القيمة المدخلة صحيحة
     if (!['male', 'female', 'other'].includes(gender)) {
         return res.status(400).json({ message: 'Invalid gender value' });
     }
@@ -164,39 +163,6 @@ router.put('/update-gender', authMiddleware, async (req, res) => {
 
 
 
-router.post('/promote-to-seller', authMiddleware, adminMiddleware, async (req, res) => {
-    const { userId, restaurantId } = req.body;
-    
-    try {
-        const user = await User.findByIdAndUpdate(
-            userId,
-            { 
-                isSeller: true,
-                restaurant: restaurantId 
-            },
-            { new: true }
-        );
-        
-        if (!user) {
-            return res.status(404).json({ 
-                success: false,
-                message: 'User not found' 
-            });
-        }
-        
-        res.status(200).json({ 
-            success: true,
-            message: 'User promoted to seller successfully', 
-            user 
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false,
-            message: 'Server error', 
-            error 
-        });
-    }
-});
 
 
 module.exports = router;
