@@ -179,6 +179,26 @@ router.get('/my-id', authMiddleware, async (req, res) => {
 
 
 
+router.get('/my-profile', authMiddleware, async (req, res) => {
+    try {
+
+        const user = req.user;
+
+        res.status(200).json({
+            _id: user._id,
+            email: user.email,
+            phone: user.phone,
+            isAdmin: user.isAdmin,
+            isSeller: user.isSeller,
+
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
+
 
 
 module.exports = router;
