@@ -163,6 +163,22 @@ router.put('/update-gender', authMiddleware, async (req, res) => {
 
 
 
+router.get('/my-id', authMiddleware, async (req, res) => {
+    try {
+
+        const userId = req.user._id;
+
+        res.status(200).json({ 
+            userId,
+            email: req.user.email 
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
+
 
 
 module.exports = router;
