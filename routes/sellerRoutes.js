@@ -56,49 +56,5 @@ router.post('/become-seller', authMiddleware, async (req, res) => {
 
 
 
-router.get('/my-orders', authMiddleware, sellerMiddleware, async (req, res) => {
-    try {
-        const seller = req.user;
-        
-        if (!seller.restaurant) {
-            return res.status(400).json({ message: 'No restaurant assigned to this seller' });
-        }
-
-        const totalOrders = await Order.countDocuments({ 
-            restaurantId: seller.restaurant 
-        });
-
-        res.status(200).json({
-            seller: seller.email,
-            restaurantId: seller.restaurant,
-            totalOrders
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
-    }
-});
-
-
-router.get('/seller-orders/:sellerId', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-        const seller = await User.findById(req.params.sellerId);
-        
-        if (!seller || !seller.isSeller) {
-            return res.status(404).json({ message: 'Seller not found' });
-        }
-
-        const totalOrders = await Order.countDocuments({ 
-            restaurantId: seller.restaurant 
-        });
-
-        res.status(200).json({
-            seller: seller.email,
-            restaurantId: seller.restaurant,
-            totalOrders
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
-    }
-});
 
 module.exports = router;

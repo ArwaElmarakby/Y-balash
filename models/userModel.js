@@ -40,12 +40,7 @@ const userSchema = new mongoose.Schema({
     cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
     points: { type: Number, default: 0 },
     isAdmin: { type: Boolean, default: false },
-    isSeller: { type: Boolean, default: false },
-    restaurant: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Restaurant',
-        default: null 
-    }
+    isSeller: { type: Boolean, default: false }
 });
 
 userSchema.pre('save', async function (next) {
