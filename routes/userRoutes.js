@@ -198,6 +198,31 @@ router.get('/my-profile', authMiddleware, async (req, res) => {
 });
 
 
+router.get('/welcome', authMiddleware, (req, res) => {
+    try {
+        const today = new Date();
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        };
+        const formattedDate = today.toLocaleDateString('en-US', options); // English formatting
+
+        const welcomeMessage = `Welcome back, ${req.user.firstName || 'Seller'}!`;
+        const response = {
+            message: welcomeMessage,
+            date: formattedDate
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
 
 
 
