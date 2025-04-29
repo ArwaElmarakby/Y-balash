@@ -446,4 +446,50 @@ router.get('/restaurant-stats', authMiddleware, sellerMiddleware, async (req, re
     }
 });
 
+
+
+router.get('/orders-details', authMiddleware, sellerMiddleware, async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned to you' });
+        }
+
+        const orders = await Order.find({
+            restaurantId: seller.managedRestaurant
+        })
+        .populate('userId', 'email') 
+        .populate('items.itemId', 'name price') 
+        .sort({ createdAt: -1 }); 
+
+        const formattedOrders = orders.map(order => ({
+            orderId: order._id,
+            clientEmail: order.userId.email,
+            products: order.items.map(item => ({
+                name: item.itemId.name,
+                price: item.itemId.price,
+                quantity: item.quantity
+            })),
+            totalAmount: order.totalAmount,
+            status: order.status,
+            orderDate: order.createdAt,
+            currency: "EGP"
+        }));
+
+        res.status(200).json({
+            message: 'Orders details retrieved successfully',
+            count: orders.length,
+            orders: formattedOrders
+        });
+
+    } catch (error) {
+        console.error("Error fetching orders details:", error);
+        res.status(500).json({ 
+            message: 'Server error',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
