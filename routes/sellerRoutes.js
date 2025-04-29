@@ -5,7 +5,7 @@ const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
-const Image = require('../models/imageModel'); /
+const Image = require('../models/imageModel'); 
 
 
 router.post('/promote-to-seller', authMiddleware, sellerMiddleware, async (req, res) => {
