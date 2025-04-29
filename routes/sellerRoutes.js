@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/orderModel');
 const User = require('../models/userModel');
+const Restaurant = require('../models/restaurantModel');
 const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 
@@ -55,6 +56,153 @@ router.post('/become-seller', authMiddleware, async (req, res) => {
 });
 
 
+
+router.get('/orders', authMiddleware, sellerMiddleware, async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned to you yet' });
+        }
+
+        const orders = await Order.find({ restaurantId: seller.managedRestaurant })
+            .populate('userId', 'email phone')
+            .populate('items.itemId', 'name price imageUrl')
+            .sort({ createdAt: -1 }); 
+
+        res.status(200).json({
+            restaurant: seller.managedRestaurant,
+            totalOrders: orders.length,
+            orders
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
+router.put('/orders/:orderId/status', authMiddleware, sellerMiddleware, async (req, res) => {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = ['pending', 'preparing', 'ready', 'delivered', 'cancelled'];
+    
+    if (!validStatuses.includes(status)) {
+        return res.status(400).json({ 
+            message: 'Invalid status',
+            validStatuses
+        });
+    }
+
+    try {
+        const order = await Order.findOneAndUpdate(
+            { 
+                _id: orderId,
+                restaurantId: req.user.managedRestaurant 
+            },
+            { status },
+            { new: true }
+        ).populate('userId', 'email phone');
+
+        if (!order) {
+            return res.status(404).json({ 
+                message: 'Order not found or not under your management' 
+            });
+        }
+
+        res.status(200).json({ 
+            message: 'Order status updated successfully',
+            order
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
+router.post('/products', authMiddleware, sellerMiddleware, async (req, res) => {
+    const { name, price, quantity, description } = req.body;
+    const seller = req.user;
+
+    if (!seller.managedRestaurant) {
+        return res.status(403).json({ 
+            message: 'You must be assigned to a restaurant to add products' 
+        });
+    }
+
+    if (!name || !price || !quantity) {
+        return res.status(400).json({ 
+            message: 'Name, price and quantity are required' 
+        });
+    }
+
+    try {
+        const newProduct = new Image({
+            name,
+            price,
+            quantity,
+            description: description || '',
+            restaurant: seller.managedRestaurant
+        });
+
+        await newProduct.save();
+
+        res.status(201).json({
+            message: 'Product added successfully',
+            product: newProduct
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
+router.get('/stats', authMiddleware, sellerMiddleware, async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                message: 'No restaurant assigned to you yet' 
+            });
+        }
+
+
+        const totalOrders = await Order.countDocuments({ 
+            restaurantId: seller.managedRestaurant 
+        });
+
+        const pendingOrders = await Order.countDocuments({ 
+            restaurantId: seller.managedRestaurant,
+            status: 'pending'
+        });
+
+        const completedOrders = await Order.countDocuments({ 
+            restaurantId: seller.managedRestaurant,
+            status: 'delivered'
+        });
+
+
+        const totalProducts = await Image.countDocuments({
+            restaurant: seller.managedRestaurant
+        });
+
+        res.status(200).json({
+            restaurant: seller.managedRestaurant,
+            stats: {
+                totalOrders,
+                pendingOrders,
+                completedOrders,
+                completionRate: totalOrders > 0 
+                    ? Math.round((completedOrders / totalOrders) * 100) 
+                    : 0,
+                totalProducts
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
 
 
 module.exports = router;

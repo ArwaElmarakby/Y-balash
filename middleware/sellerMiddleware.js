@@ -8,6 +8,7 @@ const sellerMiddleware = async (req, res, next) => {
         if (!user || !user.isSeller) {
             return res.status(403).json({ message: 'Access denied. Sellers only.' });
         }
+        req.seller = user;
         next();
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
