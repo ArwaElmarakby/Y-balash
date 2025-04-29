@@ -375,4 +375,75 @@ router.get('/products-stats', authMiddleware, sellerMiddleware, async (req, res)
 });
 
 
+
+
+router.get('/restaurant-stats', authMiddleware, sellerMiddleware, async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned to you' });
+        }
+
+
+        const stats = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalOrders: { $sum: 1 },
+                    totalRevenue: { $sum: "$totalAmount" },
+                    pendingOrders: {
+                        $sum: {
+                            $cond: [{ $eq: ["$status", "pending"] }, 1, 0]
+                        }
+                    },
+                    shippedOrders: {
+                        $sum: {
+                            $cond: [{ $eq: ["$status", "shipped"] }, 1, 0]
+                        }
+                    },
+                    deliveredOrders: {
+                        $sum: {
+                            $cond: [{ $eq: ["$status", "delivered"] }, 1, 0]
+                        }
+                    }
+                }
+            }
+        ]);
+
+
+        const result = stats[0] || {
+            totalOrders: 0,
+            totalRevenue: 0,
+            pendingOrders: 0,
+            shippedOrders: 0,
+            deliveredOrders: 0
+        };
+
+        res.status(200).json({
+            message: 'Restaurant statistics retrieved successfully',
+            stats: {
+                totalOrders: result.totalOrders,
+                pendingOrders: result.pendingOrders,
+                shippedOrders: result.shippedOrders,
+                deliveredOrders: result.deliveredOrders,
+                totalRevenue: result.totalRevenue,
+                currency: "EGP" 
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching restaurant stats:", error);
+        res.status(500).json({ 
+            message: 'Server error',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
