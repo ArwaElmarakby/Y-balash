@@ -313,4 +313,66 @@ router.get('/low-stock-count', authMiddleware, sellerMiddleware, async (req, res
 });
 
 
+
+router.get('/products-stats', authMiddleware, sellerMiddleware, async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned to you' });
+        }
+
+        const now = new Date();
+        const startOfCurrentWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        const startOfLastWeek = new Date(now.setDate(now.getDate() - 7));
+
+
+        const totalProducts = await Image.countDocuments({
+            restaurant: seller.managedRestaurant
+        });
+
+
+        const productsAddedThisWeek = await Image.countDocuments({
+            restaurant: seller.managedRestaurant,
+            createdAt: { $gte: startOfCurrentWeek }
+        });
+
+
+        const productsAddedLastWeek = await Image.countDocuments({
+            restaurant: seller.managedRestaurant,
+            createdAt: { 
+                $gte: startOfLastWeek,
+                $lt: startOfCurrentWeek
+            }
+        });
+
+
+        let percentageChange = 0;
+        if (productsAddedLastWeek > 0) {
+            percentageChange = ((productsAddedThisWeek - productsAddedLastWeek) / productsAddedLastWeek) * 100;
+        } else if (productsAddedThisWeek > 0) {
+            percentageChange = 100;
+        }
+
+        res.status(200).json({
+            message: 'Products statistics retrieved successfully',
+            stats: {
+                totalProducts,
+                currentWeekAdditions: productsAddedThisWeek,
+                lastWeekAdditions: productsAddedLastWeek,
+                percentageChange: percentageChange.toFixed(2) + '%',
+                restaurant: await Restaurant.findById(seller.managedRestaurant).select('name')
+            }
+        });
+
+    } catch (error) {
+        console.error("Error in products-stats:", error);
+        res.status(500).json({ 
+            message: 'Server error',
+            error: error.message
+        });
+    }
+});
+
+
 module.exports = router;
