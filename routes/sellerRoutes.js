@@ -205,4 +205,84 @@ router.get('/stats', authMiddleware, sellerMiddleware, async (req, res) => {
 });
 
 
+
+
+
+router.get('/monthly-earnings', authMiddleware, sellerMiddleware, async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned to you' });
+        }
+
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+
+        
+        const startOfCurrentMonth = new Date(currentYear, currentMonth, 1);
+        const endOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0);
+
+
+        const startOfLastMonth = new Date(currentYear, currentMonth - 1, 1);
+        const endOfLastMonth = new Date(currentYear, currentMonth, 0);
+
+
+        const [currentMonthEarnings, lastMonthEarnings] = await Promise.all([
+            Order.aggregate([
+                { 
+                    $match: { 
+                        restaurantId: seller.managedRestaurant,
+                        createdAt: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth },
+                        status: 'delivered' 
+                    }
+                },
+                { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            ]),
+            Order.aggregate([
+                { 
+                    $match: { 
+                        restaurantId: seller.managedRestaurant,
+                        createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
+                        status: 'delivered'
+                    }
+                },
+                { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            ])
+        ]);
+
+
+        const currentEarnings = currentMonthEarnings[0]?.total || 0;
+        const lastEarnings = lastMonthEarnings[0]?.total || 0;
+
+
+        let percentageChange = 0;
+        if (lastEarnings > 0) {
+            percentageChange = ((currentEarnings - lastEarnings) / lastEarnings) * 100;
+        } else if (currentEarnings > 0) {
+            percentageChange = 100; 
+        }
+
+        res.status(200).json({
+            message: 'Monthly earnings retrieved successfully',
+            earnings: {
+                currentMonth: {
+                    total: currentEarnings,
+                    currency: 'EGP' 
+                },
+                lastMonth: {
+                    total: lastEarnings,
+                    currency: 'EGP'
+                },
+                percentageChange: percentageChange.toFixed(2) + '%'
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+
 module.exports = router;
