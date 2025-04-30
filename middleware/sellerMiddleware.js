@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const sellerMiddleware = require('../middleware/sellerMiddleware');
 
 const sellerMiddleware = async (req, res, next) => {
     const userId = req.user._id;

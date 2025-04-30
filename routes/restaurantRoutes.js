@@ -13,9 +13,10 @@
 
 const express = require('express');
 const router = express.Router();
-const { addRestaurant, getRestaurants, deleteRestaurant, updateRestaurant, searchRestaurants, getTotalOrders ,getRestaurantById, addImageToRestaurant, removeImageFromRestaurant} = require('../controllers/restaurantController');
+const { addRestaurant, getRestaurants, deleteRestaurant, updateRestaurant, searchRestaurants, getTotalOrders ,getRestaurantById, addImageToRestaurant, removeImageFromRestaurant, getRestaurantBalance} = require('../controllers/restaurantController');
 const { authMiddleware } = require('./authRoutes');
 const adminMiddleware = require('../middleware/adminMiddleware');
+const sellerMiddleware = require('../middleware/sellerMiddleware');
 
 router.post('/add', authMiddleware, adminMiddleware, addRestaurant); // Image upload is handled inside the controller
 router.get('/all', getRestaurants);
@@ -26,6 +27,6 @@ router.get('/:id/orders', getTotalOrders);
 router.get('/:id', getRestaurantById);
 router.post('/add-image', addImageToRestaurant);
 router.delete('/remove-image', removeImageFromRestaurant);
-
+router.get('/:id/balance', authMiddleware, sellerMiddleware, getRestaurantBalance);
 
 module.exports = router;
