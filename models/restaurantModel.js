@@ -13,8 +13,7 @@ const restaurantSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   imageUrl: { type: String, required: true },
   description: { type: String, required: true },
-  images: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Image' }],
-  balance: { type: Number, default: 0 } 
+  images: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Image' }]
 });
 
 module.exports = mongoose.model('Restaurant', restaurantSchema);
