@@ -252,3 +252,21 @@ exports.getTotalRestaurants = async (req, res) => {
       res.status(500).json({ message: 'Server error', error });
   }
 };
+
+
+
+exports.getRestaurantBalance = async (req, res) => {
+  try {
+    const restaurant = await Restaurant.findById(req.user.managedRestaurant);
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    res.status(200).json({ 
+      balance: restaurant.balance,
+      currency: 'EGP' 
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
