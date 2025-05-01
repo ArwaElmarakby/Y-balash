@@ -412,3 +412,48 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       });
     }
   };
+
+
+
+  exports.getCurrentMonthRefunds = async (req, res) => {
+    try {
+      const seller = req.user;
+      
+      if (!seller.managedRestaurant) {
+        return res.status(400).json({ message: 'No restaurant assigned' });
+      }
+  
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
+      const restaurant = await Restaurant.findOne({
+        _id: seller.managedRestaurant
+      }).select('refunds');
+  
+      if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurant not found' });
+      }
+  
+      const monthlyRefunds = restaurant.refunds
+        .filter(refund => 
+          refund.date >= startOfMonth && 
+          refund.date <= endOfMonth
+        )
+        .reduce((total, refund) => total + refund.amount, 0);
+  
+      res.status(200).json({
+        success: true,
+        currentMonth: now.toLocaleString('default', { month: 'long' }),
+        totalRefunds: monthlyRefunds,
+        currency: 'EGP'
+      });
+  
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  };
