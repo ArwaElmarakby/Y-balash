@@ -263,3 +263,79 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       });
     }
   };
+
+
+
+
+  exports.getAverageOrderValue = async (req, res) => {
+    if (!req.user?.managedRestaurant) {
+      return res.status(200).json({
+        average_order_value: 0,
+        percentage_change: "0%"
+      });
+    }
+  
+    try {
+      // Calculate current and previous month dates
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      
+      let prevYear = currentYear;
+      let prevMonth = currentMonth - 1;
+      
+      if (prevMonth < 1) {
+        prevMonth = 12;
+        prevYear--;
+      }
+  
+      // Date range for current month
+      const currentMonthStart = new Date(currentYear, currentMonth - 1, 1);
+      const currentMonthEnd = new Date(currentYear, currentMonth, 0);
+      
+      // Date range for previous month
+      const prevMonthStart = new Date(prevYear, prevMonth - 1, 1);
+      const prevMonthEnd = new Date(prevYear, prevMonth, 0);
+  
+      // Get current month orders
+      const currentMonthOrders = await Order.find({
+        restaurantId: req.user.managedRestaurant,
+        createdAt: { $gte: currentMonthStart, $lte: currentMonthEnd }
+      });
+  
+      // Get previous month orders
+      const prevMonthOrders = await Order.find({
+        restaurantId: req.user.managedRestaurant,
+        createdAt: { $gte: prevMonthStart, $lte: prevMonthEnd }
+      });
+  
+      // Calculate averages
+      const currentAvg = currentMonthOrders.reduce((sum, order) => sum + order.totalAmount, 0) / 
+                        (currentMonthOrders.length || 1);
+      
+      const prevAvg = prevMonthOrders.reduce((sum, order) => sum + order.totalAmount, 0) / 
+                     (prevMonthOrders.length || 1);
+  
+      // Calculate percentage change
+      let percentageChange = "0%";
+      if (prevAvg > 0) {
+        const change = ((currentAvg - prevAvg) / prevAvg) * 100;
+        percentageChange = change >= 0 
+          ? `+${Math.abs(change).toFixed(2)}%` 
+          : `-${Math.abs(change).toFixed(2)}%`;
+      } else if (currentAvg > 0) {
+        percentageChange = "+100%";
+      }
+  
+      return res.status(200).json({
+        average_order_value: Math.round(currentAvg),
+        percentage_change: percentageChange
+      });
+  
+    } catch (error) {
+      return res.status(200).json({
+        average_order_value: 0,
+        percentage_change: "0%"
+      });
+    }
+  };

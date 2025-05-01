@@ -560,6 +560,13 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
     sellerController.getOrderStats
   );
   
+
+
+  router.get('/orders/average-value',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getAverageOrderValue
+  );
   
 
 module.exports = router;
