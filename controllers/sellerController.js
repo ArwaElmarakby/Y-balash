@@ -1,7 +1,6 @@
 const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
-const Restaurant = require('../models/restaurantModel');
 
 
 exports.getSellerOrders = async (req, res) => {
@@ -111,94 +110,5 @@ exports.getAvailableForWithdrawal = async (req, res) => {
     } catch (error) {
       console.error("Error in getMonthlyEarnings:", error);
       res.status(500).json({ error: "Internal server error" });
-    }
-  };
-
-
-
-
-  exports.getCurrentMonthEarnings = async (req, res) => {
-    try {
-
-      if (!req.user || !req.user.managedRestaurant) {
-        return res.status(403).json({
-          success: false,
-          message: "Unauthorized access - No restaurant assigned"
-        });
-      }
-  
-
-      const restaurant = await Restaurant.findById(req.user.managedRestaurant).lean();
-      if (!restaurant) {
-        return res.status(404).json({
-          success: false,
-          message: "Restaurant not found"
-        });
-      }
-  
-
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1; 
-      
-
-      let prevYear = currentYear;
-      let prevMonth = currentMonth - 1;
-      
-      if (prevMonth < 1) {
-        prevMonth = 12;
-        prevYear--;
-      }
-  
-
-      const formatMonth = (year, month) => `${year}-${month.toString().padStart(2, '0')}`;
-      
-      const currentMonthKey = formatMonth(currentYear, currentMonth);
-      const prevMonthKey = formatMonth(prevYear, prevMonth);
-  
-
-      const findEarnings = (month) => {
-        if (!restaurant.monthlyEarnings) return 0;
-        const entry = restaurant.monthlyEarnings.find(e => e.month === month);
-        return entry ? entry.amount : 0;
-      };
-  
-      const currentEarnings = findEarnings(currentMonthKey);
-      const previousEarnings = findEarnings(prevMonthKey);
-  
-
-      let percentageChange = "0%";
-      if (previousEarnings > 0) {
-        const change = ((currentEarnings - previousEarnings) / previousEarnings) * 100;
-        percentageChange = change >= 0 
-          ? `+${change.toFixed(2)}%` 
-          : `-${Math.abs(change).toFixed(2)}%`;
-      } else if (currentEarnings > 0) {
-        percentageChange = "+100%";
-      }
-  
-
-      const response = {
-        success: true,
-        earnings: {
-          currentMonth: currentMonthKey,
-          amount: currentEarnings,
-          previousMonth: prevMonthKey,
-          previousAmount: previousEarnings,
-          percentageChange: percentageChange,
-          currency: "EGP"
-        },
-        timestamp: new Date().toISOString()
-      };
-  
-      res.status(200).json(response);
-  
-    } catch (error) {
-      console.error("Error fetching monthly earnings:", error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error",
-        error: error.message
-      });
     }
   };
