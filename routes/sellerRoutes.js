@@ -569,4 +569,11 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
   );
   
 
+
+  router.get('/payouts/recent',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getRecentPayouts
+  );
+
 module.exports = router;
