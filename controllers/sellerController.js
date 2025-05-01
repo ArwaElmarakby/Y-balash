@@ -339,36 +339,3 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       });
     }
   };
-
-
-
-
-  exports.getRecentPayouts = async (req, res) => {
-    try {
-      if (!req.user?.managedRestaurant) {
-        return res.status(200).json([]);
-      }
-  
-      const restaurant = await Restaurant.findById(req.user.managedRestaurant)
-        .select('payouts')
-        .sort({ 'payouts.date': -1 })
-        .limit(5)
-        .lean();
-  
-      if (!restaurant) {
-        return res.status(200).json([]);
-      }
-  
-      const formattedPayouts = restaurant.payouts.map(payout => ({
-        date: payout.date.toISOString().split('T')[0], 
-        amount: payout.amount,
-        payment_method: payout.paymentMethod,
-        status: payout.status
-      }));
-  
-      return res.status(200).json(formattedPayouts);
-  
-    } catch (error) {
-      return res.status(200).json([]);
-    }
-  };
