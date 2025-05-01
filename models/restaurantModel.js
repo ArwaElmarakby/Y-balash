@@ -21,22 +21,7 @@ const restaurantSchema = new mongoose.Schema({
     amount: { type: Number, required: true },
     paymentMethod: { type: String, required: true }, 
     status: { type: String, enum: ['pending', 'paid'], default: 'pending' }
-  }],
-  refunds: [refundSchema]
-}, { timestamps: true });
-
-
-
-const refundSchema = new mongoose.Schema({
-  date: { type: Date, default: Date.now },
-  amount: { type: Number, required: true },
-  orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
-  reason: String,
-  status: { 
-    type: String, 
-    enum: ['pending', 'processed', 'rejected'],
-    default: 'pending'
-  }
+  }]
 });
 
 module.exports = mongoose.model('Restaurant', restaurantSchema);
