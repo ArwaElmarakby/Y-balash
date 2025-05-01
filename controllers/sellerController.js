@@ -112,3 +112,86 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       res.status(500).json({ error: "Internal server error" });
     }
   };
+
+
+
+
+
+  exports.getCurrentMonthEarnings = async (req, res) => {
+    if (!req.user?.managedRestaurant) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized access"
+      });
+    }
+  
+    try {
+      const restaurant = await Restaurant.findOne(
+        { _id: req.user.managedRestaurant },
+        { monthlyEarnings: 1 }
+      ).lean().exec();
+  
+      if (!restaurant) {
+        return res.status(404).json({
+          success: false,
+          message: "Restaurant not found"
+        });
+      }
+  
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      
+      let prevYear = currentYear;
+      let prevMonth = currentMonth - 1;
+      
+      if (prevMonth < 1) {
+        prevMonth = 12;
+        prevYear--;
+      }
+  
+      const formatMonth = (y, m) => `${y}-${m.toString().padStart(2, '0')}`;
+      
+      const currentMonthKey = formatMonth(currentYear, currentMonth);
+      const prevMonthKey = formatMonth(prevYear, prevMonth);
+  
+      const getEarnings = (month) => {
+        if (!restaurant.monthlyEarnings) return 0;
+        const entry = restaurant.monthlyEarnings.find(e => e.month === month);
+        return entry ? entry.amount : 0;
+      };
+  
+      const currentEarnings = Number(getEarnings(currentMonthKey)) || 0;
+      const previousEarnings = Number(getEarnings(prevMonthKey)) || 0;
+  
+      let percentageChange = "0%";
+      if (previousEarnings > 0) {
+        const change = ((currentEarnings - previousEarnings) / previousEarnings) * 100;
+        percentageChange = change >= 0 
+          ? `+${Math.abs(change).toFixed(2)}%` 
+          : `-${Math.abs(change).toFixed(2)}%`;
+      } else if (currentEarnings > 0) {
+        percentageChange = "+100%";
+      }
+  
+      const response = {
+        success: true,
+        data: {
+          current_month: currentMonthKey,
+          current_earnings: currentEarnings,
+          previous_month: prevMonthKey,
+          previous_earnings: previousEarnings,
+          percentage_change: percentageChange,
+          currency: "EGP"
+        }
+      };
+  
+      return res.status(200).json(response);
+  
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Server error"
+      });
+    }
+  };
