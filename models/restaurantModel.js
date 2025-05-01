@@ -15,7 +15,13 @@ const restaurantSchema = new mongoose.Schema({
   description: { type: String, required: true },
   images: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Image' }],
   balance: { type: Number, default: 0 },
-  pendingWithdrawal: { type: Number, default: 0 }
+  pendingWithdrawal: { type: Number, default: 0 },
+  payouts: [{
+    date: { type: Date, default: Date.now },
+    amount: { type: Number, required: true },
+    paymentMethod: { type: String, required: true }, 
+    status: { type: String, enum: ['pending', 'paid'], default: 'pending' }
+  }]
 });
 
 module.exports = mongoose.model('Restaurant', restaurantSchema);

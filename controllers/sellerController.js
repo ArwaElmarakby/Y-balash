@@ -339,3 +339,76 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       });
     }
   };
+
+
+
+
+  exports.getRecentPayouts = async (req, res) => {
+    try {
+      const seller = req.user;
+      
+      if (!seller.managedRestaurant) {
+        return res.status(400).json({ message: 'No restaurant assigned to you' });
+      }
+  
+      const restaurant = await Restaurant.findById(seller.managedRestaurant)
+        .select('payouts')
+        .sort({ 'payouts.date': -1 }) 
+        .limit(10); 
+  
+      if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurant not found' });
+      }
+  
+      res.status(200).json({
+        message: 'Recent payouts retrieved successfully',
+        payouts: restaurant.payouts
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  };
+  
+  exports.requestPayout = async (req, res) => {
+    try {
+      const seller = req.user;
+      const { amount, paymentMethod } = req.body;
+  
+      if (!seller.managedRestaurant) {
+        return res.status(400).json({ message: 'No restaurant assigned to you' });
+      }
+  
+      if (!amount || !paymentMethod) {
+        return res.status(400).json({ message: 'Amount and payment method are required' });
+      }
+  
+      const restaurant = await Restaurant.findById(seller.managedRestaurant);
+      
+      if (restaurant.balance < amount) {
+        return res.status(400).json({ message: 'Insufficient balance' });
+      }
+  
+
+      restaurant.balance -= amount;
+      restaurant.payouts.push({
+        amount,
+        paymentMethod,
+        status: 'pending'
+      });
+      
+      await restaurant.save();
+  
+      res.status(200).json({
+        message: 'Payout requested successfully',
+        newBalance: restaurant.balance
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  };
