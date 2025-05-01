@@ -339,3 +339,39 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       });
     }
   };
+
+
+
+  exports.getRecentPayouts = async (req, res) => {
+    if (!req.user || !req.user.managedRestaurant) {
+      return res.status(200).json([]);
+    }
+  
+    try {
+      const restaurant = await Restaurant.findOne(
+        { _id: req.user.managedRestaurant },
+        { payouts: 1 }
+      )
+      .sort({ 'payouts.date': -1 })
+      .limit(5)
+      .lean()
+      .exec();
+  
+      if (!restaurant || !restaurant.payouts) {
+        return res.status(200).json([]);
+      }
+  
+      const formattedPayouts = restaurant.payouts.map(payout => ({
+        date: payout.date?.toISOString()?.split('T')[0] || 'N/A',
+        amount: payout.amount || 0,
+        payment_method: payout.paymentMethod || 'Unknown',
+        status: payout.status || 'pending'
+      })).slice(0, 5);
+  
+      return res.status(200).json(formattedPayouts);
+  
+    } catch (error) {
+      console.error('Server Error:', error);
+      return res.status(200).json([]);
+    }
+  };
