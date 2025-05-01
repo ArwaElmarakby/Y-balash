@@ -6,6 +6,7 @@ const Restaurant = require('../models/restaurantModel');
 const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 const Image = require('../models/imageModel'); 
+const sellerController = require('../controllers/sellerController');
 
 
 router.post('/promote-to-seller', authMiddleware, sellerMiddleware, async (req, res) => {
@@ -537,6 +538,12 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
 
 
   
+  router.get('/monthly-earnings',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getMonthlyEarnings
+  );
+
   
 
 module.exports = router;

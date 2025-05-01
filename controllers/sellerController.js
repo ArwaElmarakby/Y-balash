@@ -67,4 +67,48 @@ exports.getAvailableForWithdrawal = async (req, res) => {
 
 
 
+  exports.getMonthlyEarnings = async (req, res) => {
+    try {
+
+        const restaurant = await Restaurant.findById(req.user.managedRestaurant);
+      if (!restaurant) {
+        return res.status(404).json({ error: "Restaurant not found" });
+      }
   
+
+      const currentDate = new Date();
+      const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+      const lastMonthDate = new Date(currentDate);
+      lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+      const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+  
+
+      const getEarnings = (month) => {
+        const entry = restaurant.earnings.find(e => e.month === month);
+        return entry ? entry.amount : 0;
+      };
+  
+      const currentEarnings = getEarnings(currentMonth);
+      const lastEarnings = getEarnings(lastMonth);
+  
+
+      let percentageIncrease;
+      if (lastEarnings > 0) {
+        const increase = ((currentEarnings - lastEarnings) / lastEarnings) * 100;
+        percentageIncrease = `${increase.toFixed(2)}%`;
+      } else {
+        percentageIncrease = currentEarnings > 0 ? "100%" : "0%";
+      }
+  
+
+      res.status(200).json({
+        totalEarnings: currentEarnings,
+        currency: "EGP",
+        percentageIncrease
+      });
+  
+    } catch (error) {
+      console.error("Error in getMonthlyEarnings:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
