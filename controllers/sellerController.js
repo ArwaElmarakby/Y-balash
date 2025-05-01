@@ -45,3 +45,21 @@ exports.updateOrderStatus = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+
+
+exports.getAvailableForWithdrawal = async (req, res) => {
+    try {
+      const restaurant = await Restaurant.findById(req.user.managedRestaurant);
+      if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurant not found' });
+      }
+  
+
+      const availableForWithdrawal = restaurant.balance;
+  
+      res.status(200).json(availableForWithdrawal); 
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+    }
+  };

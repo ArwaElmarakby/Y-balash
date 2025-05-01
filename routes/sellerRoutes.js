@@ -510,6 +510,30 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
     }
   });
 
+
+
+
+
+  router.get('/available-for-withdrawal', 
+    authMiddleware, 
+    sellerMiddleware, 
+    async (req, res) => {
+      try {
+        const restaurant = await Restaurant.findById(req.user.managedRestaurant);
+        if (!restaurant) {
+          return res.status(404).send('0'); 
+        }
+  
+
+        const available = restaurant.balance - (restaurant.pendingWithdrawal || 0);
+        
+        res.status(200).send(available.toString()); 
+      } catch (error) {
+        res.status(500).send('0'); 
+      }
+    }
+  );
+
   
 
 module.exports = router;
