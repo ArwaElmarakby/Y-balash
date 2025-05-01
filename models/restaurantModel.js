@@ -15,7 +15,11 @@ const restaurantSchema = new mongoose.Schema({
   description: { type: String, required: true },
   images: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Image' }],
   balance: { type: Number, default: 0 },
-  pendingWithdrawal: { type: Number, default: 0 }
+  pendingWithdrawal: { type: Number, default: 0 },
+  monthlyEarnings: [{
+    month: { type: String, required: true }, 
+    amount: { type: Number, default: 0 }
+  }]
 });
 
 module.exports = mongoose.model('Restaurant', restaurantSchema);
