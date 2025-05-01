@@ -7,8 +7,6 @@ const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 const Image = require('../models/imageModel'); 
 const sellerController = require('../controllers/sellerController');
-const rateLimit = require('express-rate-limit');
-
 
 
 router.post('/promote-to-seller', authMiddleware, sellerMiddleware, async (req, res) => {
@@ -569,25 +567,6 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
     sellerMiddleware,
     sellerController.getAverageOrderValue
   );
-  
-
-
-
-  const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    handler: (req, res) => {
-      return res.status(429).json({ message: 'Too many requests' });
-    }
-  });
-  
-  router.get('/payouts/recent',
-    apiLimiter,
-    authMiddleware,
-    sellerMiddleware,
-    sellerController.getRecentPayouts
-  );
-
   
 
 module.exports = router;
