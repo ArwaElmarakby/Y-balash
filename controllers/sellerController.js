@@ -63,3 +63,43 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       res.status(500).json({ message: 'Server error', error });
     }
   };
+
+
+
+
+  exports.getMonthlyEarnings = async (req, res) => {
+    try {
+      const restaurant = await Restaurant.findById(req.user.managedRestaurant);
+      if (!restaurant) {
+        return res.status(404).json({ error: "Restaurant not found" });
+      }
+  
+
+      const currentDate = new Date();
+      const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+      const lastMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth()).padStart(2, '0')}`;
+  
+
+      const currentEarnings = restaurant.earnings.find(e => e.month === currentMonth)?.amount || 0;
+      const lastEarnings = restaurant.earnings.find(e => e.month === lastMonth)?.amount || 0;
+  
+
+      let percentageIncrease = "0%"; 
+      if (lastEarnings > 0) {
+        const increase = ((currentEarnings - lastEarnings) / lastEarnings) * 100;
+        percentageIncrease = `${increase.toFixed(2)}%`; 
+      } else if (currentEarnings > 0) {
+        percentageIncrease = "100%"; 
+      }
+  
+
+      res.status(200).json({
+        totalEarnings: currentEarnings,
+        currency: "EGP",
+        percentageIncrease 
+      });
+  
+    } catch (error) {
+      res.status(500).json({ error: "Server error" });
+    }
+  };
