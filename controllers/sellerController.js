@@ -1,7 +1,6 @@
 const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
-const { startOfMonth, endOfMonth } = require('date-fns');
 
 
 exports.getSellerOrders = async (req, res) => {
@@ -410,73 +409,6 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       res.status(500).json({ 
         message: 'Server error',
         error: error.message
-      });
-    }
-  };
-
-
-
-
-  exports.getCurrentMonthRefunds = async (req, res) => {
-    try {
-      if (!req.user || !req.user.managedRestaurant) {
-        return res.status(400).json({
-          success: false,
-          message: 'User not associated with any restaurant'
-        });
-      }
-  
-      const currentDate = new Date();
-      const firstDayOfMonth = startOfMonth(currentDate);
-      const lastDayOfMonth = endOfMonth(currentDate);
-  
-      const restaurant = await Restaurant.findOne(
-        { _id: req.user.managedRestaurant },
-        { 
-          refunds: {
-            $filter: {
-              input: '$refunds',
-              as: 'refund',
-              cond: {
-                $and: [
-                  { $gte: ['$$refund.date', firstDayOfMonth] },
-                  { $lte: ['$$refund.date', lastDayOfMonth] }
-                ]
-              }
-            }
-          }
-        }
-      ).lean();
-  
-      if (!restaurant) {
-        return res.status(404).json({
-          success: false,
-          message: 'Restaurant not found'
-        });
-      }
-  
-      const totalRefunds = restaurant.refunds.reduce(
-        (sum, refund) => sum + refund.amount, 
-        0
-      );
-  
-      res.status(200).json({
-        success: true,
-        data: {
-          month: currentDate.toLocaleString('en-US', { month: 'long' }),
-          year: currentDate.getFullYear(),
-          totalRefunds: totalRefunds.toFixed(2),
-          currency: 'EGP',
-          refundCount: restaurant.refunds.length
-        }
-      });
-  
-    } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Server error',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   };
