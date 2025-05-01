@@ -552,6 +552,14 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
     sellerController.getCurrentMonthEarnings
   );
 
+
+
+  router.get('/orders/stats',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getOrderStats
+  );
+  
   
 
 module.exports = router;

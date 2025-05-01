@@ -195,3 +195,71 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       });
     }
   };
+
+
+
+
+  exports.getOrderStats = async (req, res) => {
+    if (!req.user?.managedRestaurant) {
+      return res.status(403).json({
+        total_orders: 0,
+        percentage_change: "0%"
+      });
+    }
+  
+    try {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      
+      let prevYear = currentYear;
+      let prevMonth = currentMonth - 1;
+      
+      if (prevMonth < 1) {
+        prevMonth = 12;
+        prevYear--;
+      }
+  
+      const formatMonth = (y, m) => `${y}-${m.toString().padStart(2, '0')}`;
+      
+      const currentMonthKey = formatMonth(currentYear, currentMonth);
+      const prevMonthKey = formatMonth(prevYear, prevMonth);
+  
+      const currentOrders = await Order.countDocuments({
+        restaurantId: req.user.managedRestaurant,
+        createdAt: {
+          $gte: new Date(`${currentMonthKey}-01`),
+          $lt: new Date(`${currentMonthKey}-31`)
+        }
+      });
+  
+      const previousOrders = await Order.countDocuments({
+        restaurantId: req.user.managedRestaurant,
+        createdAt: {
+          $gte: new Date(`${prevMonthKey}-01`),
+          $lt: new Date(`${prevMonthKey}-31`)
+        }
+      });
+  
+      let percentageChange = "0%";
+      if (previousOrders > 0) {
+        const change = ((currentOrders - previousOrders) / previousOrders) * 100;
+        percentageChange = change >= 0 
+          ? `+${Math.abs(change).toFixed(2)}%` 
+          : `-${Math.abs(change).toFixed(2)}%`;
+      } else if (currentOrders > 0) {
+        percentageChange = "+100%";
+      }
+  
+      return res.status(200).json({
+        total_orders: currentOrders,
+        percentage_change: percentageChange
+      });
+  
+    } catch (error) {
+      return res.status(200).json({
+        total_orders: 0,
+        percentage_change: "0%"
+      });
+    }
+  };
