@@ -35,7 +35,7 @@ exports.addRestaurant = async (req, res) => {
     const { name, description, location } = req.body;
     const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
 
-    if (!name || !description || !imageUrl || location) {
+    if (!name || !description  || !location || !imageUrl) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -148,10 +148,7 @@ exports.getRestaurantById = async (req, res) => {
       if (!restaurant) {
           return res.status(404).json({ message: 'Restaurant not found' });
       }
-      res.status(200).json({
-        ...restaurant.toObject(),
-        location: restaurant.location || 'Location not specified' 
-      });
+      res.status(200).json(restaurant);
   } catch (error) {
       res.status(500).json({ message: 'Server error', error });
   }
