@@ -720,3 +720,56 @@ exports.getMyRestaurant = async (req, res) => {
     });
   }
 };
+
+
+
+
+exports.getPaymentSettings = async (req, res) => {
+  try {
+    const seller = await User.findById(req.user._id)
+      .select('paymentSettings');
+
+    res.status(200).json({
+      success: true,
+      paymentSettings: seller.paymentSettings || {}
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get payment settings'
+    });
+  }
+};
+
+
+
+
+
+exports.updatePaymentSettings = async (req, res) => {
+  try {
+    const { accountNumber, accountHolderName, bankName } = req.body;
+
+    const updatedSeller = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        paymentSettings: {
+          accountNumber,
+          accountHolderName,
+          bankName
+        }
+      },
+      { new: true }
+    ).select('paymentSettings');
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment settings updated',
+      paymentSettings: updatedSeller.paymentSettings
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update payment settings'
+    });
+  }
+};

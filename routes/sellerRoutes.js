@@ -636,4 +636,18 @@ router.get('/my-restaurant',
     sellerController.getMyRestaurant
   );
 
+
+
+  router.get('/payment-settings',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getPaymentSettings
+  );
+  
+  router.put('/payment-settings',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.updatePaymentSettings
+  );
+
 module.exports = router;
