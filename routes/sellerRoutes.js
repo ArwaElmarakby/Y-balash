@@ -672,5 +672,12 @@ router.get('/my-restaurant',
     sellerController.getInventoryItems
   );
 
+
+
+  router.get('/restaurant-products',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getRestaurantProducts
+  );
   
 module.exports = router;

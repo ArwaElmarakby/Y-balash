@@ -916,3 +916,46 @@ exports.getInventoryItems = async (req, res) => {
     });
   }
 };
+
+
+
+
+exports.getRestaurantProducts = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No restaurant assigned to this seller' 
+      });
+    }
+
+    const products = await Image.find({
+      restaurant: seller.managedRestaurant
+    }).select('name price imageUrl quantity category updatedAt');
+
+    const formattedProducts = products.map(product => ({
+      id: product._id,
+      name: product.name,
+      price: product.price,
+      imageUrl: product.imageUrl,
+      stock: product.quantity > 0 ? product.quantity : 0,
+      status: product.quantity <= 0 ? 'Out of Stock' : 
+              product.quantity <= 10 ? 'Low Stock' : 'In Stock',
+      category: product.category,
+      lastUpdated: product.updatedAt
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: formattedProducts.length,
+      products: formattedProducts
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch products'
+    });
+  }
+};
