@@ -630,3 +630,52 @@ exports.getSellerNotifications = async (req, res) => {
     });
 }
 };
+
+
+exports.getSellerProfile = async (req, res) => {
+  try {
+      const seller = await User.findById(req.user._id);
+      
+      if (!seller) {
+          return res.status(404).json({ message: 'Seller not found' });
+      }
+
+
+      const usernameFromEmail = seller.email.split('@')[0];
+
+      res.status(200).json({
+          profileImage: seller.profileImage || null, 
+          username: usernameFromEmail, 
+          fullEmail: seller.email, 
+          language: seller.language || null 
+      });
+  } catch (error) {
+      res.status(500).json({ 
+          message: 'Server error',
+          error: error.message 
+      });
+  }
+};
+
+
+exports.updateLanguage = async (req, res) => {
+  try {
+      const { language } = req.body;
+
+      const updatedSeller = await User.findByIdAndUpdate(
+          req.user._id,
+          { language },
+          { new: true }
+      ).select('language');
+
+      res.status(200).json({
+          message: 'Language updated successfully',
+          language: updatedSeller.language
+      });
+  } catch (error) {
+      res.status(500).json({ 
+          message: 'Server error',
+          error: error.message 
+      });
+  }
+};

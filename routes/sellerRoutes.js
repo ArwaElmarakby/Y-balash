@@ -612,4 +612,19 @@ router.get('/notifications',
     sellerController.getSellerNotifications
 );
 
+
+router.get('/profile',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getSellerProfile
+);
+
+
+
+router.put('/profile/language',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.updateLanguage
+);
+
 module.exports = router;
