@@ -523,3 +523,43 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       });
     }
   };
+
+
+
+
+  exports.getCompletedOrdersThisMonth = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned to you' });
+        }
+
+        const currentDate = new Date();
+        const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+        const completedOrders = await Order.countDocuments({
+            restaurantId: seller.managedRestaurant,
+            status: 'delivered',
+            createdAt: {
+                $gte: firstDayOfMonth,
+                $lte: lastDayOfMonth
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            month: currentDate.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+            completedOrders,
+            message: 'Completed orders count retrieved successfully'
+        });
+    } catch (error) {
+        console.error("Error in getCompletedOrdersThisMonth:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
+};
