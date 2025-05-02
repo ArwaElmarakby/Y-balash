@@ -658,4 +658,12 @@ router.get('/my-restaurant',
     sellerController.getLowStockItems
   );
 
+
+  router.get('/stock-stats',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getStockStats
+  );
+
+  
 module.exports = router;

@@ -817,3 +817,41 @@ exports.getLowStockItems = async (req, res) => {
     });
   }
 };
+
+
+
+exports.getStockStats = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ 
+        outOfStock: 0,
+        lowStock: 0
+      });
+    }
+
+    const LOW_STOCK_THRESHOLD = 10;
+    
+    const [outOfStockCount, lowStockCount] = await Promise.all([
+      Image.countDocuments({
+        restaurant: seller.managedRestaurant,
+        quantity: { $lte: 0 }
+      }),
+      Image.countDocuments({
+        restaurant: seller.managedRestaurant,
+        quantity: { $gt: 0, $lte: LOW_STOCK_THRESHOLD }
+      })
+    ]);
+
+    res.status(200).json({
+      outOfStock: outOfStockCount,
+      lowStock: lowStockCount
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      outOfStock: 0,
+      lowStock: 0
+    });
+  }
+};
