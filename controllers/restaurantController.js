@@ -35,7 +35,7 @@ exports.addRestaurant = async (req, res) => {
     const { name, description, location } = req.body;
     const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
 
-    if (!name || !description || !imageUrl) {
+    if (!name || !description || !imageUrl || location) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
