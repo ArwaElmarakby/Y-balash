@@ -3,11 +3,11 @@ const router = express.Router();
 const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
-const { authMiddleware, sellerMiddleware } = require('./authRoutes');
+const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 const Image = require('../models/imageModel'); 
 const sellerController = require('../controllers/sellerController');
-const upload = require('../config/multer');
+
 
 
 router.post('/promote-to-seller', authMiddleware, sellerMiddleware, async (req, res) => {
@@ -626,15 +626,6 @@ router.put('/profile/language',
     authMiddleware,
     sellerMiddleware,
     sellerController.updateLanguage
-);
-
-
-
-router.put('/profile/update',
-    authMiddleware,
-    sellerMiddleware,
-    upload.single('profileImage'), 
-    sellerController.updateSellerProfile
 );
 
 module.exports = router;

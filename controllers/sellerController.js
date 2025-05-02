@@ -2,8 +2,7 @@ const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
-const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
+
 
 
 exports.getSellerOrders = async (req, res) => {
@@ -680,54 +679,4 @@ exports.updateLanguage = async (req, res) => {
           error: error.message 
       });
   }
-};
-
-
-
-const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
-
-
-const upload = multer({ dest: 'uploads/' });
-
-
-const uploadToCloudinary = async (file) => {
-    const result = await cloudinary.uploader.upload(file.path);
-    return result.secure_url;
-};
-
-
-exports.updateSellerProfile = async (req, res) => {
-    try {
-        const { phone, language } = req.body;
-        let updateData = { phone, language };
-
-
-        if (req.file) {
-            const imageUrl = await uploadToCloudinary(req.file);
-            updateData.profileImage = imageUrl;
-        }
-
-        const updatedSeller = await User.findByIdAndUpdate(
-            req.user._id,
-            updateData,
-            { new: true }
-        ).select('profileImage email phone language');
-
-
-        const username = updatedSeller.email.split('@')[0];
-
-        res.status(200).json({
-            profileImage: updatedSeller.profileImage,
-            username,
-            fullEmail: updatedSeller.email,
-            phone: updatedSeller.phone,
-            language: updatedSeller.language
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            message: 'Server error',
-            error: error.message 
-        });
-    }
 };
