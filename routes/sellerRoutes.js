@@ -665,5 +665,12 @@ router.get('/my-restaurant',
     sellerController.getStockStats
   );
 
+
+  router.get('/inventory',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getInventoryItems
+  );
+
   
 module.exports = router;

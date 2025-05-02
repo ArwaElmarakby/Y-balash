@@ -855,3 +855,64 @@ exports.getStockStats = async (req, res) => {
     });
   }
 };
+
+
+
+
+exports.getInventoryItems = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No restaurant assigned to this seller' 
+      });
+    }
+
+    const LOW_STOCK_THRESHOLD = 10;
+    const items = await Image.find({
+      restaurant: seller.managedRestaurant
+    }).select('name quantity price imageUrl updatedAt');
+
+    const inventory = items.map(item => {
+      let status = 'IN_STOCK';
+      let statusQuantity = item.quantity;
+      
+      if (item.quantity <= 0) {
+        status = 'OUT_OF_STOCK';
+        statusQuantity = 0;
+      } else if (item.quantity <= LOW_STOCK_THRESHOLD) {
+        status = 'LOW_STOCK';
+      }
+
+      return {
+        id: item._id,
+        name: item.name,
+        imageUrl: item.imageUrl,
+        price: item.price,
+        status,
+        statusQuantity,
+        lastUpdated: item.updatedAt
+      };
+    });
+
+
+    const stats = {
+      inStock: inventory.filter(i => i.status === 'IN_STOCK').length,
+      lowStock: inventory.filter(i => i.status === 'LOW_STOCK').length,
+      outOfStock: inventory.filter(i => i.status === 'OUT_OF_STOCK').length
+    };
+
+    res.status(200).json({
+      success: true,
+      stats,
+      items: inventory
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
