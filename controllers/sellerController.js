@@ -591,6 +591,7 @@ exports.getSellerNotifications = async (req, res) => {
           quantity: { $lte: 10 } 
       })
       .select('name quantity');
+      console.log("Low Stock Items:", lowStockItems);
 
 
       const restaurant = await Restaurant.findById(seller.managedRestaurant)
@@ -622,6 +623,10 @@ exports.getSellerNotifications = async (req, res) => {
 
       res.status(200).json(notifications);
   } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
-  }
+    console.error("Full Error:", error);
+    res.status(500).json({ 
+        message: 'Server error',
+        error: error.message 
+    });
+}
 };
