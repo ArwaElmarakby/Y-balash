@@ -412,3 +412,49 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       });
     }
   };
+
+
+
+
+
+  exports.getMonthlyRefunds = async (req, res) => {
+    try {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
+      const restaurant = await Restaurant.findOne(
+        { _id: req.user.managedRestaurant },
+        { refunds: 1 }
+      );
+  
+      if (!restaurant) {
+        return res.status(404).json({
+          success: false,
+          message: "Restaurant not found"
+        });
+      }
+  
+      const monthlyRefunds = restaurant.refunds.filter(refund => 
+        refund.date >= firstDay && refund.date <= lastDay
+      );
+  
+      const totalAmount = monthlyRefunds.reduce((sum, refund) => sum + refund.amount, 0);
+      const refundCount = monthlyRefunds.length;
+  
+      res.status(200).json({
+        success: true,
+        month: now.toLocaleString('en-US', { month: 'long' }),
+        year: now.getFullYear(),
+        totalAmount: totalAmount.toFixed(2),
+        refundCount,
+        currency: "EGP"
+      });
+  
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Server error"
+      });
+    }
+  };

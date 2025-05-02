@@ -582,4 +582,11 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
     sellerController.requestPayout
   );
 
+
+  router.get('/refunds/monthly',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getMonthlyRefunds
+  );
+
 module.exports = router;
