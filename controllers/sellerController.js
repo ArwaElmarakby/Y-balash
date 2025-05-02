@@ -1,7 +1,7 @@
 const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
-
+const Image = require('../models/imageModel');
 
 
 exports.getSellerOrders = async (req, res) => {
