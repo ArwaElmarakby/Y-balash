@@ -26,9 +26,6 @@ const refundSchema = new mongoose.Schema({
 const restaurantSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   imageUrl: { type: String, required: true },
-  location: { type: String, required: true }, 
-    defaultShippingTime: { type: String, default: "1-3 days" }, 
-    sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   description: { type: String, required: true },
   images: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Image' }],
   balance: { type: Number, default: 0 },
