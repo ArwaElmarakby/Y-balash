@@ -680,3 +680,43 @@ exports.updateLanguage = async (req, res) => {
       });
   }
 };
+
+
+
+exports.getMyRestaurant = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No restaurant assigned to this seller' 
+      });
+    }
+
+    const restaurant = await Restaurant.findById(seller.managedRestaurant)
+      .select('name location description defaultShippingTime imageUrl');
+
+    if (!restaurant) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Restaurant not found' 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        name: restaurant.name,
+        location: restaurant.location,
+        description: restaurant.description,
+        defaultShippingTime: restaurant.defaultShippingTime || '30-45 minutes'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error'
+    });
+  }
+};

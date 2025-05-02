@@ -628,4 +628,12 @@ router.put('/profile/language',
     sellerController.updateLanguage
 );
 
+
+
+router.get('/my-restaurant', 
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getMyRestaurant
+  );
+
 module.exports = router;

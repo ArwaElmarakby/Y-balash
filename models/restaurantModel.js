@@ -28,6 +28,7 @@ const restaurantSchema = new mongoose.Schema({
   imageUrl: { type: String, required: true },
   description: { type: String, required: true },
   location: { type: String, required: true },
+  defaultShippingTime: { type: String, default: '30-45 minutes' },
   images: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Image' }],
   balance: { type: Number, default: 0 },
   pendingWithdrawal: { type: Number, default: 0 },
