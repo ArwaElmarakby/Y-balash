@@ -680,3 +680,53 @@ exports.updateLanguage = async (req, res) => {
       });
   }
 };
+
+
+
+exports.getRestaurantProfile = async (req, res) => {
+  try {
+      const restaurant = await Restaurant.findOne({ sellerId: req.user._id });
+      
+      if (!restaurant) {
+          return res.status(404).json({ message: 'Restaurant not found' });
+      }
+
+      res.status(200).json({
+          restaurantName: restaurant.name,
+          description: restaurant.description,
+          imageUrl: restaurant.imageUrl,
+          location: restaurant.location,
+          defaultShippingTime: restaurant.defaultShippingTime
+      });
+  } catch (error) {
+      res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
+exports.updateRestaurantProfile = async (req, res) => {
+  try {
+      const { name, description, location, defaultShippingTime } = req.body;
+
+      const updatedRestaurant = await Restaurant.findOneAndUpdate(
+          { sellerId: req.user._id },
+          { 
+              name, 
+              description, 
+              location, 
+              defaultShippingTime 
+          },
+          { new: true, runValidators: true } 
+      );
+
+      res.status(200).json({
+          message: 'Restaurant updated successfully',
+          restaurant: updatedRestaurant
+      });
+  } catch (error) {
+      res.status(500).json({ 
+          message: 'Validation failed or server error',
+          error: error.message 
+      });
+  }
+};
