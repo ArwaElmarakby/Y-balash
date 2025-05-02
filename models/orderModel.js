@@ -15,6 +15,17 @@ const orderSchema = new mongoose.Schema({
         enum: ['pending', 'preparing', 'ready', 'delivered', 'cancelled'],
         default: 'pending'
     },
+    notifications: [{
+        type: {
+            type: String,
+            enum: ['new_order', 'low_stock', 'payout'],
+            required: true
+        },
+        message: String,
+        isRead: { type: Boolean, default: false },
+        createdAt: { type: Date, default: Date.now }
+    }],
+    
     createdAt: { type: Date, default: Date.now }
 });
 

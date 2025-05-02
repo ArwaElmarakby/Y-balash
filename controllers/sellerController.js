@@ -563,3 +563,65 @@ exports.getAvailableForWithdrawal = async (req, res) => {
         });
     }
 };
+
+
+
+
+exports.getSellerNotifications = async (req, res) => {
+  try {
+      const seller = req.user;
+      
+      if (!seller.managedRestaurant) {
+          return res.status(400).json({ message: 'No restaurant assigned' });
+      }
+
+
+      const newOrders = await Order.find({
+          restaurantId: seller.managedRestaurant,
+          status: 'pending',
+          'notifications.type': 'new_order',
+          'notifications.isRead': false
+      })
+      .populate('userId', 'firstName lastName')
+      .select('_id totalAmount items');
+
+
+      const lowStockItems = await Image.find({
+          restaurant: seller.managedRestaurant,
+          quantity: { $lte: 10 } 
+      })
+      .select('name quantity');
+
+
+      const restaurant = await Restaurant.findById(seller.managedRestaurant)
+          .select('payouts');
+
+      const unreadPayouts = restaurant.payouts.filter(p => !p.isRead);
+
+
+      const notifications = {
+          newOrders: newOrders.map(order => ({
+              type: 'new_order',
+              orderId: order._id,
+              customerName: order.userId ? `${order.userId.firstName} ${order.userId.lastName}` : 'Guest',
+              totalAmount: order.totalAmount,
+              items: order.items
+          })),
+          lowStockAlerts: lowStockItems.map(item => ({
+              type: 'low_stock',
+              productName: item.name,
+              remainingQuantity: item.quantity
+          })),
+          payouts: unreadPayouts.map(payout => ({
+              type: 'payout',
+              amount: payout.amount,
+              status: payout.status,
+              date: payout.date
+          }))
+      };
+
+      res.status(200).json(notifications);
+  } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+  }
+};

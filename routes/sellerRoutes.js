@@ -605,4 +605,11 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
 );
   
 
+
+router.get('/notifications', 
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getSellerNotifications
+);
+
 module.exports = router;
