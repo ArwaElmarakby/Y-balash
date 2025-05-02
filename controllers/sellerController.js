@@ -458,3 +458,67 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       });
     }
   };
+
+
+
+
+  exports.getBestSeller = async (req, res) => {
+    try {
+      const restaurantId = req.user.managedRestaurant;
+  
+      const bestSeller = await Order.aggregate([
+        { 
+          $match: { 
+            restaurantId: restaurantId,
+            status: { $ne: 'cancelled' } 
+          } 
+        },
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: '$items.itemId',
+            totalUnits: { $sum: '$items.quantity' }
+          }
+        },
+        { $sort: { totalUnits: -1 } },
+        { $limit: 1 },
+        {
+          $lookup: {
+            from: 'images',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'itemDetails'
+          }
+        },
+        { $unwind: '$itemDetails' },
+        {
+          $project: {
+            itemName: '$itemDetails.name',
+            itemImage: '$itemDetails.imageUrl',
+            totalUnits: 1,
+            _id: 0
+          }
+        }
+      ]);
+  
+      if (!bestSeller.length) {
+        return res.status(200).json({
+          success: true,
+          message: "No sales data available",
+          bestSeller: null
+        });
+      }
+  
+      res.status(200).json({
+        success: true,
+        bestSeller: bestSeller[0]
+      });
+  
+    } catch (error) {
+      console.error('Error fetching best seller:', error);
+      res.status(500).json({
+        success: false,
+        message: "Error fetching best seller data"
+      });
+    }
+  };

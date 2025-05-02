@@ -589,4 +589,11 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
     sellerController.getMonthlyRefunds
   );
 
+
+  router.get('/analytics/best-seller',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getBestSeller
+  );
+
 module.exports = router;
