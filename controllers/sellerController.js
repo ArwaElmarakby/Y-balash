@@ -523,3 +523,47 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       });
     }
   };
+
+
+
+
+  exports.getCompletedOrdersCount = async (req, res) => {
+    try {
+      const restaurantId = req.user.managedRestaurant;
+      if (!restaurantId) {
+        return res.status(400).json({
+          success: false,
+          message: "Restaurant ID is missing"
+        });
+      }
+  
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
+      const count = await Order.countDocuments({
+        restaurantId: restaurantId,
+        status: 'completed',
+        createdAt: {
+          $gte: firstDay,
+          $lte: lastDay
+        }
+      });
+  
+      res.status(200).json({
+        success: true,
+        data: {
+          count: count,
+          month: now.toLocaleString('en-US', { month: 'long' }),
+          year: now.getFullYear()
+        }
+      });
+  
+    } catch (error) {
+      console.error('Error in getCompletedOrdersCount:', error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error"
+      });
+    }
+  };
