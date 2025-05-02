@@ -32,7 +32,7 @@ exports.addRestaurant = async (req, res) => {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, description } = req.body;
+    const { name, description, location } = req.body;
     const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
 
     if (!name || !description || !imageUrl) {
@@ -40,7 +40,7 @@ exports.addRestaurant = async (req, res) => {
     }
 
     try {
-      const newRestaurant = new Restaurant({ name, imageUrl, description });
+      const newRestaurant = new Restaurant({ name, imageUrl, description, location });
       await newRestaurant.save();
       res.status(201).json({ message: 'Restaurant added successfully', restaurant: newRestaurant });
     } catch (error) {
@@ -82,11 +82,11 @@ exports.getRestaurants = async (req, res) => {
       }
   
       const { id } = req.params;
-      const { name, description } = req.body;
+      const { name, description, location } = req.body;
       const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
   
       try {
-        const updatedData = { name, description };
+        const updatedData = { name, description, location };
         if (imageUrl) updatedData.imageUrl = imageUrl; // Update imageUrl only if a new image is uploaded
   
         const updatedRestaurant = await Restaurant.findByIdAndUpdate(
@@ -148,7 +148,10 @@ exports.getRestaurantById = async (req, res) => {
       if (!restaurant) {
           return res.status(404).json({ message: 'Restaurant not found' });
       }
-      res.status(200).json(restaurant);
+      res.status(200).json({
+        ...restaurant.toObject(),
+        location: restaurant.location || 'Location not specified' 
+      });
   } catch (error) {
       res.status(500).json({ message: 'Server error', error });
   }
