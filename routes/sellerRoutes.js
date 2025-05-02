@@ -3,7 +3,7 @@ const router = express.Router();
 const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
-const { authMiddleware } = require('./authRoutes');
+const { authMiddleware, sellerMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 const Image = require('../models/imageModel'); 
 const sellerController = require('../controllers/sellerController');
@@ -626,6 +626,21 @@ router.put('/profile/language',
     authMiddleware,
     sellerMiddleware,
     sellerController.updateLanguage
+);
+
+
+
+router.get('/store',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getStoreProfile
+);
+
+
+router.put('/store/update',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.updateStoreProfile
 );
 
 module.exports = router;
