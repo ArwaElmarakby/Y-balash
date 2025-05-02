@@ -1,7 +1,7 @@
 const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
-const { startOfMonth, endOfMonth } = require('date-fns');
+
 
 
 exports.getSellerOrders = async (req, res) => {
@@ -520,39 +520,6 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       res.status(500).json({
         success: false,
         message: "Error fetching best seller data"
-      });
-    }
-  };
-
-
-  exports.getMonthlyCompletedOrders = async (req, res) => {
-    try {
-      const restaurantId = req.user.managedRestaurant;
-      const now = new Date();
-      const firstDayOfMonth = startOfMonth(now);
-      const lastDayOfMonth = endOfMonth(now);
-  
-      const completedOrdersCount = await Order.countDocuments({
-        restaurantId: restaurantId,
-        status: 'completed',
-        createdAt: {
-          $gte: firstDayOfMonth,
-          $lte: lastDayOfMonth
-        }
-      });
-  
-      res.status(200).json({
-        success: true,
-        month: now.toLocaleString('en-US', { month: 'long' }),
-        year: now.getFullYear(),
-        completedOrders: completedOrdersCount
-      });
-  
-    } catch (error) {
-      console.error('Error fetching completed orders:', error);
-      res.status(500).json({
-        success: false,
-        message: "Error fetching completed orders data"
       });
     }
   };
