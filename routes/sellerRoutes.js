@@ -650,4 +650,12 @@ router.get('/my-restaurant',
     sellerController.updatePaymentSettings
   );
 
+
+
+  router.get('/low-stock-items',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getLowStockItems
+  );
+
 module.exports = router;
