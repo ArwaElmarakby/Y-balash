@@ -116,18 +116,27 @@ exports.getImages = async (req, res) => {
   exports.updateImage = async (req, res) => {
     upload(req, res, async (err) => {
       if (err) {
-        return res.status(500).json({ message: "Image upload failed", error: err });
+        return res.status(500).json({ message: "Image upload failed" });
       }
   
       const { id } = req.params;
-      const { name, quantity, price ,discountPercentage, discountStock, discountStartDate,discountEndDate} = req.body;
-      const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
+      const { 
+        name, 
+        price, 
+        quantity,
+        discountPercentage,
+        discountStock,
+        discountStartDate,
+        discountEndDate
+      } = req.body;
+  
+      const imageUrl = req.file?.path;
   
       try {
-        const updatedData = { name, quantity, price };
-        if (imageUrl) updatedData.imageUrl = imageUrl; // Update imageUrl only if a new image is uploaded
+        const updateData = { name, price, quantity };
+        if (imageUrl) updateData.imageUrl = imageUrl;
   
-
+        // معالجة الخصم
         if (discountPercentage !== undefined) {
           updateData.discount = discountPercentage > 0 ? {
             percentage: discountPercentage,
@@ -136,25 +145,28 @@ exports.getImages = async (req, res) => {
             endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
           } : null;
         }
-
-        
+  
         const updatedImage = await Image.findByIdAndUpdate(
           id,
-          updatedData,
+          updateData,
           { new: true }
         );
   
         if (!updatedImage) {
-          return res.status(404).json({ message: 'Image not found' });
+          return res.status(404).json({ message: 'Item not found' });
         }
   
-        res.status(200).json({ message: 'Item updated successfully', image: updatedImage });
+        res.status(200).json({
+          message: 'Item updated successfully',
+          item: updatedImage
+        });
       } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ message: 'Server error' });
       }
     });
   };
 
+  
   exports.searchImage = async (req, res) => {
     const { name } = req.query;
   
