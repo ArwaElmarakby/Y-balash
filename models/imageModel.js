@@ -16,7 +16,12 @@ const imageSchema = new mongoose.Schema({
     required: false
   },
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
-  restaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' }
-});
+  restaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
+  lastStockStatus: { 
+    type: String, 
+    enum: ['in', 'out', null],
+    default: null 
+  }
+}, { timestamps: true });
 
 module.exports = mongoose.model('Image', imageSchema);
