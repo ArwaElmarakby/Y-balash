@@ -1341,3 +1341,110 @@ exports.getTransactionHistory = async (req, res) => {
     res.status(200).json([]);
   }
 };
+
+
+
+
+
+exports.getSalesAnalytics = async (req, res) => {
+  try {
+    const seller = req.user;
+    const { period } = req.query; // 'week' أو 'month'
+
+    if (!seller.managedRestaurant) {
+      return res.status(200).json({
+        success: false,
+        message: 'No restaurant assigned'
+      });
+    }
+
+    const now = new Date();
+    let startDate, groupFormat;
+
+    if (period === 'week') {
+      startDate = new Date(now.setDate(now.getDate() - 7));
+      groupFormat = { 
+        day: { $dayOfMonth: '$createdAt' },
+        month: { $month: '$createdAt' }
+      };
+    } else { // month
+      startDate = new Date(now.setMonth(now.getMonth() - 1));
+      groupFormat = { 
+        week: { $week: '$createdAt' },
+        month: { $month: '$createdAt' }
+      };
+    }
+
+    const salesData = await Order.aggregate([
+      {
+        $match: {
+          restaurantId: seller.managedRestaurant,
+          createdAt: { $gte: startDate },
+          status: { $ne: 'cancelled' }
+        }
+      },
+      {
+        $group: {
+          _id: groupFormat,
+          totalSales: { $sum: '$totalAmount' },
+          orderCount: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id': 1 } }
+    ]);
+
+    // حساب نسبة التغير
+    const currentPeriodSales = salesData.reduce((sum, item) => sum + item.totalSales, 0);
+    const previousPeriodSales = await getPreviousPeriodSales(seller.managedRestaurant, startDate, period);
+
+    let percentageChange = 0;
+    if (previousPeriodSales > 0) {
+      percentageChange = ((currentPeriodSales - previousPeriodSales) / previousPeriodSales) * 100;
+    } else if (currentPeriodSales > 0) {
+      percentageChange = 100;
+    }
+
+    res.status(200).json({
+      success: true,
+      period,
+      percentageChange: percentageChange.toFixed(2) + '%',
+      chartData: formatChartData(salesData, period),
+      totalSales: currentPeriodSales,
+      totalOrders: salesData.reduce((sum, item) => sum + item.orderCount, 0)
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch analytics'
+    });
+  }
+};
+
+async function getPreviousPeriodSales(restaurantId, startDate, period) {
+  const prevStartDate = new Date(startDate);
+  prevStartDate.setDate(prevStartDate.getDate() - (period === 'week' ? 7 : 30));
+
+  const result = await Order.aggregate([
+    {
+      $match: {
+        restaurantId,
+        createdAt: { $lt: startDate, $gte: prevStartDate },
+        status: { $ne: 'cancelled' }
+      }
+    },
+    { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+  ]);
+
+  return result[0]?.total || 0;
+}
+
+function formatChartData(data, period) {
+  return data.map(item => ({
+    label: period === 'week' 
+      ? `Day ${item._id.day}/${item._id.month}` 
+      : `Week ${item._id.week}`,
+    sales: item.totalSales,
+    orders: item.orderCount
+  }));
+}

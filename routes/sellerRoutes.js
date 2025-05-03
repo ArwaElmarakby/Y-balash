@@ -730,4 +730,12 @@ router.get('/my-restaurant',
     sellerController.getTransactionHistory
   );
 
+
+
+  router.get('/sales-analytics',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getSalesAnalytics
+  );
+
 module.exports = router;
