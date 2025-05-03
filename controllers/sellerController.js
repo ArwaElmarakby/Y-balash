@@ -1554,3 +1554,83 @@ async function calculateCustomerCost(restaurantId, startDate) {
 
   return totalCost / customerCount;
 }
+
+
+
+
+exports.getRevenuePeakTrends = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(200).json({
+        success: false,
+        message: 'No restaurant assigned'
+      });
+    }
+
+    const now = new Date();
+    const sixMonthsAgo = new Date(now);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const revenueData = await Order.aggregate([
+      {
+        $match: {
+          restaurantId: seller.managedRestaurant,
+          createdAt: { $gte: sixMonthsAgo },
+          status: { $ne: 'cancelled' }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" }
+          },
+          totalRevenue: { $sum: "$totalAmount" }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    if (revenueData.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No revenue data available',
+        monthlyTrends: [],
+        peakMonth: null
+      });
+    }
+
+
+    const peakMonth = revenueData.reduce((max, current) => 
+      current.totalRevenue > max.totalRevenue ? current : max
+    );
+
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    const formattedData = revenueData.map(item => ({
+      label: `${monthNames[item._id.month - 1]} ${item._id.year}`,
+      revenue: item.totalRevenue,
+      isPeak: item._id.month === peakMonth._id.month && 
+              item._id.year === peakMonth._id.year
+    }));
+
+    res.status(200).json({
+      success: true,
+      monthlyTrends: formattedData,
+      peakMonth: {
+        label: `${monthNames[peakMonth._id.month - 1]} ${peakMonth._id.year}`,
+        revenue: peakMonth.totalRevenue
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch revenue trends'
+    });
+  }
+};

@@ -742,4 +742,11 @@ router.get('/my-restaurant',
     sellerController.getRevenueTrends
   );
 
+
+  router.get('/revenue-peak-trends',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getRevenuePeakTrends
+  );
+
 module.exports = router;
