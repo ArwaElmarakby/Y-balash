@@ -38,17 +38,7 @@ const restaurantSchema = new mongoose.Schema({
     paymentMethod: { type: String, required: true }, 
     status: { type: String, enum: ['pending', 'paid'], default: 'pending' }
   }],
-  refunds: [refundSchema],
-  discountSettings: {
-    active: { type: Boolean, default: false },
-    discountPercentage: { type: Number, min: 0, max: 100, default: 0 },
-    discountedItems: [{
-      itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' },
-      originalPrice: Number,
-      discountedPrice: Number,
-      stock: Number
-    }]
-  }
+  refunds: [refundSchema]
 });
 
 module.exports = mongoose.model('Restaurant', restaurantSchema);

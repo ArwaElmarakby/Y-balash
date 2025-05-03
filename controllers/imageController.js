@@ -56,7 +56,7 @@ exports.addImage = async (req, res) => {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, quantity, price, categoryId } = req.body;
+    const { name, quantity, price, categoryId, discountPercentage,  discountStock, discountStartDate, discountEndDate } = req.body;
     const imageUrl = req.file ? req.file.path : null;
 
     if (!name || !quantity || !price || !imageUrl || !categoryId) {
@@ -69,7 +69,15 @@ exports.addImage = async (req, res) => {
         return res.status(404).json({ message: 'Category not found' });
       }
 
-      const newImage = new Image({ name, quantity, price, imageUrl, category: categoryId });
+
+      const discount = discountPercentage > 0 ? {
+        percentage: discountPercentage,
+        stock: discountStock || 0,
+        startDate: discountStartDate || new Date(),
+        endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
+      } : undefined;
+
+      const newImage = new Image({ name, quantity, price, imageUrl, category: categoryId, discount });
       await newImage.save();
 
       category.items.push(newImage._id);
@@ -112,13 +120,24 @@ exports.getImages = async (req, res) => {
       }
   
       const { id } = req.params;
-      const { name, quantity, price } = req.body;
+      const { name, quantity, price ,discountPercentage, discountStock, discountStartDate,discountEndDate} = req.body;
       const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
   
       try {
         const updatedData = { name, quantity, price };
         if (imageUrl) updatedData.imageUrl = imageUrl; // Update imageUrl only if a new image is uploaded
   
+
+        if (discountPercentage !== undefined) {
+          updateData.discount = discountPercentage > 0 ? {
+            percentage: discountPercentage,
+            stock: discountStock || 0,
+            startDate: discountStartDate || new Date(),
+            endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          } : null;
+        }
+
+        
         const updatedImage = await Image.findByIdAndUpdate(
           id,
           updatedData,
