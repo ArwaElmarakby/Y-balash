@@ -703,4 +703,11 @@ router.get('/my-restaurant',
     sellerController.getTopProduct
   );
 
+
+  router.get('/top-selling-products',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getTopSellingProducts
+  );
+
 module.exports = router;

@@ -1183,3 +1183,59 @@ exports.getTopProduct = async (req, res) => {
     });
   }
 };
+
+
+
+exports.getTopSellingProducts = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(200).json([]);
+    }
+
+    const topProducts = await Order.aggregate([
+      {
+        $match: {
+          restaurantId: seller.managedRestaurant,
+          status: { $ne: 'cancelled' }
+        }
+      },
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: "$items.itemId",
+          unitsSold: { $sum: "$items.quantity" },
+          totalRevenue: { $sum: { $multiply: ["$items.quantity", "$items.price"] } }
+        }
+      },
+      { $sort: { totalRevenue: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: "images",
+          localField: "_id",
+          foreignField: "_id",
+          as: "product"
+        }
+      },
+      { $unwind: "$product" },
+      {
+        $project: {
+          _id: 0,
+          productName: "$product.name",
+          imageUrl: "$product.imageUrl",
+          price: "$product.price",
+          unitsSold: 1,
+          totalRevenue: 1
+        }
+      }
+    ]);
+
+    res.status(200).json(topProducts);
+
+  } catch (error) {
+    res.status(200).json([]);
+  }
+};
+
