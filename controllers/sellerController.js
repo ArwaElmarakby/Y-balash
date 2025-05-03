@@ -959,3 +959,67 @@ exports.getRestaurantProducts = async (req, res) => {
     });
   }
 };
+
+
+exports.getRevenueStats = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(200).json({
+        totalRevenue: 0,
+        percentageChange: "0%"
+      });
+    }
+
+    const now = new Date();
+    const currentWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+    const lastWeekStart = new Date(currentWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+    const [currentWeekRevenue, lastWeekRevenue] = await Promise.all([
+      Order.aggregate([
+        {
+          $match: {
+            restaurantId: seller.managedRestaurant,
+            createdAt: { $gte: currentWeekStart },
+            status: { $ne: 'cancelled' }
+          }
+        },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            restaurantId: seller.managedRestaurant,
+            createdAt: { $gte: lastWeekStart, $lt: currentWeekStart },
+            status: { $ne: 'cancelled' }
+          }
+        },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+      ])
+    ]);
+
+    const current = currentWeekRevenue[0]?.total || 0;
+    const last = lastWeekRevenue[0]?.total || 0;
+
+    let percentageChange = "0%";
+    if (last > 0) {
+      const change = ((current - last) / last) * 100;
+      percentageChange = change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
+    } else if (current > 0) {
+      percentageChange = "+100%";
+    }
+
+    res.status(200).json({
+      totalRevenue: current,
+      percentageChange
+    });
+
+  } catch (error) {
+    res.status(200).json({
+      totalRevenue: 0,
+      percentageChange: "0%"
+    });
+  }
+};

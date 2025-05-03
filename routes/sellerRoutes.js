@@ -680,4 +680,12 @@ router.get('/my-restaurant',
     sellerController.getRestaurantProducts
   );
   
+
+  router.get('/revenue-stats',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getRevenueStats
+  );
+
+  
 module.exports = router;
