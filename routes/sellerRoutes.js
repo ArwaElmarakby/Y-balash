@@ -695,4 +695,12 @@ router.get('/my-restaurant',
     sellerController.getNewCustomersStats
   );
 
+
+
+  router.get('/top-product',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getTopProduct
+  );
+
 module.exports = router;

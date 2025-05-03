@@ -1079,3 +1079,107 @@ exports.getNewCustomersStats = async (req, res) => {
     });
   }
 };
+
+
+
+
+exports.getTopProduct = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(200).json({
+        productName: "N/A",
+        soldCount: 0,
+        percentageChange: "0%"
+      });
+    }
+
+    const now = new Date();
+    const currentWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+    const lastWeekStart = new Date(currentWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+
+    const currentWeekTopProduct = await Order.aggregate([
+      {
+        $match: {
+          restaurantId: seller.managedRestaurant,
+          createdAt: { $gte: currentWeekStart },
+          status: { $ne: 'cancelled' }
+        }
+      },
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: "$items.itemId",
+          count: { $sum: "$items.quantity" }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 1 },
+      {
+        $lookup: {
+          from: "images",
+          localField: "_id",
+          foreignField: "_id",
+          as: "product"
+        }
+      },
+      { $unwind: "$product" }
+    ]);
+
+
+    let lastWeekCount = 0;
+    if (currentWeekTopProduct.length > 0) {
+      const lastWeekSales = await Order.aggregate([
+        {
+          $match: {
+            restaurantId: seller.managedRestaurant,
+            createdAt: { $gte: lastWeekStart, $lt: currentWeekStart },
+            status: { $ne: 'cancelled' },
+            "items.itemId": currentWeekTopProduct[0]._id
+          }
+        },
+        { $unwind: "$items" },
+        {
+          $match: {
+            "items.itemId": currentWeekTopProduct[0]._id
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            count: { $sum: "$items.quantity" }
+          }
+        }
+      ]);
+
+      lastWeekCount = lastWeekSales[0]?.count || 0;
+    }
+
+    const currentCount = currentWeekTopProduct[0]?.count || 0;
+    const productName = currentWeekTopProduct[0]?.product?.name || "N/A";
+
+    let percentageChange = "0%";
+    if (lastWeekCount > 0) {
+      const change = ((currentCount - lastWeekCount) / lastWeekCount) * 100;
+      percentageChange = change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
+    } else if (currentCount > 0) {
+      percentageChange = "+100%";
+    }
+
+    res.status(200).json({
+      productName,
+      soldCount: currentCount,
+      percentageChange
+    });
+
+  } catch (error) {
+    res.status(200).json({
+      productName: "N/A",
+      soldCount: 0,
+      percentageChange: "0%"
+    });
+  }
+};
