@@ -56,7 +56,7 @@ exports.addImage = async (req, res) => {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, quantity, price, categoryId, discountPercentage,  discountStock, discountStartDate, discountEndDate } = req.body;
+    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate } = req.body;
     const imageUrl = req.file ? req.file.path : null;
 
     if (!name || !quantity || !price || !imageUrl || !categoryId) {
@@ -72,7 +72,6 @@ exports.addImage = async (req, res) => {
 
       const discount = discountPercentage > 0 ? {
         percentage: discountPercentage,
-        stock: discountStock || 0,
         startDate: discountStartDate || new Date(),
         endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
       } : undefined;
@@ -125,7 +124,6 @@ exports.getImages = async (req, res) => {
         price, 
         quantity,
         discountPercentage,
-        discountStock,
         discountStartDate,
         discountEndDate
       } = req.body;
@@ -136,11 +134,10 @@ exports.getImages = async (req, res) => {
         const updateData = { name, price, quantity };
         if (imageUrl) updateData.imageUrl = imageUrl;
   
-        // معالجة الخصم
+
         if (discountPercentage !== undefined) {
           updateData.discount = discountPercentage > 0 ? {
             percentage: discountPercentage,
-            stock: discountStock || 0,
             startDate: discountStartDate || new Date(),
             endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
           } : null;
@@ -166,7 +163,7 @@ exports.getImages = async (req, res) => {
     });
   };
 
-  
+
   exports.searchImage = async (req, res) => {
     const { name } = req.query;
   
