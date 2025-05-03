@@ -1448,3 +1448,109 @@ function formatChartData(data, period) {
     orders: item.orderCount
   }));
 }
+
+
+
+
+exports.getRevenueTrends = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(200).json({
+        success: false,
+        message: 'No restaurant assigned'
+      });
+    }
+
+
+    const now = new Date();
+    const sixMonthsAgo = new Date(now);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+
+    const revenueData = await Order.aggregate([
+      {
+        $match: {
+          restaurantId: seller.managedRestaurant,
+          createdAt: { $gte: sixMonthsAgo },
+          status: { $ne: 'cancelled' }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" }
+          },
+          totalRevenue: { $sum: "$totalAmount" },
+          orderCount: { $sum: 1 },
+          customerCount: { $addToSet: "$userId" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          month: "$_id.month",
+          year: "$_id.year",
+          totalRevenue: 1,
+          averageOrderValue: { $divide: ["$totalRevenue", "$orderCount"] },
+          uniqueCustomers: { $size: "$customerCount" }
+        }
+      },
+      { $sort: { year: 1, month: 1 } }
+    ]);
+
+
+    const lifetimeValue = revenueData.reduce((sum, month) => sum + month.totalRevenue, 0);
+    const customerAcquisitionCost = await calculateCustomerCost(seller.managedRestaurant, sixMonthsAgo);
+
+
+    const formattedData = revenueData.map(item => ({
+      month: `${item.month}/${item.year}`,
+      revenue: item.totalRevenue,
+      customers: item.uniqueCustomers,
+      aov: item.averageOrderValue
+    }));
+
+    res.status(200).json({
+      success: true,
+      lifetimeValue,
+      customerAcquisitionCost,
+      monthlyTrends: formattedData
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch revenue trends'
+    });
+  }
+};
+
+async function calculateCustomerCost(restaurantId, startDate) {
+
+  const marketingCosts = await Order.aggregate([
+    {
+      $match: {
+        restaurantId,
+        createdAt: { $gte: startDate },
+        status: { $ne: 'cancelled' },
+        discountAmount: { $gt: 0 }
+      }
+    },
+    { $group: { _id: null, total: { $sum: "$discountAmount" } } }
+  ]);
+
+
+  const newCustomers = await Order.distinct('userId', {
+    restaurantId,
+    createdAt: { $gte: startDate },
+    isFirstOrder: true
+  });
+
+  const totalCost = marketingCosts[0]?.total || 0;
+  const customerCount = newCustomers.length || 1; 
+
+  return totalCost / customerCount;
+}
