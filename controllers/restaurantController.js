@@ -32,7 +32,7 @@ exports.addRestaurant = async (req, res) => {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, description, location } = req.body;
+    const { name, description, location, discountPercentage,  discountedItems } = req.body;
     const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
 
     if (!name || !description  || !location || !imageUrl) {
@@ -40,7 +40,13 @@ exports.addRestaurant = async (req, res) => {
     }
 
     try {
-      const newRestaurant = new Restaurant({ name, imageUrl, description, location });
+      const newRestaurant = new Restaurant({ name, imageUrl, description, location,
+        discountSettings: {
+          active: discountPercentage > 0,
+          discountPercentage: discountPercentage || 0,
+          discountedItems: discountedItems || []
+        }
+       });
       await newRestaurant.save();
       res.status(201).json({ message: 'Restaurant added successfully', restaurant: newRestaurant });
     } catch (error) {
@@ -82,18 +88,27 @@ exports.getRestaurants = async (req, res) => {
       }
   
       const { id } = req.params;
-      const { name, description, location } = req.body;
+      const { name, description, location, discountPercentage, discountedItems  } = req.body;
       const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
   
       try {
         const updatedData = { name, description, location };
         if (imageUrl) updatedData.imageUrl = imageUrl; // Update imageUrl only if a new image is uploaded
   
+        if (discountPercentage !== undefined) {
+          updateData.discountSettings = {
+            active: discountPercentage > 0,
+            discountPercentage,
+            discountedItems: discountedItems || []
+          };
+        }
+
+        
         const updatedRestaurant = await Restaurant.findByIdAndUpdate(
           id,
           updatedData,
           { new: true }
-        );
+        ).populate('discountSettings.discountedItems.itemId');
   
         if (!updatedRestaurant) {
           return res.status(404).json({ message: 'Restaurant not found' });
