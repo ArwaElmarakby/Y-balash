@@ -1239,3 +1239,105 @@ exports.getTopSellingProducts = async (req, res) => {
   }
 };
 
+
+
+
+exports.getBalance = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(200).json({
+        availableBalance: 0,
+        pendingBalance: 0
+      });
+    }
+
+    const restaurant = await Restaurant.findById(seller.managedRestaurant)
+      .select('balance pendingWithdrawals');
+
+    res.status(200).json({
+      availableBalance: restaurant.balance || 0,
+      pendingBalance: restaurant.pendingWithdrawals || 0
+    });
+
+  } catch (error) {
+    res.status(200).json({
+      availableBalance: 0,
+      pendingBalance: 0
+    });
+  }
+};
+
+
+
+
+exports.requestWithdrawal = async (req, res) => {
+  try {
+    const { amount, method, accountDetails } = req.body;
+    const seller = req.user;
+
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ success: false, message: 'No restaurant assigned' });
+    }
+
+    const restaurant = await Restaurant.findById(seller.managedRestaurant);
+
+    if (amount > restaurant.balance) {
+      return res.status(400).json({ success: false, message: 'Insufficient balance' });
+    }
+
+
+    restaurant.balance -= amount;
+    restaurant.pendingWithdrawals += amount;
+    await restaurant.save();
+
+
+    const transaction = {
+      amount,
+      method,
+      status: 'pending',
+      reference: `WDR-${Date.now()}`
+    };
+
+    await User.findByIdAndUpdate(seller._id, {
+      $push: { transactions: transaction }
+    });
+
+    res.status(200).json({ 
+      success: true,
+      message: 'Withdrawal request submitted',
+      newBalance: restaurant.balance
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Withdrawal request failed'
+    });
+  }
+};
+
+
+
+exports.getTransactionHistory = async (req, res) => {
+  try {
+    const seller = await User.findById(req.user._id)
+      .select('transactions')
+      .sort({ 'transactions.date': -1 });
+
+    const formattedTransactions = seller.transactions.map(t => ({
+      date: t.date,
+      amount: t.amount,
+      method: t.method === 'bank' ? 'Bank Transfer' : 
+             t.method === 'mobile' ? 'Mobile Wallet' : 'PayPal',
+      status: t.status.charAt(0).toUpperCase() + t.status.slice(1),
+      reference: t.reference
+    }));
+
+    res.status(200).json(formattedTransactions);
+
+  } catch (error) {
+    res.status(200).json([]);
+  }
+};

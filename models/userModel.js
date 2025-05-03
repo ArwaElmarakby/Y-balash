@@ -44,10 +44,25 @@ const userSchema = new mongoose.Schema({
     managedRestaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
     language: { type: String, default: null },
     paymentSettings: {
-        accountNumber: { type: String },
-        accountHolderName: { type: String },
-        bankName: { type: String }
-      }
+        bankAccount: {
+            accountNumber: String,
+            accountHolderName: String,
+            bankName: String
+        },
+        mobileWallet: {
+            provider: String,
+            number: String
+          },
+          paypalEmail: String
+        },
+        transactions: [{
+          date: { type: Date, default: Date.now },
+          amount: Number,
+          method: { type: String, enum: ['bank', 'mobile', 'paypal'] },
+          status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
+          reference: String
+        }]
+      
 });
 
 userSchema.pre('save', async function (next) {

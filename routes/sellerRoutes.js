@@ -710,4 +710,24 @@ router.get('/my-restaurant',
     sellerController.getTopSellingProducts
   );
 
+
+
+  router.get('/balance',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getBalance
+  );
+  
+  router.post('/withdraw',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.requestWithdrawal
+  );
+  
+  router.get('/transactions',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getTransactionHistory
+  );
+
 module.exports = router;
