@@ -749,4 +749,12 @@ router.get('/my-restaurant',
     sellerController.getRevenuePeakTrends
   );
 
+
+
+  router.get('/customer-analytics',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getCustomerAnalytics
+  );
+
 module.exports = router;

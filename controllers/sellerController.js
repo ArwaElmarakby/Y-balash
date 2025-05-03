@@ -1634,3 +1634,112 @@ exports.getRevenuePeakTrends = async (req, res) => {
     });
   }
 };
+
+
+
+
+exports.getCustomerAnalytics = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(200).json({
+        success: false,
+        message: 'No restaurant assigned'
+      });
+    }
+
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const threeMonthsAgo = new Date(currentMonthStart);
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+
+    const customerData = await Order.aggregate([
+      {
+        $match: {
+          restaurantId: seller.managedRestaurant,
+          createdAt: { $gte: threeMonthsAgo }
+        }
+      },
+      {
+        $group: {
+          _id: "$userId",
+          firstOrderDate: { $min: "$createdAt" },
+          lastOrderDate: { $max: "$createdAt" },
+          orderCount: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          isNew: { $gte: ["$firstOrderDate", currentMonthStart] },
+          isReturning: {
+            $and: [
+              { $lt: ["$firstOrderDate", currentMonthStart] },
+              { $gte: ["$lastOrderDate", currentMonthStart] }
+            ]
+          },
+          isChurned: {
+            $and: [
+              { $lt: ["$firstOrderDate", currentMonthStart] },
+              { $lt: ["$lastOrderDate", currentMonthStart] },
+              { $gte: ["$lastOrderDate", threeMonthsAgo] }
+            ]
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          newCustomers: { $sum: { $cond: ["$isNew", 1, 0] } },
+          returningCustomers: { $sum: { $cond: ["$isReturning", 1, 0] } },
+          churnedCustomers: { $sum: { $cond: ["$isChurned", 1, 0] } }
+        }
+      }
+    ]);
+
+    const result = customerData[0] || {
+      newCustomers: 0,
+      returningCustomers: 0,
+      churnedCustomers: 0
+    };
+
+    const totalActiveCustomers = result.newCustomers + result.returningCustomers;
+
+    res.status(200).json({
+      success: true,
+      chartData: {
+        labels: ["New", "Returning", "Churned"],
+        datasets: [
+          {
+            data: [
+              result.newCustomers,
+              result.returningCustomers,
+              result.churnedCustomers
+            ],
+            backgroundColor: [
+              "#FFCE56", 
+              "#36A2EB", 
+              "#4BC0C0"  
+            ]
+          }
+        ]
+      },
+      summary: {
+        newCustomers: result.newCustomers,
+        returningCustomers: result.returningCustomers,
+        churnedCustomers: result.churnedCustomers,
+        totalActiveCustomers,
+        churnRate: totalActiveCustomers > 0 
+          ? (result.churnedCustomers / totalActiveCustomers * 100).toFixed(2) + "%"
+          : "0%"
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch customer analytics'
+    });
+  }
+};
