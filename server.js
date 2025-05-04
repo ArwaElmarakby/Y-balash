@@ -925,14 +925,28 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Email Transporter Configuration
+// const transporter = nodemailer.createTransport({
+//   host: process.env.SMTP_HOST,
+//   port: process.env.SMTP_PORT,
+//   secure: false, // true for 465, false for other ports
+//   auth: {
+//     user: process.env.EMAIL,
+//     pass: process.env.EMAIL_PASSWORD,
+//   },
+// });
+
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: false, // true for 465, false for other ports
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL,
-    pass: process.env.EMAIL_PASSWORD,
+    pass: process.env.EMAIL_PASSWORD
   },
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 // Temporary storage for OTPs (use a database for production)
@@ -980,23 +994,34 @@ let userEmail;
 
 
 app.post("/send-otp", async (req, res) => {
-   const { email } = req.body;
+  userEmail = req.body.email;
 
-  const otp = Math.floor(100000 + Math.random() * 900000);
+  if (!userEmail) {
+    return res.status(400).json({ message: "Please enter your email" });
+  }
+
+  generatedOTP = Math.floor(100000 + Math.random() * 900000); 
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
 
   const mailOptions = {
     from: process.env.EMAIL,
-    to: email,
-    subject: "Your OTP Code",
-    text: `Your OTP is: ${otp}`
+    to: userEmail,
+    subject: "OTP Code",
+    text: `Your OTP Code is: ${generatedOTP}`,
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    res.status(200).json({ message: "OTP sent successfully!" });
+    res.status(200).json({ message: "OTP sent to your email" });
   } catch (error) {
-    console.error("Error sending OTP:", error);
-    res.status(500).json({ message: "Failed to send OTP", error: error.message });
+    res.status(500).json({ message: "An error occurred while sending OTP", error });
   }
 });
 
