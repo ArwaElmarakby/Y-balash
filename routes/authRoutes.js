@@ -115,9 +115,12 @@
 
 const express = require('express');
 const router = express.Router();
-const { signUp, login, changePassword } = require('../controllers/authController');
+const { signUp, login, changePassword, sellerLogin, createSellerAccount } = require('../controllers/authController');
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel'); 
+const { authMiddleware } = require('./authMiddleware');
+const adminMiddleware = require('../middleware/adminMiddleware');
+const sellerMiddleware = require('../middleware/sellerMiddleware');
 
 
 const authMiddleware = async (req, res, next) => {
@@ -144,7 +147,21 @@ const authMiddleware = async (req, res, next) => {
 router.post('/signup', signUp); 
 router.post('/login', login); 
 router.post('/change-password', changePassword); 
+router.post('/seller/login', sellerLogin);
+router.post('/admin/create-seller', authMiddleware, adminMiddleware, createSellerAccount);
 
+
+router.get('/verify', authMiddleware, (req, res) => {
+    res.status(200).json({
+        isAuthenticated: true,
+        user: {
+            id: req.user._id,
+            email: req.user.email,
+            isAdmin: req.user.isAdmin,
+            isSeller: req.user.isSeller
+        }
+    });
+});
 
 router.get('/home', authMiddleware, (req, res) => {
     res.send(`Hi ${req.user.email}`); 

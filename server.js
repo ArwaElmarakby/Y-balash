@@ -1041,6 +1041,10 @@ app.post("/verify-otp", (req, res) => {
 });
 
 
+
+process.env.SELLER_LOGIN_URL = 'https://y-balash.vercel.app/api/auth/seller/login';
+
+
 // Custom API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
