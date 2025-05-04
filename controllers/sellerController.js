@@ -1754,11 +1754,15 @@ exports.requestSellerAccount = async (req, res) => {
   const { email, restaurantName, phone } = req.body;
 
   try {
-      const existingRequest = await User.findOne({ email, isSeller: false });
-      if (existingRequest) {
-          return res.status(400).json({ 
-              success: false,
-              message: 'Request already submitted'
+      let request = await User.findOne({ email, isSeller: false });
+      
+      if (request) {
+          request.restaurantName = restaurantName;
+          request.phone = phone;
+          await request.save();
+          return res.status(200).json({
+              success: true,
+              message: 'Request updated'
           });
       }
 
