@@ -64,6 +64,8 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+
 
 exports.signUp = async (req, res) => {
     const { email, phone, password, confirmPassword } = req.body;
@@ -141,6 +143,36 @@ exports.changePassword = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+
+exports.signUpSeller = async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+    }
+    try {
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD,
+            },
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: 'yabalash001@gmail.com',
+            subject: 'New Seller Sign-Up Request',
+            text: `A new seller has requested to sign up with the email: ${email}.`,
+        };
+        await transporter.sendMail(mailOptions);
+        res.status(200).json({ message: 'Sign-up request sent to admin' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error sending email', error });
+    }
+};
+
 
 
 

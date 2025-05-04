@@ -6,6 +6,8 @@ const Restaurant = require('../models/restaurantModel');
 const Order = require('../models/orderModel');
 const { authMiddleware } = require('./authRoutes'); // Use your existing auth middleware
 const adminMiddleware = require('../middleware/adminMiddleware');
+const { approveSeller } = require('../controllers/adminController');
+
 
 router.post('/promote', authMiddleware, async (req, res) => {
     try {
@@ -181,6 +183,7 @@ router.get('/orders', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 
+router.post('/approve-seller', authMiddleware, adminMiddleware, approveSeller); 
 
 
 module.exports = router;

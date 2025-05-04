@@ -43,3 +43,23 @@ exports.getAllSellers = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+
+
+
+exports.approveSeller = async (req, res) => {
+    const { email, username, password } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User  not found' });
+        }
+        user.isSeller = true;
+        user.username = username; 
+        user.password = password; 
+        await user.save();
+        res.status(200).json({ message: 'Seller approved successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
