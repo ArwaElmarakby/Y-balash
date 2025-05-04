@@ -2,6 +2,10 @@ const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 
 
@@ -1741,5 +1745,163 @@ exports.getCustomerAnalytics = async (req, res) => {
       success: false,
       message: 'Failed to fetch customer analytics'
     });
+  }
+};
+
+
+
+exports.requestSellerAccount = async (req, res) => {
+  const { email, restaurantName, phone } = req.body;
+
+  try {
+      const existingRequest = await User.findOne({ email, isSeller: false });
+      if (existingRequest) {
+          return res.status(400).json({ 
+              success: false,
+              message: 'Request already submitted'
+          });
+      }
+
+      const newRequest = new User({
+          email,
+          phone,
+          restaurantName,
+          isSeller: false,
+          sellerStatus: 'pending'
+      });
+
+      await newRequest.save();
+
+      const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+              user: process.env.ADMIN_EMAIL,
+              pass: process.env.EMAIL_PASSWORD
+          }
+      });
+
+      await transporter.sendMail({
+          from: process.env.ADMIN_EMAIL,
+          to: process.env.ADMIN_EMAIL,
+          subject: 'New Seller Request',
+          html: `<p>New seller request from ${email}</p>`
+      });
+
+      res.status(201).json({
+          success: true,
+          message: 'Request submitted'
+      });
+
+  } catch (error) {
+      res.status(500).json({
+          success: false,
+          message: 'Server error',
+          error: error.message
+      });
+  }
+};
+
+exports.approveSellerAccount = async (req, res) => {
+  const { requestId } = req.body;
+
+  try {
+      const request = await User.findById(requestId);
+      if (!request) {
+          return res.status(404).json({
+              success: false,
+              message: 'Request not found'
+          });
+      }
+
+      const randomPassword = crypto.randomBytes(6).toString('hex');
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      const newRestaurant = new Restaurant({
+          name: request.restaurantName,
+          phone: request.phone
+      });
+      await newRestaurant.save();
+
+      request.password = hashedPassword;
+      request.isSeller = true;
+      request.sellerStatus = 'approved';
+      request.managedRestaurant = newRestaurant._id;
+      await request.save();
+
+      const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+              user: process.env.ADMIN_EMAIL,
+              pass: process.env.EMAIL_PASSWORD
+          }
+      });
+
+      await transporter.sendMail({
+          from: process.env.ADMIN_EMAIL,
+          to: request.email,
+          subject: 'Your Seller Account',
+          html: `<p>Your login: ${request.email}<br>Password: ${randomPassword}</p>`
+      });
+
+      res.status(200).json({
+          success: true,
+          message: 'Account approved'
+      });
+
+  } catch (error) {
+      res.status(500).json({
+          success: false,
+          message: 'Server error',
+          error: error.message
+      });
+  }
+};
+
+exports.sellerLogin = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+      const seller = await User.findOne({ email, isSeller: true });
+      if (!seller) {
+          return res.status(404).json({ 
+              success: false,
+              message: 'Seller not found' 
+          });
+      }
+
+      const isMatch = await bcrypt.compare(password, seller.password);
+      if (!isMatch) {
+          return res.status(400).json({ 
+              success: false,
+              message: 'Invalid credentials' 
+          });
+      }
+
+      const token = jwt.sign(
+          { 
+              id: seller._id,
+              isSeller: true,
+              managedRestaurant: seller.managedRestaurant 
+          }, 
+          process.env.JWT_SECRET,
+          { expiresIn: '8h' }
+      );
+
+      res.status(200).json({ 
+          success: true,
+          token,
+          seller: {
+              id: seller._id,
+              email: seller.email,
+              restaurant: seller.managedRestaurant
+          }
+      });
+
+  } catch (error) {
+      res.status(500).json({ 
+          success: false,
+          message: 'Server error',
+          error: error.message 
+      });
   }
 };
