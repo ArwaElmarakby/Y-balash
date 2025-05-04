@@ -870,7 +870,6 @@ const pointsRoutes = require('./routes/pointsRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
-const sellerRequestRoutes = require('./routes/sellerRequestRoutes');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -1048,7 +1047,6 @@ app.use('/api/points', pointsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/seller-requests', sellerRequestRoutes);
 
 
 
