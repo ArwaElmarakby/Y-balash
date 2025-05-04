@@ -1751,60 +1751,64 @@ exports.getCustomerAnalytics = async (req, res) => {
 
 
 exports.createSellerAccount = async (req, res) => {
-  const { email, restaurantId } = req.body;
+  const { email, restaurantId, phone } = req.body; // أضفنا phone هنا
 
-  try {
-      const restaurant = await Restaurant.findById(restaurantId);
-      if (!restaurant) {
-          return res.status(404).json({ success: false, message: 'Restaurant not found' });
-      }
+    try {
+        const restaurant = await Restaurant.findById(restaurantId);
+        if (!restaurant) {
+            return res.status(404).json({ success: false, message: 'Restaurant not found' });
+        }
 
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-          return res.status(400).json({ success: false, message: 'User already exists' });
-      }
+        const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
+        if (existingUser) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'User with this email or phone already exists' 
+            });
+        }
 
-      const randomPassword = crypto.randomBytes(6).toString('hex');
-      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+        const randomPassword = crypto.randomBytes(6).toString('hex');
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
-      const newSeller = new User({
-          email,
-          password: hashedPassword,
-          isSeller: true,
-          managedRestaurant: restaurantId
-      });
+        const newSeller = new User({
+            email,
+            phone, // أضفنا phone هنا
+            password: hashedPassword,
+            isSeller: true,
+            managedRestaurant: restaurantId
+        });
 
-      await newSeller.save();
+        await newSeller.save();
 
-      const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-              user: process.env.EMAIL,
-              pass: process.env.EMAIL_PASSWORD
-          }
-      });
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD
+            }
+        });
 
-      const mailOptions = {
-          from: process.env.EMAIL,
-          to: email,
-          subject: 'Your Seller Account Credentials',
-          text: `Email: ${email}\nPassword: ${randomPassword}`
-      };
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: email,
+            subject: 'Your Seller Account Credentials',
+            text: `Email: ${email}\nPhone: ${phone}\nPassword: ${randomPassword}`
+        };
 
-      await transporter.sendMail(mailOptions);
+        await transporter.sendMail(mailOptions);
 
-      res.status(201).json({ 
-          success: true,
-          message: 'Seller account created and credentials sent'
-      });
+        res.status(201).json({ 
+            success: true,
+            message: 'Seller account created and credentials sent'
+        });
 
-  } catch (error) {
-      res.status(500).json({ 
-          success: false,
-          message: 'Server error',
-          error: error.message 
-      });
-  }
+    } catch (error) {
+        res.status(500).json({ 
+            success: false,
+            message: 'Server error',
+            error: error.message 
+        });
+    }
 };
 
 exports.sellerLogin = async (req, res) => {
