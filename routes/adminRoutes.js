@@ -182,39 +182,5 @@ router.get('/orders', authMiddleware, adminMiddleware, async (req, res) => {
 
 
 
-router.post('/approve-seller', authMiddleware, adminMiddleware, async (req, res) => {
-    const { userId, username, password } = req.body;
-  
-    try {
-      const user = await User.findById(userId);
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-
-      user.isApproved = true;
-      user.approvedAt = new Date();
-      user.username = username; 
-      user.password = password; 
-      
-      await user.save();
-  
-
-      await sendSellerCredentials(user.email, username, password);
-  
-      res.status(200).json({ 
-        message: 'Seller approved successfully',
-        user: {
-          id: user._id,
-          email: user.email,
-          isApproved: user.isApproved
-        }
-      });
-    } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
-    }
-  });
-
-
 
 module.exports = router;
