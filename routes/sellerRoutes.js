@@ -7,7 +7,6 @@ const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 const Image = require('../models/imageModel'); 
 const sellerController = require('../controllers/sellerController');
-const adminMiddleware = require('../middleware/adminMiddleware');
 
 
 
@@ -757,10 +756,5 @@ router.get('/my-restaurant',
     sellerMiddleware,
     sellerController.getCustomerAnalytics
   );
-
-
-  router.post('/request', sellerController.requestSellerAccount);
-router.post('/approve', authMiddleware, adminMiddleware, sellerController.approveSellerAccount);
-router.post('/login', sellerController.sellerLogin);
 
 module.exports = router;
