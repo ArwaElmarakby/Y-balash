@@ -43,6 +43,7 @@ const userSchema = new mongoose.Schema({
     isSeller: { type: Boolean, default: false },
     managedRestaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
     language: { type: String, default: null },
+    pendingSeller: { type: Boolean, default: false },
     paymentSettings: {
         bankAccount: {
             accountNumber: String,

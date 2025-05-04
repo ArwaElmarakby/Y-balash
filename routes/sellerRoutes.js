@@ -7,6 +7,7 @@ const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 const Image = require('../models/imageModel'); 
 const sellerController = require('../controllers/sellerController');
+const nodemailer = require('nodemailer');
 
 
 
@@ -756,5 +757,56 @@ router.get('/my-restaurant',
     sellerMiddleware,
     sellerController.getCustomerAnalytics
   );
+
+
+  router.post('/request-seller', authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        
+        if (user.isSeller) {
+            return res.status(400).json({ message: 'You are already a seller!' });
+        }
+
+        if (user.pendingSeller) {
+            return res.status(400).json({ message: 'Your request is already pending approval' });
+        }
+
+        user.pendingSeller = true;
+        await user.save();
+
+        // Send email to admin
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD,
+            },
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: 'yabalash001@gmail.com',
+            subject: 'New Seller Request',
+            html: `
+                <h2>New Seller Request</h2>
+                <p>User ${user.email} has requested to become a seller.</p>
+                <p>Approve or reject this request from the admin dashboard.</p>
+            `,
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.status(200).json({ 
+            message: 'Your request has been sent to the admin for approval',
+            user: {
+                _id: user._id,
+                email: user.email,
+                pendingSeller: true
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
 
 module.exports = router;
