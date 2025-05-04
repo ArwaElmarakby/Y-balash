@@ -980,34 +980,23 @@ let userEmail;
 
 
 app.post("/send-otp", async (req, res) => {
-  userEmail = req.body.email;
+   const { email } = req.body;
 
-  if (!userEmail) {
-    return res.status(400).json({ message: "Please enter your email" });
-  }
-
-  generatedOTP = Math.floor(100000 + Math.random() * 900000); 
-
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL,
-      pass: process.env.EMAIL_PASSWORD,
-    },
-  });
+  const otp = Math.floor(100000 + Math.random() * 900000);
 
   const mailOptions = {
     from: process.env.EMAIL,
-    to: userEmail,
-    subject: "OTP Code",
-    text: `Your OTP Code is: ${generatedOTP}`,
+    to: email,
+    subject: "Your OTP Code",
+    text: `Your OTP is: ${otp}`
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    res.status(200).json({ message: "OTP sent to your email" });
+    res.status(200).json({ message: "OTP sent successfully!" });
   } catch (error) {
-    res.status(500).json({ message: "An error occurred while sending OTP", error });
+    console.error("Error sending OTP:", error);
+    res.status(500).json({ message: "Failed to send OTP", error: error.message });
   }
 });
 
