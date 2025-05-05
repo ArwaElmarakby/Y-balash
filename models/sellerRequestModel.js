@@ -6,7 +6,8 @@ const sellerRequestSchema = new mongoose.Schema({
     requestedPassword: { type: String, required: true },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     adminNotes: { type: String },
-    approvedAt: { type: Date }
+    approvedAt: { type: Date },
+    email: { type: String } 
 }, { timestamps: true });
 
 module.exports = mongoose.model('SellerRequest', sellerRequestSchema);
