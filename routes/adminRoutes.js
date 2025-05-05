@@ -6,6 +6,7 @@ const Restaurant = require('../models/restaurantModel');
 const Order = require('../models/orderModel');
 const { authMiddleware } = require('./authRoutes'); // Use your existing auth middleware
 const adminMiddleware = require('../middleware/adminMiddleware');
+const SellerRequest = require('../models/sellerRequestModel');
 
 router.post('/promote', authMiddleware, async (req, res) => {
     try {
@@ -166,7 +167,7 @@ router.get('/orders', authMiddleware, adminMiddleware, async (req, res) => {
 
     try {
         const orders = await Order.find(filter)
-            .populate('userId', 'email phone')
+            .populate('ئئuserId', 'email phone')
             .populate('restaurantId', 'name')
             .populate('items.itemId', 'name price')
             .sort({ createdAt: -1 });
@@ -180,6 +181,111 @@ router.get('/orders', authMiddleware, adminMiddleware, async (req, res) => {
     }
 });
 
+
+router.get('/seller-requests', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const requests = await SellerRequest.find().sort({ createdAt: -1 });
+      res.status(200).json(requests);
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+    }
+  });
+  
+  // معالجة طلب بائع
+  router.post('/process-seller-request', authMiddleware, adminMiddleware, async (req, res) => {
+    const { requestId, action, adminNotes, sellerEmail, sellerPassword } = req.body;
+  
+    try {
+      const request = await SellerRequest.findById(requestId);
+      if (!request) {
+        return res.status(404).json({ message: 'Request not found' });
+      }
+  
+      if (action === 'approve') {
+        // إنشاء حساب بائع جديد
+        const newSeller = new User({
+          email: request.email,
+          password: sellerPassword,
+          isSeller: true
+        });
+  
+        await newSeller.save();
+  
+        // إرسال بريد إلكتروني إلى البائع
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.ADMIN_EMAIL,
+            pass: process.env.ADMIN_EMAIL_PASSWORD
+          }
+        });
+  
+        const mailOptions = {
+          from: process.env.ADMIN_EMAIL,
+          to: request.email,
+          subject: 'Your Seller Account Has Been Approved',
+          text: `Congratulations! Your seller account for ${request.restaurantName} has been approved.
+          
+          Your login credentials:
+          Email: ${request.email}
+          Password: ${sellerPassword}
+          
+          Please change your password after first login.`
+        };
+  
+        await transporter.sendMail(mailOptions);
+  
+        request.status = 'approved';
+        request.adminNotes = adminNotes;
+        request.processedAt = new Date();
+        await request.save();
+  
+        res.status(200).json({ 
+          message: 'Seller request approved and account created successfully',
+          seller: newSeller
+        });
+  
+      } else if (action === 'reject') {
+        request.status = 'rejected';
+        request.adminNotes = adminNotes;
+        request.processedAt = new Date();
+        await request.save();
+  
+        // إرسال بريد إلكتروني إلى مقدم الطلب
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.ADMIN_EMAIL,
+            pass: process.env.ADMIN_EMAIL_PASSWORD
+          }
+        });
+  
+        const mailOptions = {
+          from: process.env.ADMIN_EMAIL,
+          to: request.email,
+          subject: 'Your Seller Request Has Been Rejected',
+          text: `We regret to inform you that your seller request for ${request.restaurantName} has been rejected.
+          
+          Reason: ${adminNotes || 'Not specified'}`
+        };
+  
+        await transporter.sendMail(mailOptions);
+  
+        res.status(200).json({ 
+          message: 'Seller request rejected successfully',
+          request
+        });
+      } else {
+        res.status(400).json({ message: 'Invalid action' });
+      }
+  
+    } catch (error) {
+      res.status(500).json({ 
+        message: 'Error processing seller request',
+        error: error.message 
+      });
+    }
+  });
 
 
 
