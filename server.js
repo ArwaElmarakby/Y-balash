@@ -1041,49 +1041,54 @@ app.post("/verify-otp", (req, res) => {
 });
 
 
-router.post('/request-seller', async (req, res) => {
+app.post("/api/request-seller", async (req, res) => {
   const { email, message } = req.body;
 
   if (!email) {
-    return res.status(400).json({ 
-      success: false,
-      message: "Email is required" 
-    });
+    return res.status(400).json({ message: "Email is required" });
   }
 
   try {
-    // 1. إرسال إيميل للإدارة
-    await transporter.sendMail({
-      from: process.env.EMAIL,
-      to: process.env.ADMIN_EMAIL || 'yabalash001@gmail.com',
-      subject: 'New Seller Request',
-      html: `
-        <p>New seller request from: <strong>${email}</strong></p>
-        ${message ? `<p>Message: ${message}</p>` : ''}
-      `
-    });
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    // 2. إرسال إيميل تأكيد للمستخدم
-    await transporter.sendMail({
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: process.env.ADMIN_EMAIL || "yabalash001@gmail.com",
+      subject: "New Seller Request",
+      text: `User with email ${email} wants to become a seller.\n\nAdditional message: ${message || 'No additional message'}`,
+      html: `
+        <h1>New Seller Request</h1>
+        <p>User with email <strong>${email}</strong> wants to become a seller.</p>
+        ${message ? `<p>Additional message: ${message}</p>` : ''}
+        <p>Please review this request in the admin panel.</p>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    const userMailOptions = {
       from: process.env.EMAIL,
       to: email,
-      subject: 'Seller Request Received',
-      html: '<p>Your request has been received. We will contact you soon.</p>'
-    });
+      subject: "Your Seller Request Received",
+      text: `Your request to become a seller has been received. We will contact you soon.`,
+      html: `
+        <h1>Request Received</h1>
+        <p>Your request to become a seller has been received. We will review it and contact you soon.</p>
+      `
+    };
 
-    res.status(200).json({ 
-      success: true,
-      message: "Request sent successfully" 
-    });
+    await transporter.sendMail(userMailOptions);
 
+    res.status(200).json({ message: "Seller request sent successfully" });
   } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      message: "Failed to send request",
-      error: error.message 
-    });
+    console.error("Error sending seller request:", error);
+    res.status(500).json({ message: "Failed to send seller request", error: error.message });
   }
 });
+
 
 // Custom API routes
 app.use('/api/auth', authRoutes);
