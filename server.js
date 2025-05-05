@@ -1048,14 +1048,12 @@ app.post("/api/request-seller", async (req, res) => {
     return res.status(400).json({ message: "Email is required" });
   }
 
-  // يمكنك التحقق من وجود المستخدم في قاعدة البيانات إذا أردت
   try {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // إعداد محتوى البريد الإلكتروني
     const mailOptions = {
       from: process.env.EMAIL,
       to: process.env.ADMIN_EMAIL || "yabalash001@gmail.com",
@@ -1069,10 +1067,8 @@ app.post("/api/request-seller", async (req, res) => {
       `
     };
 
-    // إرسال البريد
     await transporter.sendMail(mailOptions);
 
-    // إرسال تأكيد للمستخدم
     const userMailOptions = {
       from: process.env.EMAIL,
       to: email,
@@ -1090,6 +1086,94 @@ app.post("/api/request-seller", async (req, res) => {
   } catch (error) {
     console.error("Error sending seller request:", error);
     res.status(500).json({ message: "Failed to send seller request", error: error.message });
+  }
+});
+
+
+
+let sellerRequests = {};
+
+// Generate a random 6-digit temporary password
+function generateTempPassword() {
+  return Math.floor(100000 + Math.random() * 900000).toString(); // e.g., "123456"
+}
+
+// (1) Endpoint to request seller status (sends temp password via email)
+app.post("/api/request-seller", async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  try {
+    // Generate temp password
+    const tempPassword = generateTempPassword();
+
+    // Store the request (replace with DB in production)
+    sellerRequests[email] = {
+      tempPassword,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24-hour expiry
+      isUsed: false
+    };
+
+    // Send email with temp password and approval link
+    const approvalLink = `http://yourdomain.com/api/approve-seller?email=${email}&code=${tempPassword}`;
+
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: email,
+      subject: "Your Seller Account Approval",
+      html: `
+        <h2>Seller Access Request</h2>
+        <p>Your temporary password: <strong>${tempPassword}</strong></p>
+        <p>Click here to approve your seller account:</p>
+        <a href="${approvalLink}">APPROVE NOW</a>
+        <p><em>This link expires in 24 hours.</em></p>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.json({ message: "Temporary password sent to your email." });
+
+  } catch (error) {
+    res.status(500).json({ error: "Failed to process request" });
+  }
+});
+
+// (2) Endpoint to approve seller (via link or manual code entry)
+app.get("/api/approve-seller", async (req, res) => {
+  const { email, code } = req.query;
+
+  if (!email || !code) {
+    return res.status(400).json({ error: "Email and code are required" });
+  }
+
+  try {
+    const request = sellerRequests[email];
+
+    // Validate code
+    if (!request || request.tempPassword !== code) {
+      return res.status(401).json({ error: "Invalid or expired code" });
+    }
+
+    if (request.isUsed || new Date() > request.expiresAt) {
+      return res.status(401).json({ error: "Code already used or expired" });
+    }
+
+    // Update user in database
+    await User.findOneAndUpdate(
+      { email },
+      { isSeller: true }
+    );
+
+    // Mark code as used
+    sellerRequests[email].isUsed = true;
+
+    res.json({ message: "Approved! You are now a seller." });
+
+  } catch (error) {
+    res.status(500).json({ error: "Approval failed" });
   }
 });
 
