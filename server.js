@@ -1042,72 +1042,45 @@ app.post("/verify-otp", (req, res) => {
 
 
 router.post('/request-seller', async (req, res) => {
-  const { name, email, phone, businessInfo } = req.body;
+  const { email, message } = req.body;
 
-  // التحقق من البيانات المطلوبة
-  if (!email || !name || !phone) {
+  if (!email) {
     return res.status(400).json({ 
       success: false,
-      message: "Name, email and phone are required" 
+      message: "Email is required" 
     });
   }
 
   try {
-    // 1. التحقق إذا كان الإيميل مسجل بالفعل
-    const existingUser = await User.findOne({ email });
-    
-    // 2. إرسال الإيميل للإدارة
-    const mailOptions = {
+    // 1. إرسال إيميل للإدارة
+    await transporter.sendMail({
       from: process.env.EMAIL,
-      to: process.env.ADMIN_EMAIL,
-      subject: 'New Seller Application',
+      to: process.env.ADMIN_EMAIL || 'yabalash001@gmail.com',
+      subject: 'New Seller Request',
       html: `
-        <h2>New Seller Request</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phone}</p>
-        <p><strong>Business Info:</strong> ${businessInfo || 'Not provided'}</p>
-        <p>Requested at: ${new Date().toLocaleString()}</p>
+        <p>New seller request from: <strong>${email}</strong></p>
+        ${message ? `<p>Message: ${message}</p>` : ''}
       `
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
-
-    // 3. إرسال إيميل تأكيد للمستخدم
-    const userMailOptions = {
+    // 2. إرسال إيميل تأكيد للمستخدم
+    await transporter.sendMail({
       from: process.env.EMAIL,
       to: email,
-      subject: 'Your Seller Application Received',
-      html: `
-        <h2>Thank You, ${name}!</h2>
-        <p>We've received your request to become a seller.</p>
-        <p>Our team will review your application and contact you within 3 business days.</p>
-      `
-    };
-
-    await transporter.sendMail(userMailOptions);
-
-    // 4. حفظ الطلب في قاعدة البيانات (اختياري)
-    const newRequest = new SellerRequest({
-      name,
-      email,
-      phone,
-      businessInfo,
-      status: 'pending'
+      subject: 'Seller Request Received',
+      html: '<p>Your request has been received. We will contact you soon.</p>'
     });
-    await newRequest.save();
 
-    res.status(200).json({
+    res.status(200).json({ 
       success: true,
-      message: "Application submitted successfully!"
+      message: "Request sent successfully" 
     });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
+    res.status(500).json({ 
       success: false,
-      message: "Failed to submit application",
-      error: error.message
+      message: "Failed to send request",
+      error: error.message 
     });
   }
 });
