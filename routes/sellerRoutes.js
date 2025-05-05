@@ -761,41 +761,32 @@ router.get('/my-restaurant',
   router.post('/approve-seller', async (req, res) => {
     try {
       const { email, password, restaurantId } = req.body;
-  
-      // 1. Input validation
+      
       if (!email || !password || !restaurantId) {
-        return res.status(400).json({ error: "Email, password, and restaurant ID are required" });
+        return res.status(400).json({ error: "All fields are required" });
       }
   
-      // 2. Find and update user
       const user = await User.findOneAndUpdate(
         { email },
         { 
           isSeller: true,
           managedRestaurant: restaurantId,
-          password: password // Auto-hashed if you have pre-save hook in User model
+          password: password
         },
         { new: true }
       );
   
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
+      if (!user) return res.status(404).json({ error: "User not found" });
   
-      // 3. Response
       res.json({ 
         success: true,
-        message: `User ${email} is now a seller for restaurant ${restaurantId}`,
+        message: "Seller approved successfully",
         user
       });
   
     } catch (error) {
-      res.status(500).json({ 
-        error: "Approval failed",
-        details: error.message 
-      });
+      res.status(500).json({ error: error.message });
     }
   });
-
   
 module.exports = router;
