@@ -1049,38 +1049,46 @@ app.post("/api/request-seller", async (req, res) => {
   }
 
   try {
+    // إرسال إيميل إلى المسؤول
     const mailOptions = {
       from: process.env.EMAIL,
       to: process.env.ADMIN_EMAIL || "yabalash001@gmail.com",
       subject: "New Seller Request",
-      text: `User with email ${email} wants to become a seller.\n\nAdditional message: ${message || 'No additional message'}`,
+      text: `New seller request from ${email}.\n\nMessage: ${message || 'No additional message'}`,
       html: `
         <h1>New Seller Request</h1>
-        <p>User with email <strong>${email}</strong> wants to become a seller.</p>
-        ${message ? `<p>Additional message: ${message}</p>` : ''}
-        <p>Please review this request in the admin panel.</p>
+        <p>Email: <strong>${email}</strong></p>
+        ${message ? `<p>Message: ${message}</p>` : ''}
       `
     };
 
     await transporter.sendMail(mailOptions);
 
+    // إرسال إيميل تأكيد إلى البائع
     const userMailOptions = {
       from: process.env.EMAIL,
       to: email,
       subject: "Your Seller Request Received",
-      text: `Your request to become a seller has been received. We will contact you soon.`,
+      text: `Thank you for your interest! We've received your request to become a seller and will contact you soon.`,
       html: `
         <h1>Request Received</h1>
-        <p>Your request to become a seller has been received. We will review it and contact you soon.</p>
+        <p>We'll review your request and get back to you shortly.</p>
       `
     };
 
     await transporter.sendMail(userMailOptions);
 
-    res.status(200).json({ message: "Seller request sent successfully" });
+    res.status(200).json({ 
+      success: true,
+      message: "Seller request submitted successfully" 
+    });
   } catch (error) {
-    console.error("Error sending seller request:", error);
-    res.status(500).json({ message: "Failed to send seller request", error: error.message });
+    console.error("Error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to process request",
+      error: error.message 
+    });
   }
 });
 
