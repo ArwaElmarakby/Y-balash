@@ -762,7 +762,7 @@ router.get('/my-restaurant',
 
   router.post('/approve-seller', async (req, res) => {
     try {
-        const { email, password, restaurantId, name } = req.body; // أضفنا name كمعلومة إضافية
+        const { email, password, restaurantId, name, phone } = req.body;
         
         if (!email || !password || !restaurantId) {
             return res.status(400).json({ 
@@ -774,17 +774,16 @@ router.get('/my-restaurant',
         let user = await User.findOne({ email });
 
         if (user) {
-            // إذا كان المستخدم موجودًا، نقوم بتحديثه
             user.isSeller = true;
             user.managedRestaurant = restaurantId;
-            user.password = password; // تأكدي من أن كلمة المرور مشفرة قبل الحفظ
+            user.password = password;
             await user.save();
         } else {
-            // إذا لم يكن المستخدم موجودًا، نقوم بإنشائه
             user = new User({
                 email,
-                password, // تأكدي من تشفير كلمة المرور قبل الحفظ
-                name: name || "New Seller", // اسم افتراضي إذا لم يتم توفيره
+                password,
+                name: name || "New Seller",
+                phone: phone || "0000000000", // رقم افتراضي أو القيمة المرسلة
                 isSeller: true,
                 managedRestaurant: restaurantId
             });
@@ -796,9 +795,10 @@ router.get('/my-restaurant',
             message: "Seller approved successfully",
             user: {
                 email: user.email,
+                name: user.name,
+                phone: user.phone,
                 isSeller: user.isSeller,
-                managedRestaurant: user.managedRestaurant,
-                name: user.name
+                managedRestaurant: user.managedRestaurant
             }
         });
 
