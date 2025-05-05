@@ -1003,6 +1003,9 @@ app.post("/send-otp", async (req, res) => {
   generatedOTP = Math.floor(100000 + Math.random() * 900000); 
 
   const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    secure: false,
     service: "gmail",
     auth: {
       user: process.env.EMAIL,
