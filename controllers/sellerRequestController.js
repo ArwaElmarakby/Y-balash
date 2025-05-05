@@ -49,61 +49,46 @@ exports.getAllRequests = async (req, res) => {
 
 // الموافقة على طلب بائع (للمسؤولين)
 exports.approveRequest = async (req, res) => {
-  const { requestId } = req.params;
-  const { adminNotes } = req.body;
-
-  try {
-    const request = await SellerRequest.findById(requestId);
-    if (!request) {
-      return res.status(404).json({ message: 'Request not found' });
+    const { requestId } = req.params;
+    const { adminNotes, sellerEmail, sellerPassword } = req.body; // الجديد
+  
+    try {
+      // التحقق من وجود الطلب
+      const request = await SellerRequest.findById(requestId);
+      if (!request) return res.status(404).json({ message: 'Request not found' });
+  
+      // التحقق من أن الإيميل المدخل مطابق لإيميل الطلب
+      if (sellerEmail !== request.userEmail) {
+        return res.status(400).json({ message: 'Email does not match request' });
+      }
+  
+      // إنشاء/تحديث المستخدم كبائع
+      const user = await User.findOneAndUpdate(
+        { email: sellerEmail },
+        {
+          isSeller: true,
+          managedRestaurant: request.restaurantId, // تأكد من وجود هذا الحقل في الطلب
+          password: sellerPassword // سيتم تشفيرها تلقائيًا
+        },
+        { new: true, upsert: false }
+      );
+  
+      // تحديث حالة الطلب
+      request.status = 'approved';
+      request.adminNotes = adminNotes;
+      await request.save();
+  
+      res.status(200).json({
+        message: 'Seller account activated successfully',
+        seller: {
+          email: user.email,
+          temporaryPassword: sellerPassword // إرجاعها كنص عادي (للعرض للمسؤول فقط)
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error: error.message });
     }
-
-    if (request.status !== 'pending') {
-      return res.status(400).json({ message: 'Request already processed' });
-    }
-
-    // إنشاء مطعم جديد
-    const newRestaurant = new Restaurant({
-      name: request.restaurantName,
-      imageUrl: 'default-restaurant-image.jpg', // يمكنك تغيير هذا لاحقاً
-      description: 'New restaurant',
-      location: 'To be updated'
-    });
-
-    await newRestaurant.save();
-
-    // تحديث المستخدم ليكون بائعاً
-    const user = await User.findOneAndUpdate(
-      { email: request.userEmail },
-      { 
-        isSeller: true,
-        managedRestaurant: newRestaurant._id 
-      },
-      { new: true }
-    );
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // تحديث حالة الطلب
-    request.status = 'approved';
-    request.adminNotes = adminNotes;
-    request.processedAt = new Date();
-    await request.save();
-
-    // إرسال إيميل للمستخدم بالموافقة
-    await sendApprovalEmail(request.userEmail, newRestaurant.name);
-
-    res.status(200).json({ 
-      message: 'Request approved successfully',
-      user,
-      restaurant: newRestaurant
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
-  }
-};
+  };
 
 // رفض طلب بائع (للمسؤولين)
 exports.rejectRequest = async (req, res) => {
