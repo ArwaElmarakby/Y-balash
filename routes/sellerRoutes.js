@@ -759,7 +759,8 @@ router.get('/my-restaurant',
   );
 
 
-  router.post('/request-seller', authMiddleware, async (req, res) => {
+  const User = require('../models/userModel');
+router.post('/request-seller', authMiddleware, async (req, res) => {
     const userId = req.user._id;
     const user = await User.findById(userId);
     if (!user) {
@@ -786,6 +787,5 @@ router.get('/my-restaurant',
         res.status(500).json({ message: 'Error sending email', error });
     }
 });
-
 
 module.exports = router;
