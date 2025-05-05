@@ -8,11 +8,13 @@ const {
 const { authMiddleware } = require('./authRoutes');
 const adminMiddleware = require('../middleware/adminMiddleware');
 
-// أي مستخدم يمكنه إنشاء طلب بائع
+// إنشاء طلب بائع جديد
 router.post('/request', createSellerRequest);
 
-// الأدمن فقط يمكنه رؤية الطلبات والموافقة عليها
+// عرض طلبات البائعين (للأدمن فقط)
 router.get('/requests', authMiddleware, adminMiddleware, getAllSellerRequests);
+
+// الموافقة على طلب بائع (للأدمن فقط)
 router.post('/approve', authMiddleware, adminMiddleware, approveSellerRequest);
 
 module.exports = router;

@@ -5,73 +5,71 @@ const bcrypt = require('bcrypt');
 
 // إنشاء طلب بائع جديد
 exports.createSellerRequest = async (req, res) => {
-  const { email, phone, restaurantId } = req.body;
+  const { name, phone, restaurantId } = req.body;
 
   try {
     // التحقق من وجود المطعم
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
+      return res.status(404).json({ message: 'المطعم غير موجود' });
     }
 
-    // التحقق من عدم وجود طلب مسبق بنفس الإيميل
-    const existingRequest = await SellerRequest.findOne({ email });
+    // التحقق من عدم وجود طلب مسبق بنفس رقم الهاتف
+    const existingRequest = await SellerRequest.findOne({ phone });
     if (existingRequest) {
-      return res.status(400).json({ message: 'Request already exists for this email' });
+      return res.status(400).json({ message: 'يوجد طلب مسبق بنفس رقم الهاتف' });
     }
 
     // إنشاء الطلب الجديد
-    const newRequest = new SellerRequest({ email, phone, restaurantId });
+    const newRequest = new SellerRequest({ name, phone, restaurantId });
     await newRequest.save();
 
     res.status(201).json({ 
-      message: 'Seller request submitted successfully',
+      message: 'تم إرسال طلب البائع بنجاح',
       request: newRequest
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: 'خطأ في الخادم', error });
   }
 };
 
 // عرض جميع طلبات البائعين
 exports.getAllSellerRequests = async (req, res) => {
   try {
-    const requests = await SellerRequest.find()
+    const requests = await SellerRequest.find({ status: 'pending' })
       .populate('restaurantId', 'name')
       .sort({ createdAt: -1 });
 
     res.status(200).json(requests);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: 'خطأ في الخادم', error });
   }
 };
 
 // موافقة الأدمن على طلب بائع
 exports.approveSellerRequest = async (req, res) => {
-  const { requestId, password } = req.body;
+  const { requestId } = req.body;
 
   try {
     // العثور على الطلب
     const request = await SellerRequest.findById(requestId);
     if (!request) {
-      return res.status(404).json({ message: 'Request not found' });
+      return res.status(404).json({ message: 'الطلب غير موجود' });
     }
 
-    // التحقق من أن الطلب لم يتم الموافقة عليه مسبقًا
-    if (request.status === 'approved') {
-      return res.status(400).json({ message: 'Request already approved' });
-    }
+    // إنشاء كلمة مرور عشوائية
+    const randomPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
-    // التحقق من عدم وجود مستخدم بنفس الإيميل
-    const existingUser = await User.findOne({ email: request.email });
+    // التحقق من عدم وجود مستخدم بنفس رقم الهاتف
+    const existingUser = await User.findOne({ phone: request.phone });
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+      return res.status(400).json({ message: 'يوجد مستخدم مسجل بنفس رقم الهاتف' });
     }
 
     // إنشاء المستخدم الجديد
-    const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({
-      email: request.email,
+      email: `${request.phone}@restaurant.com`, // إنشاء إيميل افتراضي
       phone: request.phone,
       password: hashedPassword,
       isSeller: true,
@@ -80,19 +78,19 @@ exports.approveSellerRequest = async (req, res) => {
 
     await newUser.save();
 
-    // تحديث حالة الطلب إلى "موافق عليه"
+    // تحديث حالة الطلب إلى "موافق عليه" وحفظ كلمة المرور
     request.status = 'approved';
+    request.password = randomPassword; // حفظ كلمة المرور الغير مشفرة لعرضها للأدمن
     await request.save();
 
     res.status(200).json({ 
-      message: 'Seller request approved successfully',
-      user: {
-        email: newUser.email,
-        isSeller: newUser.isSeller,
-        managedRestaurant: newUser.managedRestaurant
+      message: 'تمت الموافقة على طلب البائع بنجاح',
+      credentials: {
+        phone: request.phone,
+        password: randomPassword // نرسل كلمة المرور للأدمن ليعطيها للبائع
       }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: 'خطأ في الخادم', error });
   }
 };
