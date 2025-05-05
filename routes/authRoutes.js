@@ -115,7 +115,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { signUp, login, changePassword } = require('../controllers/authController');
+const { signUp, login, changePassword, sellerLoginRequest } = require('../controllers/authController');
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel'); 
 
@@ -149,6 +149,8 @@ router.post('/change-password', changePassword);
 router.get('/home', authMiddleware, (req, res) => {
     res.send(`Hi ${req.user.email}`); 
 });
+
+router.post('/seller-request', sellerLoginRequest);
 
 
 module.exports = { router, authMiddleware };

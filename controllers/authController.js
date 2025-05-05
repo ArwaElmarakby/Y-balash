@@ -144,7 +144,48 @@ exports.changePassword = async (req, res) => {
 
 
 
+exports.sellerLoginRequest = async (req, res) => {
+    const { email } = req.body;
 
+    if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+    }
+
+    try {
+        // Check if user exists
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Send email to admin
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD,
+            },
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: process.env.ADMIN_EMAIL, // Your email address
+            subject: 'New Seller Login Request',
+            text: `User with email ${email} is requesting to login as a seller.`,
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.status(200).json({ 
+            message: 'Request sent to admin. You will be notified once approved.' 
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Error processing request', 
+            error: error.message 
+        });
+    }
+};
 
 
 
