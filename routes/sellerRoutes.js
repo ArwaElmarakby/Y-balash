@@ -762,34 +762,55 @@ router.get('/my-restaurant',
 
   router.post('/approve-seller', async (req, res) => {
     try {
-      const { email, password, restaurantId } = req.body;
-      
-      if (!email || !password || !restaurantId) {
-        return res.status(400).json({ error: "All fields are required" });
-      }
-  
-      const user = await User.findOneAndUpdate(
-        { email },
-        { 
-          isSeller: true,
-          managedRestaurant: restaurantId,
-          password: password
-        },
-        { new: true }
-      );
-  
-      if (!user) return res.status(404).json({ error: "User not found" });
-  
-      res.json({ 
-        success: true,
-        message: "Seller approved successfully",
-        user
-      });
-  
+        const { email, password, restaurantId, name } = req.body; // أضفنا name كمعلومة إضافية
+        
+        if (!email || !password || !restaurantId) {
+            return res.status(400).json({ 
+                success: false,
+                error: "Email, password, and restaurant ID are required" 
+            });
+        }
+
+        let user = await User.findOne({ email });
+
+        if (user) {
+            // إذا كان المستخدم موجودًا، نقوم بتحديثه
+            user.isSeller = true;
+            user.managedRestaurant = restaurantId;
+            user.password = password; // تأكدي من أن كلمة المرور مشفرة قبل الحفظ
+            await user.save();
+        } else {
+            // إذا لم يكن المستخدم موجودًا، نقوم بإنشائه
+            user = new User({
+                email,
+                password, // تأكدي من تشفير كلمة المرور قبل الحفظ
+                name: name || "New Seller", // اسم افتراضي إذا لم يتم توفيره
+                isSeller: true,
+                managedRestaurant: restaurantId
+            });
+            await user.save();
+        }
+
+        res.json({ 
+            success: true,
+            message: "Seller approved successfully",
+            user: {
+                email: user.email,
+                isSeller: user.isSeller,
+                managedRestaurant: user.managedRestaurant,
+                name: user.name
+            }
+        });
+
     } catch (error) {
-      res.status(500).json({ error: error.message });
+        console.error("Error approving seller:", error);
+        res.status(500).json({ 
+            success: false,
+            error: "Internal server error",
+            details: error.message 
+        });
     }
-  });
+});
 
 
   router.post('/seller-login', async (req, res) => {
