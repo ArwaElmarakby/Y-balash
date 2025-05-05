@@ -107,30 +107,6 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        if (user.isSeller) {
-            const restaurant = await Restaurant.findById(user.managedRestaurant);
-            const token = jwt.sign(
-              { 
-                id: user._id,
-                isSeller: true,
-                restaurantId: user.managedRestaurant,
-                restaurantName: restaurant?.name || 'Unnamed Restaurant'
-              }, 
-              process.env.JWT_SECRET, 
-              { expiresIn: '30d' }
-            );
-            
-            return res.status(200).json({ 
-              token, 
-              message: 'Login successful as seller',
-              isSeller: true,
-              restaurant: {
-                id: user.managedRestaurant,
-                name: restaurant?.name
-              }
-            });
-          }
-
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
         res.status(200).json({ token, message: 'Login successful'  });
     } catch (error) {
