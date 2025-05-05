@@ -14,7 +14,7 @@ router.post('/request', authMiddleware, requestSellerAccount);
 
 // المسؤول فقط يمكنه رؤية الطلبات والموافقة عليها أو رفضها
 router.get('/requests', authMiddleware, adminMiddleware, getAllRequests);
-router.put('/approve/:requestId', authMiddleware, adminMiddleware, approveRequest);
+router.put('/approve', authMiddleware, adminMiddleware, approveRequest); // بدون :requestId
 router.put('/reject/:requestId', authMiddleware, adminMiddleware, rejectRequest);
 
 module.exports = router;

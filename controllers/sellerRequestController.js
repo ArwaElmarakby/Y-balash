@@ -49,44 +49,58 @@ exports.getAllRequests = async (req, res) => {
 
 // الموافقة على طلب بائع (للمسؤولين)
 exports.approveRequest = async (req, res) => {
-    const { requestId } = req.params;
-    const { adminNotes, sellerEmail, sellerPassword } = req.body; // الجديد
+    const { 
+      adminNotes,
+      requestEmail,    // الإيميل الأصلي الموجود في الطلب (للتحقق)
+      sellerEmail,     // الإيميل الجديد الذي ستحدده (يمكن أن يكون مختلفًا)
+      sellerPassword   // كلمة السر الجديدة
+    } = req.body;
   
     try {
-      // التحقق من وجود الطلب
-      const request = await SellerRequest.findById(requestId);
-      if (!request) return res.status(404).json({ message: 'Request not found' });
+      // 1. البحث عن الطلب باستخدام الإيميل الأصلي
+      const request = await SellerRequest.findOne({ 
+        userEmail: requestEmail,
+        status: 'pending'
+      });
   
-      // التحقق من أن الإيميل المدخل مطابق لإيميل الطلب
-      if (sellerEmail !== request.userEmail) {
-        return res.status(400).json({ message: 'Email does not match request' });
+      if (!request) {
+        return res.status(404).json({ 
+          message: 'No pending request found with this email'
+        });
       }
   
-      // إنشاء/تحديث المستخدم كبائع
+      // 2. إنشاء/تحديث المستخدم كبائع (بالإيميل الجديد)
       const user = await User.findOneAndUpdate(
-        { email: sellerEmail },
+        { email: requestEmail }, // البحث بالإيميل الأصلي
         {
+          email: sellerEmail,    // تحديث إلى الإيميل الجديد
           isSeller: true,
-          managedRestaurant: request.restaurantId, // تأكد من وجود هذا الحقل في الطلب
-          password: sellerPassword // سيتم تشفيرها تلقائيًا
+          managedRestaurant: request.restaurantId,
+          password: sellerPassword
         },
-        { new: true, upsert: false }
+        { new: true }
       );
   
-      // تحديث حالة الطلب
+      // 3. تحديث حالة الطلب
       request.status = 'approved';
       request.adminNotes = adminNotes;
       await request.save();
   
+      // 4. إرسال الإيميل الجديد والبيانات للمسؤول
       res.status(200).json({
         message: 'Seller account activated successfully',
         seller: {
-          email: user.email,
-          temporaryPassword: sellerPassword // إرجاعها كنص عادي (للعرض للمسؤول فقط)
+          oldEmail: requestEmail,
+          newEmail: sellerEmail,
+          temporaryPassword: sellerPassword
         }
       });
+  
     } catch (error) {
-      res.status(500).json({ message: 'Server error', error: error.message });
+      res.status(500).json({ 
+        message: 'Server error',
+        error: error.message 
+      });
     }
   };
 
