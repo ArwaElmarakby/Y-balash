@@ -1049,11 +1049,6 @@ app.post("/api/request-seller", async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
     const mailOptions = {
       from: process.env.EMAIL,
       to: process.env.ADMIN_EMAIL || "yabalash001@gmail.com",
@@ -1088,7 +1083,6 @@ app.post("/api/request-seller", async (req, res) => {
     res.status(500).json({ message: "Failed to send seller request", error: error.message });
   }
 });
-
 
 // Custom API routes
 app.use('/api/auth', authRoutes);
