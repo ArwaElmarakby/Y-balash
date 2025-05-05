@@ -7,6 +7,8 @@ const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 const Image = require('../models/imageModel'); 
 const sellerController = require('../controllers/sellerController');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 
 
@@ -788,5 +790,60 @@ router.get('/my-restaurant',
       res.status(500).json({ error: error.message });
     }
   });
+
+
+  router.post('/seller-login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+  
+      // 1. Validate input
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+  
+      // 2. Find user
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+  
+      // 3. Check if user is a seller
+      if (!user.isSeller) {
+        return res.status(403).json({ error: "Access denied. Not a seller." });
+      }
+  
+      // 4. Verify password
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+  
+      // 5. Create JWT token
+      const token = jwt.sign(
+        { 
+          userId: user._id,
+          isSeller: user.isSeller,
+          restaurantId: user.managedRestaurant 
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '8h' }
+      );
+  
+      // 6. Send response
+      res.json({
+        success: true,
+        token,
+        user: {
+          id: user._id,
+          email: user.email,
+          restaurantId: user.managedRestaurant
+        }
+      });
+  
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+});
+
   
 module.exports = router;

@@ -1111,7 +1111,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', sellerRoutes);
-
+app.use('/api', sellerRoutes); 
 
 
 
