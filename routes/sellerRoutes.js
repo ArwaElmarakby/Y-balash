@@ -762,7 +762,7 @@ router.get('/my-restaurant',
 
 
 
-  router.post('/request', async (req, res) => {
+  router.post('/request-seller', async (req, res) => {
     const { email, restaurantName } = req.body;
 
     if (!email || !restaurantName) {
