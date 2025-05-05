@@ -7,9 +7,6 @@ const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 const Image = require('../models/imageModel'); 
 const sellerController = require('../controllers/sellerController');
-const nodemailer = require('nodemailer');
-const SellerRequest = require('../models/sellerRequestModel');
-const { login } = require('../controllers/authController');
 
 
 
@@ -759,89 +756,5 @@ router.get('/my-restaurant',
     sellerMiddleware,
     sellerController.getCustomerAnalytics
   );
-
-
-
-  router.post('/request-seller', async (req, res) => {
-    const { email, restaurantName } = req.body;
-
-    if (!email || !restaurantName) {
-        return res.status(400).json({ message: 'Email and restaurant name are required' });
-    }
-
-    try {
-        // حفظ الطلب في قاعدة البيانات
-        const newRequest = new SellerRequest({
-            email,
-            restaurantName,
-            status: 'pending'
-        });
-        await newRequest.save();
-
-        // إرسال البريد الإلكتروني للإدارة
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.ADMIN_EMAIL,
-                pass: process.env.ADMIN_EMAIL_PASSWORD
-            }
-        });
-
-        const mailOptions = {
-            from: process.env.ADMIN_EMAIL,
-            to: process.env.ADMIN_EMAIL,
-            subject: 'New Seller Request',
-            text: `New seller request from ${email} for restaurant: ${restaurantName}`
-        };
-
-        await transporter.sendMail(mailOptions);
-
-        res.status(200).json({ 
-            success: true,
-            message: 'Request submitted successfully. You will receive an email once approved.'
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
-    }
-});
-
-
-router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-
-    try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        if (!user.isSeller) {
-            return res.status(403).json({ message: 'Access denied. Sellers only.' });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-        
-        res.status(200).json({ 
-            token,
-            user: {
-                id: user._id,
-                email: user.email,
-                isSeller: user.isSeller
-            },
-            message: 'Login successful'
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
-    }
-});
 
 module.exports = router;
