@@ -7,6 +7,10 @@ const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 const Image = require('../models/imageModel'); 
 const sellerController = require('../controllers/sellerController');
+const SellerRequest = require('../models/sellerRequestModel');
+const adminMiddleware = require('../middleware/adminMiddleware');
+const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
 
 
 
@@ -757,4 +761,190 @@ router.get('/my-restaurant',
     sellerController.getCustomerAnalytics
   );
 
+  router.post('/request-seller', authMiddleware, async (req, res) => {
+    const { restaurantId, password } = req.body;
+    
+    try {
+        if (!restaurantId || !password) {
+            return res.status(400).json({ message: 'Restaurant ID and password are required' });
+        }
+
+        const restaurant = await Restaurant.findById(restaurantId);
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant not found' });
+        }
+
+        const existingRequest = await SellerRequest.findOne({
+            userId: req.user._id,
+            restaurantId
+        });
+
+        if (existingRequest) {
+            return res.status(400).json({ message: 'You already have a pending request for this restaurant' });
+        }
+
+        const newRequest = new SellerRequest({
+            userId: req.user._id,
+            restaurantId,
+            requestedPassword: password
+        });
+
+        await newRequest.save();
+
+        res.status(201).json({ 
+            message: 'Your seller request has been submitted',
+            request: {
+                _id: newRequest._id,
+                restaurant: restaurant.name,
+                status: newRequest.status,
+                createdAt: newRequest.createdAt
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+router.get('/seller-requests', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const requests = await SellerRequest.find()
+            .populate('userId', 'email firstName lastName')
+            .populate('restaurantId', 'name');
+
+        res.status(200).json({
+            count: requests.length,
+            requests
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+router.put('/approve-seller/:requestId', authMiddleware, adminMiddleware, async (req, res) => {
+    const { requestId } = req.params;
+    const { adminNotes } = req.body;
+
+    try {
+        const request = await SellerRequest.findById(requestId)
+            .populate('userId')
+            .populate('restaurantId');
+
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        if (request.status !== 'pending') {
+            return res.status(400).json({ message: 'This request has already been processed' });
+        }
+
+        const hashedPassword = await bcrypt.hash(request.requestedPassword, 10);
+
+        const user = await User.findByIdAndUpdate(
+            request.userId._id,
+            {
+                isSeller: true,
+                managedRestaurant: request.restaurantId._id,
+                password: hashedPassword
+            },
+            { new: true }
+        );
+
+        request.status = 'approved';
+        request.adminNotes = adminNotes;
+        request.approvedAt = new Date();
+        await request.save();
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: user.email,
+            subject: 'Your seller request has been approved',
+            html: `
+                <h1>Hello ${user.firstName || 'Seller'},</h1>
+                <p>Your request to become a seller for: ${request.restaurantId.name} has been approved.</p>
+                <p>You can now login using:</p>
+                <p><strong>Email:</strong> ${user.email}</p>
+                <p><strong>Password:</strong> The password you provided in your request</p>
+                <p>Admin notes: ${adminNotes || 'No notes'}</p>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.status(200).json({ 
+            message: 'Request approved successfully',
+            request: {
+                _id: request._id,
+                user: user.email,
+                restaurant: request.restaurantId.name,
+                status: request.status,
+                approvedAt: request.approvedAt
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+router.put('/reject-seller/:requestId', authMiddleware, adminMiddleware, async (req, res) => {
+    const { requestId } = req.params;
+    const { adminNotes } = req.body;
+
+    try {
+        const request = await SellerRequest.findById(requestId)
+            .populate('userId')
+            .populate('restaurantId');
+
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        if (request.status !== 'pending') {
+            return res.status(400).json({ message: 'This request has already been processed' });
+        }
+
+        request.status = 'rejected';
+        request.adminNotes = adminNotes;
+        await request.save();
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: request.userId.email,
+            subject: 'Your seller request has been rejected',
+            html: `
+                <h1>Hello ${request.userId.firstName || 'User'},</h1>
+                <p>We regret to inform you that your request to become a seller for: ${request.restaurantId.name} has been rejected.</p>
+                <p>Admin notes: ${adminNotes || 'No notes'}</p>
+                <p>Please contact support for more details.</p>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.status(200).json({ 
+            message: 'Request rejected successfully',
+            request
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
 module.exports = router;
