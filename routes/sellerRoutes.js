@@ -7,6 +7,7 @@ const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 const Image = require('../models/imageModel'); 
 const sellerController = require('../controllers/sellerController');
+const nodemailer = require('nodemailer');
 
 
 
@@ -756,5 +757,55 @@ router.get('/my-restaurant',
     sellerMiddleware,
     sellerController.getCustomerAnalytics
   );
+
+
+  router.post('/request-seller-account', authMiddleware, async (req, res) => {
+    const { email, restaurantName } = req.body;
+    
+    if (!email || !restaurantName) {
+        return res.status(400).json({ message: 'Email and restaurant name are required' });
+    }
+
+    try {
+        // Check if user already exists as seller
+        const existingSeller = await User.findOne({ email, isSeller: true });
+        if (existingSeller) {
+            return res.status(400).json({ message: 'This email is already registered as a seller' });
+        }
+
+        // Create transporter (same as your OTP setup)
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD,
+            },
+        });
+
+        // Email to admin
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: process.env.ADMIN_EMAIL, // Your admin email
+            subject: "New Seller Account Request",
+            text: `New seller request:
+                   Email: ${email}
+                   Restaurant: ${restaurantName}
+                   
+                   To approve, visit: ${process.env.BASE_URL}/api/admin/approve-seller`,
+            html: `<h3>New seller request:</h3>
+                   <p>Email: ${email}</p>
+                   <p>Restaurant: ${restaurantName}</p>
+                   <a href="${process.env.BASE_URL}/api/admin/approve-seller?email=${email}&restaurant=${encodeURIComponent(restaurantName)}">Approve this request</a>`
+        };
+
+        await transporter.sendMail(mailOptions);
+        
+        res.status(200).json({ message: 'Seller request submitted. You will receive an email when approved.' });
+    } catch (error) {
+        console.error("Error in seller request:", error);
+        res.status(500).json({ message: 'Error processing seller request', error });
+    }
+});
+
 
 module.exports = router;
