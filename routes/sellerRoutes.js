@@ -7,7 +7,6 @@ const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 const Image = require('../models/imageModel'); 
 const sellerController = require('../controllers/sellerController');
-const nodemailer = require('nodemailer');
 
 
 
@@ -757,35 +756,5 @@ router.get('/my-restaurant',
     sellerMiddleware,
     sellerController.getCustomerAnalytics
   );
-
-
-  const User = require('../models/userModel');
-router.post('/request-seller', authMiddleware, async (req, res) => {
-    const userId = req.user._id;
-    const user = await User.findById(userId);
-    if (!user) {
-        return res.status(404).json({ message: 'User  not found' });
-    }
-    // إعداد البريد الإلكتروني
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.EMAIL,
-            pass: process.env.EMAIL_PASSWORD,
-        },
-    });
-    const mailOptions = {
-        from: process.env.EMAIL,
-        to: user.email,
-        subject: 'Request to Become a Seller',
-        text: `Hello ${user.firstName},\n\nYou have requested to become a seller. We will review your request and get back to you soon.\n\nBest regards,\nYour Team`,
-    };
-    try {
-        await transporter.sendMail(mailOptions);
-        res.status(200).json({ message: 'Request sent successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Error sending email', error });
-    }
-});
 
 module.exports = router;

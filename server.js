@@ -1041,6 +1041,59 @@ app.post("/verify-otp", (req, res) => {
 });
 
 
+app.post("/api/request-seller", async (req, res) => {
+  const { email, message } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+
+  // يمكنك التحقق من وجود المستخدم في قاعدة البيانات إذا أردت
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // إعداد محتوى البريد الإلكتروني
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: process.env.ADMIN_EMAIL || "yabalash001@gmail.com",
+      subject: "New Seller Request",
+      text: `User with email ${email} wants to become a seller.\n\nAdditional message: ${message || 'No additional message'}`,
+      html: `
+        <h1>New Seller Request</h1>
+        <p>User with email <strong>${email}</strong> wants to become a seller.</p>
+        ${message ? `<p>Additional message: ${message}</p>` : ''}
+        <p>Please review this request in the admin panel.</p>
+      `
+    };
+
+    // إرسال البريد
+    await transporter.sendMail(mailOptions);
+
+    // إرسال تأكيد للمستخدم
+    const userMailOptions = {
+      from: process.env.EMAIL,
+      to: email,
+      subject: "Your Seller Request Received",
+      text: `Your request to become a seller has been received. We will contact you soon.`,
+      html: `
+        <h1>Request Received</h1>
+        <p>Your request to become a seller has been received. We will review it and contact you soon.</p>
+      `
+    };
+
+    await transporter.sendMail(userMailOptions);
+
+    res.status(200).json({ message: "Seller request sent successfully" });
+  } catch (error) {
+    console.error("Error sending seller request:", error);
+    res.status(500).json({ message: "Failed to send seller request", error: error.message });
+  }
+});
+
+
 // Custom API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
