@@ -796,43 +796,29 @@ router.get('/my-restaurant',
     try {
       const { email, password } = req.body;
   
-      // 1. Validate input
-      if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
-      }
-  
-      // 2. Find user
+      // 1. البحث عن المستخدم
       const user = await User.findOne({ email });
+      
       if (!user) {
-        return res.status(401).json({ error: "Invalid credentials" });
+        return res.status(401).json({ error: "البريد الإلكتروني غير صحيح" });
       }
   
-      // 3. Check if user is a seller
+      // 2. التحقق من كون المستخدم بائع
       if (!user.isSeller) {
-        return res.status(403).json({ error: "Access denied. Not a seller." });
+        return res.status(403).json({ error: "ليس لديك صلاحيات بائع" });
       }
   
-      // 4. Verify password
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(401).json({ error: "Invalid credentials" });
+      // 3. مقارنة كلمة المرور
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "كلمة المرور غير صحيحة" });
       }
   
-      // 5. Create JWT token
-      const token = jwt.sign(
-        { 
-          userId: user._id,
-          isSeller: user.isSeller,
-          restaurantId: user.managedRestaurant 
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: '8h' }
-      );
-  
-      // 6. Send response
+      // 4. إرجاع النجاح
       res.json({
         success: true,
-        token,
+        message: "تم تسجيل الدخول بنجاح",
         user: {
           id: user._id,
           email: user.email,
@@ -841,9 +827,8 @@ router.get('/my-restaurant',
       });
   
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "حدث خطأ أثناء تسجيل الدخول" });
     }
-});
-
+  });
   
 module.exports = router;
