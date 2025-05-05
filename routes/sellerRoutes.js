@@ -7,7 +7,6 @@ const { authMiddleware } = require('./authRoutes');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
 const Image = require('../models/imageModel'); 
 const sellerController = require('../controllers/sellerController');
-const nodemailer = require('nodemailer');
 
 
 
@@ -759,64 +758,44 @@ router.get('/my-restaurant',
   );
 
 
-
-
-  router.post('/admin/approve-seller', async (req, res) => {
-    const { email, customPassword, restaurantId } = req.body;
-  
-    // Validate inputs
-    if (!email || !customPassword || !restaurantId) {
-      return res.status(400).json({ error: "Email, password, and restaurant ID are required" });
-    }
-  
+  router.post('/approve-seller', async (req, res) => {
     try {
-      // 1. Find the user
-      const user = await User.findOne({ email });
+      const { email, password, restaurantId } = req.body;
+  
+      // 1. Input validation
+      if (!email || !password || !restaurantId) {
+        return res.status(400).json({ error: "Email, password, and restaurant ID are required" });
+      }
+  
+      // 2. Find and update user
+      const user = await User.findOneAndUpdate(
+        { email },
+        { 
+          isSeller: true,
+          managedRestaurant: restaurantId,
+          password: password // Auto-hashed if you have pre-save hook in User model
+        },
+        { new: true }
+      );
+  
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
   
-      // 2. Find the restaurant
-      const restaurant = await Restaurant.findById(restaurantId);
-      if (!restaurant) {
-        return res.status(404).json({ error: "Restaurant not found" });
-      }
-  
-      // 3. Set the password and seller privileges
-      user.password = customPassword; // Will be hashed automatically (due to pre-save hook)
-      user.isSeller = true;
-      user.managedRestaurant = restaurantId;
-      await user.save();
-  
-      // 4. Send email with credentials
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.ADMIN_EMAIL,
-          pass: process.env.ADMIN_EMAIL_PASSWORD,
-        }
+      // 3. Response
+      res.json({ 
+        success: true,
+        message: `User ${email} is now a seller for restaurant ${restaurantId}`,
+        user
       });
   
-      const mailOptions = {
-        from: process.env.ADMIN_EMAIL,
-        to: email,
-        subject: "You're Now a Seller!",
-        html: `
-          <h2>Seller Account Approved</h2>
-          <p>Email: <strong>${email}</strong></p>
-          <p>Password: <strong>${customPassword}</strong></p>
-          <p>Restaurant: <strong>${restaurant.name}</strong></p>
-          <p><a href="http://yourdomain.com/seller-login">Login Here</a></p>
-          <p><em>Change your password after first login.</em></p>
-        `
-      };
-  
-      await transporter.sendMail(mailOptions);
-      res.json({ message: "Seller approved and credentials sent!" });
-  
     } catch (error) {
-      res.status(500).json({ error: "Approval failed: " + error.message });
+      res.status(500).json({ 
+        error: "Approval failed",
+        details: error.message 
+      });
     }
   });
 
+  
 module.exports = router;
