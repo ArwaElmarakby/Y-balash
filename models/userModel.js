@@ -61,6 +61,11 @@ const userSchema = new mongoose.Schema({
           method: { type: String, enum: ['bank', 'mobile', 'paypal'] },
           status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
           reference: String
+        }],
+        sellerRequests: [{
+          restaurantName: String,
+          status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+          requestedAt: { type: Date, default: Date.now }
         }]
       
 });
