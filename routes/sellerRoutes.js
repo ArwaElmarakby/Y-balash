@@ -757,46 +757,4 @@ router.get('/my-restaurant',
     sellerController.getCustomerAnalytics
   );
 
-
-
-  router.post('/login-notification', authMiddleware, async (req, res) => {
-    try {
-        const seller = req.user;
-        
-        if (!seller.isSeller) {
-            return res.status(403).json({ message: 'Only sellers can access this feature' });
-        }
-
-        // إعداد محتوى البريد الإلكتروني
-        const mailOptions = {
-            from: process.env.EMAIL, // عنوان البريد الإلكتروني الخاص بك
-            to: process.env.ADMIN_EMAIL, // عنوان البريد الإلكتروني الذي تريد استقبال التنبيهات عليه
-            subject: 'New Seller Login Attempt',
-            text: `A seller with email ${seller.email} has logged in at ${new Date().toLocaleString()}.`,
-            html: `
-                <h2>New Seller Login</h2>
-                <p>A seller has logged into the system:</p>
-                <ul>
-                    <li><strong>Email:</strong> ${seller.email}</li>
-                    <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
-                </ul>
-            `
-        };
-
-        // إرسال البريد الإلكتروني
-        await transporter.sendMail(mailOptions);
-
-        res.status(200).json({ 
-            success: true,
-            message: 'Login notification sent to admin'
-        });
-    } catch (error) {
-        console.error('Error sending login notification:', error);
-        res.status(500).json({ 
-            success: false,
-            message: 'Failed to send login notification',
-            error: error.message
-        });
-    }
-});
 module.exports = router;
