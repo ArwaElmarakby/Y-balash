@@ -757,43 +757,4 @@ router.get('/my-restaurant',
     sellerController.getCustomerAnalytics
   );
 
-  router.post('/request-seller-account', authMiddleware, async (req, res) => {
-    try {
-        const user = req.user;
-        const adminEmail = process.env.ADMIN_EMAIL || 'yabalash001@gmail.com'; 
-        
-        // إعداد محتوى الإيميل
-        const mailOptions = {
-            from: process.env.EMAIL,
-            to: adminEmail,
-            subject: 'New Seller Account Request',
-            html: `
-                <h2>New Seller Request</h2>
-                <p>User ${user.email} wants to become a seller.</p>
-                <p>User Details:</p>
-                <ul>
-                    <li>Name: ${user.firstName || 'Not provided'} ${user.lastName || ''}</li>
-                    <li>Email: ${user.email}</li>
-                    <li>Phone: ${user.phone}</li>
-                </ul>
-                <p>Please review this request in the admin panel.</p>
-            `
-        };
-
-
-        await transporter.sendMail(mailOptions);
-
-        res.status(200).json({
-            success: true,
-            message: 'Your request to become a seller has been sent to the admin for approval'
-        });
-    } catch (error) {
-        console.error('Error sending seller request:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to send seller request'
-        });
-    }
-});
-
 module.exports = router;
