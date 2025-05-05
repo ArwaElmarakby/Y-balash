@@ -6,6 +6,9 @@ const Restaurant = require('../models/restaurantModel');
 const Order = require('../models/orderModel');
 const { authMiddleware } = require('./authRoutes'); // Use your existing auth middleware
 const adminMiddleware = require('../middleware/adminMiddleware');
+const nodemailer = require('nodemailer');
+const SellerRequest = require('../models/sellerRequestModel');
+const crypto = require('crypto');
 
 router.post('/promote', authMiddleware, async (req, res) => {
     try {
@@ -177,6 +180,73 @@ router.get('/orders', authMiddleware, adminMiddleware, async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
+
+router.post('/approve-seller', async (req, res) => {
+    const { requestId } = req.body;
+
+    try {
+        const request = await SellerRequest.findById(requestId);
+        if (!request) {
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        // إنشاء كلمة مرور عشوائية
+        const password = crypto.randomBytes(4).toString('hex');
+        
+        // التحقق إذا كان المستخدم موجود بالفعل
+        let user = await User.findOne({ email: request.email });
+        
+        if (user) {
+            // إذا كان موجودًا، تحديثه إلى بائع
+            user.isSeller = true;
+            user.password = password; // سيتم تشفيرها تلقائيًا بسبب middleware في الموديل
+        } else {
+            // إذا لم يكن موجودًا، إنشاء مستخدم جديد
+            user = new User({
+                email: request.email,
+                password: password,
+                isSeller: true
+            });
+        }
+
+        await user.save();
+
+        // تحديث حالة الطلب
+        request.status = 'approved';
+        await request.save();
+
+        // إرسال البريد الإلكتروني للبائع
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.ADMIN_EMAIL,
+                pass: process.env.ADMIN_EMAIL_PASSWORD
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.ADMIN_EMAIL,
+            to: request.email,
+            subject: 'Your Seller Account Has Been Approved',
+            text: `Your seller account has been approved!\n\nLogin details:\nEmail: ${request.email}\nPassword: ${password}\n\nPlease change your password after logging in.`
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.status(200).json({ 
+            success: true,
+            message: 'Seller approved and credentials sent'
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
     }
 });
 
