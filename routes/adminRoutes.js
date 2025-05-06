@@ -180,10 +180,6 @@ router.get('/orders', authMiddleware, adminMiddleware, async (req, res) => {
     }
 });
 
-router.get('/dashboard', authMiddleware, adminMiddleware, (req, res) => {
-    res.json({ message: 'Admin dashboard' });
-});
-
 
 
 

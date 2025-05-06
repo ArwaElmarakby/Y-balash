@@ -882,29 +882,6 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
-
-async function createAdminUser() {
-  try {
-      const adminExists = await User.findOne({ email: 'yabalash001@gmail.com' });
-      if (!adminExists) {
-          const adminUser = new User({
-              email: 'yabalash001@gmail.com',
-              phone: '01000000000',
-              password: '@Yy123456',
-              isAdmin: true
-          });
-          await adminUser.save();
-          console.log('Admin user created successfully');
-      }
-  } catch (error) {
-      console.error('Error creating admin user:', error);
-  }
-}
-
-createAdminUser();
-
-
-
 //  Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

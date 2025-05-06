@@ -97,53 +97,21 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        // Debug: Log received credentials
-        console.log("Login attempt with:", email, password);
-
-        if (email === 'yabalash001@gmail.com') {
-            if (password !== '@Yy123456') {
-                return res.status(400).json({ message: 'Invalid admin password' });
-            }
-
-            let adminUser = await User.findOne({ email });
-            
-            if (!adminUser) {
-                // Create admin if not exists
-                adminUser = new User({
-                    email,
-                    phone: '01000000000', // رقم افتراضي
-                    password: '@Yy123456', // سيتم تشفيرها في pre-save hook
-                    isAdmin: true
-                });
-                await adminUser.save();
-                console.log("New admin created:", adminUser);
-            }
-
-            const token = jwt.sign(
-                { id: adminUser._id, isAdmin: true },
-                process.env.JWT_SECRET,
-                { expiresIn: '30d' }
-            );
-
-            return res.status(200).json({
-                token,
-                message: 'Admin login successful',
-                user: {
-                    _id: adminUser._id,
-                    email: adminUser.email,
-                    isAdmin: true
-                }
-            });
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        // باقي كود المستخدمين العاديين...
-        
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+        res.status(200).json({ token, message: 'Login successful'  });
     } catch (error) {
-        console.error("Login error details:", error);
-        res.status(500).json({ 
-            message: 'Server error',
-            error: error.message // إظهار تفاصيل الخطأ
-        });
+        console.error("Error during login:", error); 
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
