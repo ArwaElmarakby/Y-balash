@@ -6,7 +6,6 @@ const Restaurant = require('../models/restaurantModel');
 const Order = require('../models/orderModel');
 const { authMiddleware } = require('./authRoutes'); // Use your existing auth middleware
 const adminMiddleware = require('../middleware/adminMiddleware');
-const bcrypt = require('bcrypt');
 
 router.post('/promote', authMiddleware, async (req, res) => {
     try {
@@ -180,48 +179,6 @@ router.get('/orders', authMiddleware, adminMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 });
-
-
-router.post('/make-admin', async (req, res) => {
-    const { email, password } = req.body;
-
-    try {
-
-        let user = await User.findOne({ email });
-
-        if (!user) {
-
-            const hashedPassword = await bcrypt.hash(password, 10);
-            user = new User({
-                email,
-                password: hashedPassword,
-                isAdmin: true
-            });
-            await user.save();
-        } else {
-
-            user.isAdmin = true;
-            user.password = await bcrypt.hash(password, 10);
-            await user.save();
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'User is now an admin',
-            user: {
-                email: user.email,
-                isAdmin: user.isAdmin
-            }
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error making user admin',
-            error: error.message
-        });
-    }
-});
-
 
 
 
