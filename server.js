@@ -1040,24 +1040,27 @@ app.post("/verify-otp", (req, res) => {
   }
 });
 
-
 app.post("/api/request-seller", async (req, res) => {
-  const { email, message } = req.body;
+  const { email, message, phone } = req.body; // إضافة phone هنا
 
   if (!email) {
-    return res.status(400).json({ message: "Email is required" });
+    return res.status(400).json({ 
+      success: false,
+      message: "Email is required" 
+    });
   }
 
   try {
-    // إرسال إيميل إلى المسؤول
+    // إرسال إيميل إلى المسؤول يتضمن رقم الهاتف
     const mailOptions = {
       from: process.env.EMAIL,
       to: process.env.ADMIN_EMAIL || "yabalash001@gmail.com",
       subject: "New Seller Request",
-      text: `New seller request from ${email}.\n\nMessage: ${message || 'No additional message'}`,
+      text: `New seller request from ${email}.\nPhone: ${phone || 'Not provided'}\n\nMessage: ${message || 'No additional message'}`,
       html: `
         <h1>New Seller Request</h1>
         <p>Email: <strong>${email}</strong></p>
+        <p>Phone: <strong>${phone || 'Not provided'}</strong></p>
         ${message ? `<p>Message: ${message}</p>` : ''}
       `
     };

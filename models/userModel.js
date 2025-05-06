@@ -34,6 +34,7 @@ const userSchema = new mongoose.Schema({
     password: { type: String },
     firstName: { type: String },
     lastName: { type: String },
+    phone: String,
     gender: { type: String, enum: ['male', 'female', 'other'], default: null },
     birthday: { type: Date },
     profileImage: { type: String },

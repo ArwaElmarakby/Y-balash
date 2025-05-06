@@ -759,10 +759,9 @@ router.get('/my-restaurant',
     sellerController.getCustomerAnalytics
   );
 
-
   router.post('/approve-seller', async (req, res) => {
     try {
-        const { email, password, restaurantId, name, phone } = req.body;
+        const { email, password, restaurantId, name } = req.body; // تمت إزالة phone من هنا
         
         if (!email || !password || !restaurantId) {
             return res.status(400).json({ 
@@ -774,18 +773,20 @@ router.get('/my-restaurant',
         let user = await User.findOne({ email });
 
         if (user) {
+            // تحديث المستخدم الموجود
             user.isSeller = true;
             user.managedRestaurant = restaurantId;
-            user.password = password;
+            user.password = password; // تأكدي من تشفير كلمة المرور
             await user.save();
         } else {
+            // إنشاء مستخدم جديد بدون رقم الهاتف
             user = new User({
                 email,
-                password,
+                password, // تأكدي من تشفير كلمة المرور
                 name: name || "New Seller",
-                phone: phone || "0000000000", // رقم افتراضي أو القيمة المرسلة
                 isSeller: true,
                 managedRestaurant: restaurantId
+                // تمت إزالة phone من هنا
             });
             await user.save();
         }
@@ -796,9 +797,9 @@ router.get('/my-restaurant',
             user: {
                 email: user.email,
                 name: user.name,
-                phone: user.phone,
                 isSeller: user.isSeller,
                 managedRestaurant: user.managedRestaurant
+                // تمت إزالة phone من هنا
             }
         });
 
