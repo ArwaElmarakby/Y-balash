@@ -118,6 +118,7 @@ const router = express.Router();
 const { signUp, login, changePassword } = require('../controllers/authController');
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel'); 
+const { adminLogin } = require('../controllers/authController');
 
 
 const authMiddleware = async (req, res, next) => {
@@ -149,6 +150,8 @@ router.post('/change-password', changePassword);
 router.get('/home', authMiddleware, (req, res) => {
     res.send(`Hi ${req.user.email}`); 
 });
+
+router.post('/admin-login', adminLogin);
 
 
 module.exports = { router, authMiddleware };
