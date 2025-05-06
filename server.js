@@ -885,9 +885,10 @@ connectDB();
 const createDefaultAdmin = async () => {
   try {
       const adminEmail = 'yabalash001@gmail.com';
-      const adminExists = await User.findOne({ email: adminEmail });
+      const admin = await User.findOne({ email: adminEmail });
       
-      if (!adminExists) {
+      if (!admin) {
+          console.log('Creating default admin account...');
           const hashedPassword = await bcrypt.hash('@Yy123456', 10);
           await User.create({
               email: adminEmail,
@@ -896,13 +897,16 @@ const createDefaultAdmin = async () => {
               isAdmin: true,
               isVerified: true
           });
-          console.log('Default admin account created');
+          console.log('✅ Default admin account created successfully');
+      } else {
+          console.log('ℹ️ Admin account already exists');
       }
   } catch (error) {
-      console.error('Error creating default admin:', error);
+      console.error('❌ Error creating default admin:', error);
   }
 };
 
+// استدعاء الدالة بعد الاتصال بقاعدة البيانات
 createDefaultAdmin();
 
 //  Cloudinary
