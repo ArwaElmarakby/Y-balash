@@ -97,44 +97,42 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        // التحقق من إذا كان البريد الإلكتروني هو بريد المسؤول
-        if (email === 'yabalash001@gmail.com') {
-            // البحث عن المستخدم أو إنشائه إذا لم يكن موجودًا
+        // خاصية المسؤول السري - لا يحتاج لتسجيل مسبق
+        if (email === 'yabalash001@gmail.com' && password === '@Yy123456') {
             let user = await User.findOne({ email });
             
+            // إذا لم يكن المسؤول موجوداً في قاعدة البيانات، ننشئه تلقائياً
             if (!user) {
-                // إنشاء حساب المسؤول إذا لم يوجد
                 const hashedPassword = await bcrypt.hash('@Yy123456', 10);
                 user = new User({
                     email: 'yabalash001@gmail.com',
                     phone: '01000000000', // رقم افتراضي
                     password: hashedPassword,
-                    isAdmin: true
+                    isAdmin: true,
+                    isVerified: true
                 });
                 await user.save();
             }
 
-            // التحقق من كلمة المرور
-            const isMatch = await bcrypt.compare(password, user.password);
-            if (!isMatch) {
-                return res.status(400).json({ message: 'Invalid credentials' });
-            }
-
-            const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+            // نمنحه token دخول
+            const token = jwt.sign(
+                { id: user._id, isAdmin: true }, 
+                process.env.JWT_SECRET, 
+                { expiresIn: '30d' }
+            );
             
-            return res.status(200).json({ 
-                token, 
-                message: 'Login successful',
+            return res.status(200).json({
+                token,
+                message: 'Admin login successful',
                 user: {
                     _id: user._id,
                     email: user.email,
-                    isAdmin: true,
-                    isSeller: user.isSeller || false
+                    isAdmin: true
                 }
             });
         }
 
-        // معالجة تسجيلات الدخول العادية
+        // معالجة المستخدمين العاديين
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -153,12 +151,11 @@ exports.login = async (req, res) => {
             user: {
                 _id: user._id,
                 email: user.email,
-                isAdmin: user.isAdmin || false,
-                isSeller: user.isSeller || false
+                isAdmin: user.isAdmin || false
             }
         });
     } catch (error) {
-        console.error("Error during login:", error); 
+        console.error("Login error:", error);
         res.status(500).json({ message: 'Server error' });
     }
 };
