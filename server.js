@@ -882,33 +882,6 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
-const createDefaultAdmin = async () => {
-  try {
-      const adminEmail = 'yabalash001@gmail.com';
-      const admin = await User.findOne({ email: adminEmail });
-      
-      if (!admin) {
-          console.log('Creating default admin account...');
-          const hashedPassword = await bcrypt.hash('@Yy123456', 10);
-          await User.create({
-              email: adminEmail,
-              phone: '01000000000',
-              password: hashedPassword,
-              isAdmin: true,
-              isVerified: true
-          });
-          console.log('✅ Default admin account created successfully');
-      } else {
-          console.log('ℹ️ Admin account already exists');
-      }
-  } catch (error) {
-      console.error('❌ Error creating default admin:', error);
-  }
-};
-
-// استدعاء الدالة بعد الاتصال بقاعدة البيانات
-createDefaultAdmin();
-
 //  Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
