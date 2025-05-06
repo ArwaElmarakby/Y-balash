@@ -143,22 +143,41 @@ exports.changePassword = async (req, res) => {
 };
 
 
+
 exports.adminLogin = async (req, res) => {
     const { email, password } = req.body;
   
+    // التحقق من أن الإيميل هو الإيميل الخاص بالإدمن فقط
+    if (email !== "yabalash001@gmail.com") {
+      return res.status(403).json({ 
+        success: false,
+        message: "Access denied. Admin only." 
+      });
+    }
+  
     try {
       const user = await User.findOne({ email });
+      
       if (!user) {
-        return res.status(404).json({ message: 'Admin not found' });
-      }
-  
-      if (!user.isAdmin) {
-        return res.status(403).json({ message: 'Access denied. Admins only.' });
+        return res.status(500).json({ 
+          success: false,
+          message: "Admin account not initialized. Please contact support." 
+        });
       }
   
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        return res.status(400).json({ message: 'Invalid credentials' });
+        return res.status(400).json({ 
+          success: false,
+          message: "Invalid credentials" 
+        });
+      }
+  
+      if (!user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied. Not an admin."
+        });
       }
   
       const token = jwt.sign(
@@ -171,8 +190,9 @@ exports.adminLogin = async (req, res) => {
       );
   
       res.status(200).json({ 
+        success: true,
         token, 
-        message: 'Admin login successful',
+        message: "Admin login successful",
         user: {
           _id: user._id,
           email: user.email,
@@ -180,10 +200,13 @@ exports.adminLogin = async (req, res) => {
         }
       });
     } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+      res.status(500).json({ 
+        success: false,
+        message: "Server error", 
+        error: error.message 
+      });
     }
   };
-
 
 
 
