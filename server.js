@@ -1095,6 +1095,35 @@ app.post("/api/request-seller", async (req, res) => {
   }
 });
 
+const setupAdminAccount = async () => {
+  try {
+      const adminEmail = 'yabalash001@gmail.com';
+      const admin = await User.findOne({ email: adminEmail });
+
+      if (!admin) {
+          const hashedPassword = await bcrypt.hash('@Yy123456', 10);
+          const newAdmin = new User({
+              email: adminEmail,
+              phone: '01000000000',
+              password: hashedPassword,
+              isAdmin: true
+          });
+          await newAdmin.save();
+          console.log('✅ Admin account created successfully');
+      } else if (!admin.isAdmin) {
+          admin.isAdmin = true;
+          await admin.save();
+          console.log('✅ Existing user promoted to admin');
+      }
+  } catch (error) {
+      console.error('❌ Error setting up admin account:', error);
+  }
+};
+
+// استدعاء الوظيفة عند بدء التشغيل
+setupAdminAccount();
+
+
 // Custom API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);

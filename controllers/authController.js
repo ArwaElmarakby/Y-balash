@@ -97,6 +97,44 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
+        // التحقق من إذا كان البريد الإلكتروني هو بريد المسؤول
+        if (email === 'yabalash001@gmail.com') {
+            // البحث عن المستخدم أو إنشائه إذا لم يكن موجودًا
+            let user = await User.findOne({ email });
+            
+            if (!user) {
+                // إنشاء حساب المسؤول إذا لم يوجد
+                const hashedPassword = await bcrypt.hash('@Yy123456', 10);
+                user = new User({
+                    email: 'yabalash001@gmail.com',
+                    phone: '01000000000', // رقم افتراضي
+                    password: hashedPassword,
+                    isAdmin: true
+                });
+                await user.save();
+            }
+
+            // التحقق من كلمة المرور
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return res.status(400).json({ message: 'Invalid credentials' });
+            }
+
+            const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+            
+            return res.status(200).json({ 
+                token, 
+                message: 'Login successful',
+                user: {
+                    _id: user._id,
+                    email: user.email,
+                    isAdmin: true,
+                    isSeller: user.isSeller || false
+                }
+            });
+        }
+
+        // معالجة تسجيلات الدخول العادية
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -108,13 +146,22 @@ exports.login = async (req, res) => {
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-        res.status(200).json({ token, message: 'Login successful'  });
+        
+        res.status(200).json({ 
+            token, 
+            message: 'Login successful',
+            user: {
+                _id: user._id,
+                email: user.email,
+                isAdmin: user.isAdmin || false,
+                isSeller: user.isSeller || false
+            }
+        });
     } catch (error) {
         console.error("Error during login:", error); 
         res.status(500).json({ message: 'Server error' });
     }
 };
-
 
 exports.changePassword = async (req, res) => {
     const { email, newPassword, confirmNewPassword } = req.body;
