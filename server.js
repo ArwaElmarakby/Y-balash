@@ -1041,7 +1041,7 @@ app.post("/verify-otp", (req, res) => {
 });
 
 app.post("/api/request-seller", async (req, res) => {
-  const { email, message, phone } = req.body; // إضافة phone هنا
+  const { email, message, phone } = req.body; 
 
   if (!email) {
     return res.status(400).json({ 
@@ -1051,7 +1051,7 @@ app.post("/api/request-seller", async (req, res) => {
   }
 
   try {
-    // إرسال إيميل إلى المسؤول يتضمن رقم الهاتف
+
     const mailOptions = {
       from: process.env.EMAIL,
       to: process.env.ADMIN_EMAIL || "yabalash001@gmail.com",
@@ -1067,7 +1067,7 @@ app.post("/api/request-seller", async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    // إرسال إيميل تأكيد إلى البائع
+
     const userMailOptions = {
       from: process.env.EMAIL,
       to: email,

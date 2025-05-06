@@ -771,7 +771,7 @@ router.get('/my-restaurant',
 
         let user = await User.findOne({ email });
 
-        // احصل على معلومات المطعم
+
         const restaurant = await Restaurant.findById(restaurantId).select('name');
         if (!restaurant) {
             return res.status(404).json({
@@ -781,16 +781,16 @@ router.get('/my-restaurant',
         }
 
         if (user) {
-            // تحديث المستخدم الموجود
+
             user.isSeller = true;
             user.managedRestaurant = restaurantId;
-            user.password = password; // تأكدي من تشفير كلمة المرور
+            user.password = password; 
             await user.save();
         } else {
-            // إنشاء مستخدم جديد
+
             user = new User({
                 email,
-                password, // تأكدي من تشفير كلمة المرور
+                password, 
                 name: name || "New Seller",
                 isSeller: true,
                 managedRestaurant: restaurantId
@@ -807,7 +807,7 @@ router.get('/my-restaurant',
                 isSeller: user.isSeller,
                 managedRestaurant: {
                     id: restaurantId,
-                    name: restaurant.name // اسم المطعم المضاف
+                    name: restaurant.name 
                 }
             }
         });
@@ -826,29 +826,29 @@ router.get('/my-restaurant',
     try {
       const { email, password } = req.body;
   
-      // 1. Validate input
+
       if (!email || !password) {
         return res.status(400).json({ error: "Email and password are required" });
       }
   
-      // 2. Find user
+
       const user = await User.findOne({ email });
       if (!user) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
   
-      // 3. Check if user is a seller
+
       if (!user.isSeller) {
         return res.status(403).json({ error: "Access denied. Not a seller." });
       }
   
-      // 4. Verify password
+
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
   
-      // 5. Create JWT token
+
       const token = jwt.sign(
         { 
           userId: user._id,
@@ -859,7 +859,7 @@ router.get('/my-restaurant',
         { expiresIn: '8h' }
       );
   
-      // 6. Send response
+
       res.json({
         success: true,
         token,
