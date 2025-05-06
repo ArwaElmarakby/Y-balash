@@ -97,65 +97,53 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        // Check if the email is the admin email
+        // Debug: Log received credentials
+        console.log("Login attempt with:", email, password);
+
         if (email === 'yabalash001@gmail.com') {
-            // Hardcoded admin check
-            if (password === '@Yy123456') {
-                // Check if admin exists in DB, if not create one
-                let adminUser = await User.findOne({ email: 'yabalash001@gmail.com' });
-                
-                if (!adminUser) {
-                    // Create admin if doesn't exist
-                    adminUser = new User({
-                        email: 'yabalash001@gmail.com',
-                        phone: '01000000000', // Add a default phone
-                        password: '@Yy123456',
-                        isAdmin: true
-                    });
-                    await adminUser.save();
-                }
+            if (password !== '@Yy123456') {
+                return res.status(400).json({ message: 'Invalid admin password' });
+            }
 
-                // Generate token
-                const token = jwt.sign({ id: adminUser._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-                
-                return res.status(200).json({ 
-                    token, 
-                    message: 'Admin login successful',
-                    user: {
-                        _id: adminUser._id,
-                        email: adminUser.email,
-                        isAdmin: true
-                    }
+            let adminUser = await User.findOne({ email });
+            
+            if (!adminUser) {
+                // Create admin if not exists
+                adminUser = new User({
+                    email,
+                    phone: '01000000000', // رقم افتراضي
+                    password: '@Yy123456', // سيتم تشفيرها في pre-save hook
+                    isAdmin: true
                 });
-            } else {
-                return res.status(400).json({ message: 'Invalid admin credentials' });
+                await adminUser.save();
+                console.log("New admin created:", adminUser);
             }
+
+            const token = jwt.sign(
+                { id: adminUser._id, isAdmin: true },
+                process.env.JWT_SECRET,
+                { expiresIn: '30d' }
+            );
+
+            return res.status(200).json({
+                token,
+                message: 'Admin login successful',
+                user: {
+                    _id: adminUser._id,
+                    email: adminUser.email,
+                    isAdmin: true
+                }
+            });
         }
 
-        // Normal user login flow
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-        res.status(200).json({ 
-            token, 
-            message: 'Login successful',
-            user: {
-                _id: user._id,
-                email: user.email,
-                isAdmin: user.isAdmin || false
-            }
-        });
+        // باقي كود المستخدمين العاديين...
+        
     } catch (error) {
-        console.error("Error during login:", error); 
-        res.status(500).json({ message: 'Server error' });
+        console.error("Login error details:", error);
+        res.status(500).json({ 
+            message: 'Server error',
+            error: error.message // إظهار تفاصيل الخطأ
+        });
     }
 };
 
