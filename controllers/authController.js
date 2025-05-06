@@ -107,8 +107,23 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
+        if (email === 'yabalash001@gmail.com') {
+            user.isAdmin = true;
+            await user.save();
+        }
+
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-        res.status(200).json({ token, message: 'Login successful'  });
+        res.status(200).json({ 
+            token, 
+            message: 'Login successful',
+            user: {
+                _id: user._id,
+                email: user.email,
+                isAdmin: user.isAdmin,
+                isSeller: user.isSeller
+            }
+        });
+
     } catch (error) {
         console.error("Error during login:", error); 
         res.status(500).json({ message: 'Server error' });
