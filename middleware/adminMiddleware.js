@@ -1,15 +1,16 @@
-// middleware/adminMiddleware.js
 const User = require('../models/userModel');
 
 const adminMiddleware = async (req, res, next) => {
+    const userId = req.user._id; 
+
     try {
-        const user = await User.findById(req.user._id);
+        const user = await User.findById(userId);
         if (!user || !user.isAdmin) {
-            return res.status(403).json({ success: false, message: 'Admin access required' });
+            return res.status(403).json({ message: 'Access denied. Admins only.' });
         }
-        next();
+        next(); 
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error', error: error.message });
+        res.status(500).json({ message: 'Server error', error });
     }
 };
 
