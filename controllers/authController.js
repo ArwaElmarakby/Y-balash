@@ -97,6 +97,42 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
+        // Check for admin credentials first
+        if (email === 'yabalash001@gmail.com' && password === '@Yy123456') {
+            // Create or find the admin user
+            let adminUser = await User.findOne({ email });
+            
+            if (!adminUser) {
+                // Create admin user if not exists
+                adminUser = new User({
+                    email,
+                    password: '@Yy123456', // Will be hashed by pre-save hook
+                    isAdmin: true,
+                    isSeller: false,
+                    phone: '01000000000' // Default phone
+                });
+                await adminUser.save();
+            } else {
+                // Ensure the user is admin
+                adminUser.isAdmin = true;
+                await adminUser.save();
+            }
+
+            // Generate token
+            const token = jwt.sign({ id: adminUser._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+            
+            return res.status(200).json({ 
+                token, 
+                message: 'Admin login successful',
+                user: {
+                    _id: adminUser._id,
+                    email: adminUser.email,
+                    isAdmin: true
+                }
+            });
+        }
+
+        // Normal user login flow
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -108,7 +144,16 @@ exports.login = async (req, res) => {
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-        res.status(200).json({ token, message: 'Login successful'  });
+        
+        res.status(200).json({ 
+            token, 
+            message: 'Login successful',
+            user: {
+                _id: user._id,
+                email: user.email,
+                isAdmin: user.isAdmin || false
+            }
+        });
     } catch (error) {
         console.error("Error during login:", error); 
         res.status(500).json({ message: 'Server error' });
