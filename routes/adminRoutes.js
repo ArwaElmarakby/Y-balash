@@ -292,4 +292,58 @@ router.get('/orders-stats', authMiddleware, adminMiddleware, async (req, res) =>
 });
 
 
+
+router.get('/revenue-stats', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const currentDate = new Date();
+        const lastMonthDate = new Date();
+        lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+
+
+        const totalRevenueResult = await Order.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+
+        const lastMonthRevenueResult = await Order.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: lastMonthDate, $lt: currentDate }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        const totalRevenue = totalRevenueResult[0]?.total || 0;
+        const lastMonthRevenue = lastMonthRevenueResult[0]?.total || 0;
+
+
+        let percentageChange = '0.00';
+        if (lastMonthRevenue > 0) {
+            percentageChange = ((totalRevenue - lastMonthRevenue) / lastMonthRevenue * 100).toFixed(2);
+        } else if (totalRevenue > 0) {
+            percentageChange = '100.00';
+        }
+
+        res.status(200).json({
+            totalRevenue,
+            percentageChange,
+            currency: "EGP"
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
 module.exports = router;
