@@ -114,36 +114,3 @@ exports.getTopCategories = async (req, res) => {
 
 
 
-exports.getAllUsers = async (req, res) => {
-    try {
-        const users = await User.find({})
-            .select('_id email createdAt isActive')
-            .lean(); 
-
-        const formattedUsers = users.map(user => ({
-            id: user._id,
-            email: user.email,
-            joinDate: user.createdAt.toISOString().split('T')[0],
-            status: user.isActive ? 'Active' : 'Inactive'
-        }));
-
-        res.status(200).json({
-            success: true,
-            count: formattedUsers.length,
-            users: formattedUsers
-        });
-
-    } catch (error) {
-        console.error('GetAllUsers Error:', {
-            message: error.message,
-            stack: error.stack,
-            timestamp: new Date()
-        });
-        
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-};
