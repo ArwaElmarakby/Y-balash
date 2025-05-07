@@ -43,3 +43,40 @@ exports.getAllSellers = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+
+
+
+exports.getAdminAlerts = async (req, res) => {
+    try {
+
+        const flaggedProductsCount = await Image.countDocuments({ flagged: true });
+
+
+        const pendingSellerApprovals = await User.countDocuments({ 
+            isSellerRequested: true,
+            isSeller: false 
+        });
+
+
+        const lowStockItemsCount = await Image.countDocuments({ 
+            quantity: { $lte: 10 } 
+        });
+
+        res.status(200).json({
+            success: true,
+            alerts: {
+                flaggedProducts: flaggedProductsCount,
+                pendingSellerApprovals: pendingSellerApprovals,
+                lowStockItems: lowStockItemsCount,
+                lastUpdated: new Date()
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch admin alerts',
+            error: error.message
+        });
+    }
+};
