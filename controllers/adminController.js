@@ -118,7 +118,7 @@ exports.getAllUsers = async (req, res) => {
     try {
         const users = await User.find({})
             .select('_id email createdAt isActive')
-            .sort({ createdAt: -1 });
+            .lean(); 
 
         const formattedUsers = users.map(user => ({
             id: user._id,
@@ -129,14 +129,21 @@ exports.getAllUsers = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            count: formattedUsers.length,
             users: formattedUsers
         });
+
     } catch (error) {
-        console.error("Error fetching users:", error);
+        console.error('GetAllUsers Error:', {
+            message: error.message,
+            stack: error.stack,
+            timestamp: new Date()
+        });
+        
         res.status(500).json({
             success: false,
-            message: "Failed to fetch users",
-            error: error.message
+            message: 'Internal server error',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };
