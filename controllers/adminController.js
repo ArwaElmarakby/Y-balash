@@ -1,5 +1,6 @@
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
+const Image = require('../models/imageModel');
 
 
 exports.assignSellerToRestaurant = async (req, res) => {
