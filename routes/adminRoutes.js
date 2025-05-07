@@ -7,6 +7,37 @@ const Order = require('../models/orderModel');
 const { authMiddleware } = require('./authRoutes'); // Use your existing auth middleware
 const adminMiddleware = require('../middleware/adminMiddleware');
 
+
+
+
+router.get('/welcome', authMiddleware, adminMiddleware, (req, res) => {
+    try {
+        const today = new Date();
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        };
+        const formattedDate = today.toLocaleDateString('en-US', options);
+
+        const welcomeMessage = `Welcome back, Admin!`;
+        const response = {
+            message: welcomeMessage,
+            date: formattedDate
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
+
 router.post('/promote', authMiddleware, async (req, res) => {
     try {
         const userId = req.user._id; // Get the user ID from the token
