@@ -8,6 +8,7 @@ const { authMiddleware } = require('./authRoutes'); // Use your existing auth mi
 const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
+const { getAllUsers } = require('../controllers/adminController');
 
 
 
@@ -429,5 +430,9 @@ router.get('/alerts', authMiddleware, adminMiddleware, getAdminAlerts);
 
 
 router.get('/top-categories', authMiddleware, adminMiddleware, getTopCategories);
+
+
+router.get('/users', authMiddleware, adminMiddleware, getAllUsers);
+
 
 module.exports = router;
