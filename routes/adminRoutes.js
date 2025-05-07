@@ -422,36 +422,64 @@ router.get('/revenue-12months', authMiddleware, adminMiddleware, async (req, res
     }
 });
 
-
-
 router.get('/recent-alerts', authMiddleware, adminMiddleware, async (req, res) => {
     try {
+        // 1. التحقق من اتصال قاعدة البيانات أولاً
+        await mongoose.connection.db.admin().ping();
 
-        const flaggedProducts = await Image.countDocuments({
-            isFlagged: true
-        });
+        // 2. جلب البيانات مع معالجة الأخطاء الفرعية
+        const [flaggedProducts, pendingSellerApprovals, lowStockItems] = await Promise.all([
+            Image.countDocuments({ isFlagged: true }).catch(err => {
+                console.error('Error counting flagged products:', err);
+                return 0;
+            }),
+            User.countDocuments({ 
+                isSeller: false,
+                sellerRequest: { $exists: true, $ne: null }
+            }).catch(err => {
+                console.error('Error counting pending sellers:', err);
+                return 0;
+            }),
+            Image.countDocuments({ 
+                quantity: { $lt: 10 } 
+            }).catch(err => {
+                console.error('Error counting low stock items:', err);
+                return 0;
+            })
+        ]);
 
-
-        const pendingSellerApprovals = await User.countDocuments({
-            isSeller: false,
-            sellerRequest: { $exists: true, $ne: null }
-        });
-
-
-        const lowStockItems = await Image.countDocuments({
-            quantity: { $lt: 10 }
-        });
+        // 3. التحقق من صحة البيانات
+        if (typeof flaggedProducts !== 'number' || 
+            typeof pendingSellerApprovals !== 'number' || 
+            typeof lowStockItems !== 'number') {
+            throw new Error('Invalid data types received from database');
+        }
 
         res.status(200).json({
+            success: true,
             flaggedProducts,
             pendingSellerApprovals,
             lowStockItems,
-            lastUpdated: new Date()
+            lastUpdated: new Date().toISOString()
         });
+
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        console.error('Full error details:', {
+            message: error.message,
+            stack: error.stack,
+            fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+        });
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch alerts data',
+            errorDetails: {
+                message: error.message,
+                type: error.name
+            },
+            timestamp: new Date().toISOString()
+        });
     }
 });
-
 
 module.exports = router;
