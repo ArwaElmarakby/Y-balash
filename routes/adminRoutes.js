@@ -346,4 +346,81 @@ router.get('/revenue-stats', authMiddleware, adminMiddleware, async (req, res) =
 });
 
 
+router.get('/revenue-30days', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const daysAgo30 = new Date();
+        daysAgo30.setDate(daysAgo30.getDate() - 30);
+
+        const dailyRevenue = await Order.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: daysAgo30 }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    dailyTotal: { $sum: "$totalAmount" }
+                }
+            },
+            {
+                $sort: { "_id": 1 }
+            }
+        ]);
+
+        const totalRevenue = dailyRevenue.reduce((sum, day) => sum + day.dailyTotal, 0);
+        const averageDailyRevenue = totalRevenue / 30;
+
+        res.status(200).json({
+            period: "last_30_days",
+            totalRevenue,
+            averageDailyRevenue,
+            dailyBreakdown: dailyRevenue,
+            currency: "EGP"
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
+
+router.get('/revenue-12months', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const monthsAgo12 = new Date();
+        monthsAgo12.setMonth(monthsAgo12.getMonth() - 12);
+
+        const monthlyRevenue = await Order.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: monthsAgo12 }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+                    monthlyTotal: { $sum: "$totalAmount" }
+                }
+            },
+            {
+                $sort: { "_id": 1 }
+            }
+        ]);
+
+        const totalRevenue = monthlyRevenue.reduce((sum, month) => sum + month.monthlyTotal, 0);
+        const averageMonthlyRevenue = totalRevenue / 12;
+
+        res.status(200).json({
+            period: "last_12_months",
+            totalRevenue,
+            averageMonthlyRevenue,
+            monthlyBreakdown: monthlyRevenue,
+            currency: "EGP"
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
 module.exports = router;
