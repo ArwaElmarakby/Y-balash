@@ -46,6 +46,16 @@ const userSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
     managedRestaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
     language: { type: String, default: null },
+    plan: {
+      type: String,
+      enum: ['basic', 'premium'],
+      default: 'basic'
+  },
+  status: {
+      type: String,
+      enum: ['pending', 'active', 'suspended'],
+      default: 'pending'
+  },
     paymentSettings: {
         bankAccount: {
             accountNumber: String,

@@ -464,4 +464,38 @@ router.get('/users', authMiddleware, adminMiddleware, async (req, res) => {
     }
 });
 
+
+
+router.get('/sellers', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const sellers = await User.find({ isSeller: true })
+            .select('_id firstName lastName email phone createdAt plan status')
+            .sort({ createdAt: -1 });
+
+        const formattedSellers = sellers.map(seller => ({
+            id: seller._id,
+            name: `${seller.firstName || ''} ${seller.lastName || ''}`.trim() || 'No Name',
+            email: seller.email,
+            phone: seller.phone || 'N/A',
+            joinDate: seller.createdAt ? seller.createdAt.toISOString().split('T')[0] : 'N/A',
+            plan: seller.plan || 'basic',
+            status: seller.status || 'pending'
+        }));
+
+        res.status(200).json({
+            success: true,
+            count: formattedSellers.length,
+            sellers: formattedSellers
+        });
+    } catch (error) {
+        console.error('Error fetching sellers:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching sellers',
+            error: error.message
+        });
+    }
+});
+
+
 module.exports = router;
