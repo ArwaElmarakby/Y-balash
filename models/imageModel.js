@@ -6,6 +6,8 @@ const imageSchema = new mongoose.Schema({
   quantity: { type: String, required: true },
   imageUrl: { type: String, required: true },
   views: { type: Number, default: 0 },
+  isFlagged: Boolean,
+  quantity: Number,
   discount: {
     type: {
       percentage: { type: Number, min: 0, max: 100, default: 0 },

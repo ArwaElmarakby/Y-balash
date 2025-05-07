@@ -422,64 +422,38 @@ router.get('/revenue-12months', authMiddleware, adminMiddleware, async (req, res
     }
 });
 
+
+
 router.get('/recent-alerts', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        // 1. التحقق من اتصال قاعدة البيانات أولاً
-        await mongoose.connection.db.admin().ping();
 
-        // 2. جلب البيانات مع معالجة الأخطاء الفرعية
-        const [flaggedProducts, pendingSellerApprovals, lowStockItems] = await Promise.all([
-            Image.countDocuments({ isFlagged: true }).catch(err => {
-                console.error('Error counting flagged products:', err);
-                return 0;
-            }),
-            User.countDocuments({ 
-                isSeller: false,
-                sellerRequest: { $exists: true, $ne: null }
-            }).catch(err => {
-                console.error('Error counting pending sellers:', err);
-                return 0;
-            }),
-            Image.countDocuments({ 
-                quantity: { $lt: 10 } 
-            }).catch(err => {
-                console.error('Error counting low stock items:', err);
-                return 0;
-            })
-        ]);
+        const flaggedProducts = await Image.countDocuments({ isFlagged: true });
+        
 
-        // 3. التحقق من صحة البيانات
-        if (typeof flaggedProducts !== 'number' || 
-            typeof pendingSellerApprovals !== 'number' || 
-            typeof lowStockItems !== 'number') {
-            throw new Error('Invalid data types received from database');
-        }
+        const pendingSellerApprovals = await User.countDocuments({ 
+            isSeller: false,
+            'sellerRequest.status': 'pending'
+        });
+        
 
-        res.status(200).json({
-            success: true,
+        const lowStockItems = await Image.countDocuments({ 
+            quantity: { $lt: 10 } 
+        });
+
+
+        res.json({
             flaggedProducts,
             pendingSellerApprovals,
-            lowStockItems,
-            lastUpdated: new Date().toISOString()
+            lowStockItems
         });
 
     } catch (error) {
-        console.error('Full error details:', {
-            message: error.message,
-            stack: error.stack,
-            fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
-        });
-
+        console.log('server error', error.message); 
         res.status(500).json({
-            success: false,
-            message: 'Failed to fetch alerts data',
-            errorDetails: {
-                message: error.message,
-                type: error.name
-            },
-            timestamp: new Date().toISOString()
+            message: 'An error occurred while fetching the data'
         });
     }
 });
+
 
 module.exports = router;

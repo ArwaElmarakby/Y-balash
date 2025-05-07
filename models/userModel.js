@@ -42,6 +42,9 @@ const userSchema = new mongoose.Schema({
     points: { type: Number, default: 0 },
     isAdmin: { type: Boolean, default: false },
     isSeller: { type: Boolean, default: false },
+    sellerRequest: {
+      status: String
+  },
     managedRestaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
     language: { type: String, default: null },
     paymentSettings: {
