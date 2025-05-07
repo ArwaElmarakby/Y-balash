@@ -7,6 +7,7 @@ const Order = require('../models/orderModel');
 const { authMiddleware } = require('./authRoutes'); // Use your existing auth middleware
 const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
+const { getTopCategories } = require('../controllers/adminController');
 
 
 
@@ -426,5 +427,7 @@ router.get('/revenue-12months', authMiddleware, adminMiddleware, async (req, res
 
 router.get('/alerts', authMiddleware, adminMiddleware, getAdminAlerts);
 
+
+router.get('/top-categories', authMiddleware, adminMiddleware, getTopCategories);
 
 module.exports = router;

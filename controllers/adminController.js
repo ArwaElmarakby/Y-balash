@@ -1,6 +1,7 @@
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
+const Category = require('../models/categoryModel');
 
 
 exports.assignSellerToRestaurant = async (req, res) => {
@@ -69,6 +70,43 @@ exports.getAdminAlerts = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch admin alerts',
+            error: error.message
+        });
+    }
+};
+
+
+
+exports.getTopCategories = async (req, res) => {
+    try {
+        const topCategories = await Category.aggregate([
+            {
+                $lookup: {
+                    from: "images",
+                    localField: "items",
+                    foreignField: "_id",
+                    as: "products"
+                }
+            },
+            {
+                $project: {
+                    name: 1,
+                    productCount: { $size: "$products" }
+                }
+            },
+            { $sort: { productCount: -1 } },
+            { $limit: 3 }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            topCategories
+        });
+    } catch (error) {
+        console.error("Error fetching top categories:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch top categories",
             error: error.message
         });
     }
