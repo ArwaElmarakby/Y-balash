@@ -423,4 +423,35 @@ router.get('/revenue-12months', authMiddleware, adminMiddleware, async (req, res
 });
 
 
+
+router.get('/recent-alerts', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+
+        const flaggedProducts = await Image.countDocuments({
+            isFlagged: true
+        });
+
+
+        const pendingSellerApprovals = await User.countDocuments({
+            isSeller: false,
+            sellerRequest: { $exists: true, $ne: null }
+        });
+
+
+        const lowStockItems = await Image.countDocuments({
+            quantity: { $lt: 10 }
+        });
+
+        res.status(200).json({
+            flaggedProducts,
+            pendingSellerApprovals,
+            lowStockItems,
+            lastUpdated: new Date()
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
 module.exports = router;
