@@ -6,7 +6,7 @@ const Restaurant = require('../models/restaurantModel');
 const Order = require('../models/orderModel');
 const { authMiddleware } = require('./authRoutes'); // Use your existing auth middleware
 const adminMiddleware = require('../middleware/adminMiddleware');
-
+const mongoose = require('mongoose');
 
 
 
@@ -426,34 +426,36 @@ router.get('/revenue-12months', authMiddleware, adminMiddleware, async (req, res
 
 router.get('/recent-alerts', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-
         const flaggedProducts = await Image.countDocuments({ isFlagged: true });
-        
-
         const pendingSellerApprovals = await User.countDocuments({ 
             isSeller: false,
             'sellerRequest.status': 'pending'
         });
-        
-
         const lowStockItems = await Image.countDocuments({ 
             quantity: { $lt: 10 } 
         });
 
-
-        res.json({
+        res.status(200).json({
+            success: true,
             flaggedProducts,
             pendingSellerApprovals,
-            lowStockItems
+            lowStockItems,
+            lastUpdated: new Date()
         });
 
     } catch (error) {
-        console.log('server error', error.message); 
         res.status(500).json({
-            message: 'An error occurred while fetching the data'
+            success: false,
+            message: 'Failed to fetch alerts data',
+            errorDetails: {
+                message: error.message,
+                type: error.name
+            },
+            timestamp: new Date()
         });
     }
 });
+
 
 
 module.exports = router;
