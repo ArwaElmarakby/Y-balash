@@ -430,19 +430,24 @@ router.get('/alerts', authMiddleware, adminMiddleware, getAdminAlerts);
 
 router.get('/top-categories', authMiddleware, adminMiddleware, getTopCategories);
 
-
 router.get('/users', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const users = await User.find()
             .select('_id email createdAt isActive')
             .sort({ createdAt: -1 });
 
-        const formattedUsers = users.map(user => ({
-            id: user._id,
-            email: user.email,
-            joinDate: user.createdAt.toISOString().split('T')[0],
-            status: user.isActive ? 'Active' : 'Inactive'
-        }));
+        const formattedUsers = users.map(user => {
+            const joinDate = user.createdAt ? 
+                new Date(user.createdAt).toISOString().split('T')[0] : 
+                'N/A';
+                
+            return {
+                id: user._id,
+                email: user.email,
+                joinDate: joinDate,
+                status: user.isActive ? 'Active' : 'Inactive'
+            };
+        });
 
         res.status(200).json({
             success: true,
@@ -450,6 +455,7 @@ router.get('/users', authMiddleware, adminMiddleware, async (req, res) => {
             users: formattedUsers
         });
     } catch (error) {
+        console.error('Error fetching users:', error);
         res.status(500).json({
             success: false,
             message: 'Error fetching users',
