@@ -46,23 +46,14 @@ exports.getAllSellers = async (req, res) => {
 };
 
 
-
-
 exports.getAdminAlerts = async (req, res) => {
     try {
-
-        const flaggedProductsCount = await Image.countDocuments({ flagged: true });
-
-
-        const pendingSellerApprovals = await User.countDocuments({ 
-            isSellerRequested: true,
-            isSeller: false 
-        });
-
-
-        const lowStockItemsCount = await Image.countDocuments({ 
-            quantity: { $lte: 10 } 
-        });
+        // استعلامات متوازية لأفضل أداء
+        const [flaggedProductsCount, pendingSellerApprovals, lowStockItemsCount] = await Promise.all([
+            Image.countDocuments({ flagged: true }),
+            User.countDocuments({ isSellerRequested: true, isSeller: false }),
+            Image.countDocuments({ quantity: { $lte: 10 } })
+        ]);
 
         res.status(200).json({
             success: true,
@@ -74,6 +65,7 @@ exports.getAdminAlerts = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error("Error in getAdminAlerts:", error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch admin alerts',
