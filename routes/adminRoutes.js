@@ -240,4 +240,30 @@ router.get('/users-stats', authMiddleware, adminMiddleware, async (req, res) => 
 
 
 
+router.get('/sellers-stats', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const currentDate = new Date();
+        const lastMonthDate = new Date();
+        lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+
+        const totalSellers = await User.countDocuments({ isSeller: true });
+        const lastMonthSellers = await User.countDocuments({
+            isSeller: true,
+            createdAt: { $gte: lastMonthDate, $lt: currentDate }
+        });
+
+        const percentageChange = lastMonthSellers > 0 
+            ? ((totalSellers - lastMonthSellers) / lastMonthSellers * 100).toFixed(2)
+            : totalSellers > 0 ? '100.00' : '0.00';
+
+        res.status(200).json({
+            totalSellers,
+            percentageChange
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
 module.exports = router;
