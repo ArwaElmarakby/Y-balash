@@ -48,7 +48,7 @@ exports.getAllSellers = async (req, res) => {
 
 exports.getAdminAlerts = async (req, res) => {
     try {
-        // استعلامات متوازية لأفضل أداء
+
         const [flaggedProductsCount, pendingSellerApprovals, lowStockItemsCount] = await Promise.all([
             Image.countDocuments({ flagged: true }),
             User.countDocuments({ isSellerRequested: true, isSeller: false }),
