@@ -542,66 +542,22 @@ router.get('/sellers/:id', authMiddleware, adminMiddleware, async (req, res) => 
     }
 });
 
-
 router.get('/seller-performance/:sellerId', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        const seller = await User.findById(req.params.sellerId);
-        
+        const seller = await User.findById(req.params.sellerId)
+            .select('isSeller managedRestaurant lastActive updatedAt createdAt');
+
         if (!seller || !seller.isSeller) {
             return res.status(404).json({
                 success: false,
-                message: 'Seller not found'
+                message: 'Seller not found or not a seller'
             });
         }
 
-        const [productsCount, orders, lastActive] = await Promise.all([
-            Image.countDocuments({ restaurant: seller.managedRestaurant }),
-            Order.find({ restaurantId: seller.managedRestaurant }),
-            seller.lastActive || seller.updatedAt
-        ]);
-
-        const totalEarnings = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-        const completedOrders = orders.filter(o => o.status === 'delivered').length;
-
-        const performanceData = {
-            totalProducts: productsCount,
-            totalOrders: orders.length,
-            completedOrders: completedOrders,
-            totalEarnings: totalEarnings.toFixed(2) + ' EGP',
-            sellerRating: calculateRating(orders), 
-            lastActive: lastActive.toISOString()
-        };
-
-        res.status(200).json({
-            success: true,
-            performance: performanceData
-        });
-
-    } catch (error) {
-        console.error('Error fetching seller performance:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching seller performance',
-            error: error.message
-        });
-    }
-});
-
-
-function calculateRating(orders) {
-    const ratedOrders = orders.filter(o => o.rating);
-    if (ratedOrders.length === 0) return 'No ratings yet';
-    
-    const totalRating = ratedOrders.reduce((sum, order) => sum + order.rating, 0);
-    return (totalRating / ratedOrders.length).toFixed(1) + ' stars';
-}router.get('/seller-performance/:sellerId', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-        const seller = await User.findById(req.params.sellerId);
-        
-        if (!seller || !seller.isSeller) {
-            return res.status(404).json({
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({
                 success: false,
-                message: 'Seller not found'
+                message: 'Seller has no restaurant assigned'
             });
         }
 
@@ -615,24 +571,24 @@ function calculateRating(orders) {
         const totalEarnings = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
         const completedOrders = orders.filter(o => o.status === 'delivered').length;
         
-        // معالجة lastActive بشكل آمن
-        const lastActive = seller.lastActive || seller.updatedAt || seller.createdAt || new Date();
-        
-        // معالجة التقييم بشكل آمن
-        let sellerRating = 'No ratings yet';
-        const ratedOrders = orders.filter(o => o.rating);
-        if (ratedOrders.length > 0) {
-            const totalRating = ratedOrders.reduce((sum, order) => sum + order.rating, 0);
-            sellerRating = (totalRating / ratedOrders.length).toFixed(1) + ' stars';
-        }
+        // حل نهائي لمعالجة التواريخ
+        const getSafeDate = () => {
+            const possibleDates = [
+                seller.lastActive,
+                seller.updatedAt,
+                seller.createdAt,
+                new Date()
+            ];
+            return possibleDates.find(date => date instanceof Date && !isNaN(date)) || new Date();
+        };
 
         const performanceData = {
-            totalProducts: productsCount || 0,
-            totalOrders: orders.length || 0,
-            completedOrders: completedOrders || 0,
-            totalEarnings: totalEarnings.toFixed(2) + ' EGP',
-            sellerRating: sellerRating,
-            lastActive: lastActive.toISOString()
+            totalProducts: productsCount,
+            totalOrders: orders.length,
+            completedOrders: completedOrders,
+            totalEarnings: `${totalEarnings.toFixed(2)} EGP`,
+            sellerRating: calculateSellerRating(orders),
+            lastActive: getSafeDate().toISOString()
         };
 
         res.status(200).json({
@@ -641,14 +597,26 @@ function calculateRating(orders) {
         });
 
     } catch (error) {
-        console.error('Error fetching seller performance:', error);
+        console.error('Error in seller-performance:', error);
         res.status(500).json({
             success: false,
-            message: 'Error fetching seller performance',
+            message: 'Internal server error',
             error: error.message
         });
     }
 });
+
+function calculateSellerRating(orders) {
+    try {
+        const ratedOrders = orders.filter(o => o.rating && !isNaN(o.rating));
+        if (ratedOrders.length === 0) return 'Not rated yet';
+        
+        const avgRating = ratedOrders.reduce((sum, o) => sum + o.rating, 0) / ratedOrders.length;
+        return `${avgRating.toFixed(1)}/5`;
+    } catch {
+        return 'Rating unavailable';
+    }
+}
 
 
 
