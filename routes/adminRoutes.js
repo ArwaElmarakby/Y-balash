@@ -692,4 +692,5 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
     }
 });
 
+
 module.exports = router;
