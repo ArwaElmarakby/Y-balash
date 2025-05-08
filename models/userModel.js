@@ -62,6 +62,20 @@ const userSchema = new mongoose.Schema({
             accountHolderName: String,
             bankName: String
         },
+        plan: {
+          type: String,
+          enum: ['basic', 'premium'],
+          default: 'basic'
+      },
+      status: {
+          type: String,
+          enum: ['pending', 'active', 'suspended'],
+          default: 'pending'
+      },
+      premiumExpiresAt: {
+          type: Date,
+          default: null
+      },
         mobileWallet: {
             provider: String,
             number: String

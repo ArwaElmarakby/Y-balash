@@ -498,4 +498,47 @@ router.get('/sellers', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 
+
+router.get('/sellers/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const seller = await User.findOne({
+            _id: req.params.id,
+            isSeller: true
+        }).select('firstName lastName email phone plan status premiumExpiresAt');
+
+        if (!seller) {
+            return res.status(404).json({
+                success: false,
+                message: 'Seller not found'
+            });
+        }
+
+        const response = {
+            id: seller._id,
+            name: `${seller.firstName || ''} ${seller.lastName || ''}`.trim() || 'No Name',
+            email: seller.email,
+            phone: seller.phone || 'N/A',
+            isPremium: seller.plan === 'premium',
+            status: seller.status || 'pending',
+            plan: seller.plan || 'basic',
+            expiresAt: seller.premiumExpiresAt ? seller.premiumExpiresAt.toISOString().split('T')[0] : 'N/A',
+            daysRemaining: seller.premiumExpiresAt ? 
+                Math.ceil((seller.premiumExpiresAt - new Date()) / (1000 * 60 * 60 * 24)) : 
+                null
+        };
+
+        res.status(200).json({
+            success: true,
+            seller: response
+        });
+    } catch (error) {
+        console.error('Error fetching seller details:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching seller details',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
