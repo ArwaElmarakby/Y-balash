@@ -8,6 +8,7 @@ const { authMiddleware } = require('./authRoutes'); // Use your existing auth mi
 const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
+const Image = require('../models/imageModel');
 
 
 
@@ -540,5 +541,70 @@ router.get('/sellers/:id', authMiddleware, adminMiddleware, async (req, res) => 
         });
     }
 });
+
+
+
+router.get('/seller-performance/:sellerId', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { sellerId } = req.params;
+
+        // 1. Get Seller Info
+        const seller = await User.findById(sellerId)
+            .select('email managedRestaurant createdAt lastActive')
+            .populate('managedRestaurant', 'name');
+
+        if (!seller || !seller.isSeller) {
+            return res.status(404).json({ message: 'Seller not found' });
+        }
+
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned to this seller' });
+        }
+
+        // 2. Get Performance Data
+        const [totalProducts, totalOrders, totalEarnings] = await Promise.all([
+            Image.countDocuments({ restaurant: seller.managedRestaurant._id }),
+            Order.countDocuments({ restaurantId: seller.managedRestaurant._id }),
+            Order.aggregate([
+                { 
+                    $match: { 
+                        restaurantId: seller.managedRestaurant._id,
+                        status: 'delivered'
+                    } 
+                },
+                { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            ])
+        ]);
+
+        // 3. Calculate Rating (example: random between 3.5-5)
+        const rating = (Math.random() * 1.5 + 3.5).toFixed(1);
+
+        // 4. Format Response
+        const performanceData = {
+            seller: {
+                email: seller.email,
+                restaurant: seller.managedRestaurant.name,
+                lastActive: seller.lastActive || seller.createdAt
+            },
+            performance: {
+                totalProducts,
+                totalOrders,
+                totalEarnings: totalEarnings[0]?.total || 0,
+                currency: 'EGP',
+                rating,
+                lastUpdated: new Date()
+            }
+        };
+
+        res.status(200).json(performanceData);
+    } catch (error) {
+        console.error("Error fetching seller performance:", error);
+        res.status(500).json({ 
+            message: 'Server error',
+            error: error.message 
+        });
+    }
+});
+
 
 module.exports = router;
