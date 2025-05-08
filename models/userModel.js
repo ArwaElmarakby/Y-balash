@@ -83,21 +83,6 @@ const userSchema = new mongoose.Schema({
           },
           paypalEmail: String
         },
-        sellerApplication: {
-        message: {
-            type: String,
-            default: 'No additional message'
-        },
-        status: {
-            type: String,
-            enum: ['pending', 'approved', 'rejected'],
-            default: 'pending'
-        },
-        submittedAt: {
-            type: Date,
-            default: Date.now
-        }
-    },
         transactions: [{
           date: { type: Date, default: Date.now },
           amount: Number,
