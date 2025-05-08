@@ -571,4 +571,60 @@ router.get('/seller/:id/details', authMiddleware, adminMiddleware, async (req, r
     }
 });
 
+
+
+router.get('/seller/:id/products', authMiddleware, adminMiddleware, async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+
+        const seller = await User.findById(id);
+        if (!seller) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'Seller not found' 
+            });
+        }
+
+
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'This seller is not assigned to any restaurant' 
+            });
+        }
+
+
+        const products = await Image.find({ 
+            restaurant: seller.managedRestaurant 
+        })
+        .populate('category', 'name')
+        .select('name price imageUrl quantity category');
+
+
+        const formattedProducts = products.map(product => ({
+            id: product._id,
+            name: product.name,
+            price: product.price,
+            imageUrl: product.imageUrl,
+            stock: product.quantity,
+            status: product.quantity > 0 ? 'In Stock' : 'Out of Stock',
+            category: product.category ? product.category.name : 'Uncategorized'
+        }));
+
+        res.status(200).json({
+            success: true,
+            count: formattedProducts.length,
+            products: formattedProducts
+        });
+
+    } catch (error) {
+        res.status(500).json({ 
+            success: false,
+            message: 'Server error',
+            error: error.message 
+        });
+    }
+});
+
 module.exports = router;
