@@ -673,64 +673,64 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
     try {
         const { email, reason } = req.body;
         
-        // التحقق من البيانات المدخلة
+        // Validate input
         if (!email || !reason) {
             return res.status(400).json({ 
                 success: false,
-                message: "يجب تقديم البريد الإلكتروني وسبب الرفض"
+                message: "Email and rejection reason are required"
             });
         }
 
-        // البحث عن المستخدم
+        // Find user
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({
                 success: false,
-                message: "لم يتم العثور على المستخدم"
+                message: "User not found"
             });
         }
 
-        // إعداد إرسال البريد (يُفضل نقل هذا الجزء إلى service منفصل)
+        // Email setup (consider moving to a separate service)
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 465,
             secure: true,
             auth: {
-                user: process.env.EMAIL, // تأكد من تعريفه في .env
-                pass: process.env.EMAIL_PASSWORD // تأكد من تعريفه في .env
+                user: process.env.EMAIL, // Make sure it's defined in .env
+                pass: process.env.EMAIL_PASSWORD // Make sure it's defined in .env
             },
             tls: {
                 rejectUnauthorized: false
             }
         });
 
-        // محتوى البريد الإلكتروني
+        // Email content
         const mailOptions = {
             from: `"YaBalash Admin" <${process.env.EMAIL}>`,
             to: email,
-            subject: "حالة طلب الانضمام كبائع",
+            subject: "Your Seller Application Status",
             html: `
-                <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-                    <h2 style="color: #d9534f;">تم رفض طلبك كبائع</h2>
-                    <p>عزيزي/عزيزتنا ${user.firstName || 'البائع'},</p>
-                    <p>نأسف لإبلاغك بأن طلب الانضمام كبائع في منصتنا قد تم رفضه للأسباب التالية:</p>
-                    <p style="background-color: #f8f9fa; padding: 10px; border-right: 3px solid #d9534f;">
-                        <strong>سبب الرفض:</strong> ${reason}
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+                    <h2 style="color: #d9534f;">Your Seller Application Has Been Rejected</h2>
+                    <p>Dear ${user.firstName || 'Seller'},</p>
+                    <p>We regret to inform you that your seller application has been rejected for the following reason:</p>
+                    <p style="background-color: #f8f9fa; padding: 10px; border-left: 3px solid #d9534f;">
+                        <strong>Reason:</strong> ${reason}
                     </p>
-                    <p>يمكنك التواصل مع الدعم الفني في حال لديك أي استفسارات.</p>
+                    <p>Please contact our support team if you have any questions.</p>
                     <hr>
-                    <p>مع تحيات,<br>فريق YaBalash</p>
+                    <p>Best regards,<br>The YaBalash Team</p>
                 </div>
             `
         };
 
-        // إرسال البريد
+        // Send email
         await transporter.sendMail(mailOptions);
 
-        // إرجاع النجاح
+        // Return success
         res.status(200).json({ 
             success: true,
-            message: "تم رفض البائع وإرسال الإخطار بنجاح",
+            message: "Seller rejected and notification sent successfully",
             data: {
                 email,
                 reason,
@@ -739,15 +739,14 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
         });
 
     } catch (error) {
-        console.error("فشل في رفض البائع:", error);
+        console.error("Failed to reject seller:", error);
         res.status(500).json({ 
             success: false,
-            message: "حدث خطأ أثناء معالجة الطلب",
+            message: "An error occurred while processing your request",
             error: error.message 
         });
     }
 });
-
 
 
 module.exports = router;
