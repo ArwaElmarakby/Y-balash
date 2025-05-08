@@ -56,7 +56,7 @@ exports.addImage = async (req, res) => {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate } = req.body;
+    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku , description  } = req.body;
     const imageUrl = req.file ? req.file.path : null;
 
     if (!name || !quantity || !price || !imageUrl || !categoryId) {
@@ -76,7 +76,7 @@ exports.addImage = async (req, res) => {
         endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
       } : undefined;
 
-      const newImage = new Image({ name, quantity, price, imageUrl, category: categoryId, discount });
+      const newImage = new Image({ name, sku, description, quantity, price, imageUrl, category: categoryId, discount });
       await newImage.save();
 
       category.items.push(newImage._id);
@@ -84,6 +84,12 @@ exports.addImage = async (req, res) => {
 
       res.status(201).json({ message: 'Item added successfully', image: newImage });
     } catch (error) {
+      if (error.code === 11000 && error.keyPattern.sku) {
+        return res.status(400).json({ 
+          message: 'SKU must be unique', 
+          error: 'Duplicate SKU' 
+        });
+      }
       res.status(500).json({ message: 'Server error', error });
     }
   });
