@@ -667,58 +667,70 @@ router.get('/orders/all', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 
-router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) => {
-    const { email, reason } = req.body;
 
+router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) => {
     try {
+        const { email, reason } = req.body;
+        
+        if (!email || !reason) {
+            return res.status(400).json({ 
+                success: false,
+                error: "Email and rejection reason are required" 
+            });
+        }
 
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'User not found' 
+                error: "User not found"
             });
         }
 
-
-        if (user.isSeller) {
-            return res.status(400).json({ 
-                success: false,
-                message: 'User is already a seller' 
-            });
-        }
-
+        // إرسال بريد إلكتروني بالرفض
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
 
         const mailOptions = {
             from: process.env.EMAIL,
             to: email,
-            subject: 'Your Seller Application Has Been Rejected',
+            subject: "Your Seller Application Status",
             html: `
                 <h1>Seller Application Rejected</h1>
                 <p>We regret to inform you that your seller application has been rejected.</p>
-                ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
-                <p>You may contact support for more information.</p>
+                <p><strong>Reason:</strong> ${reason}</p>
+                <p>You can contact support if you have any questions.</p>
             `
         };
 
         await transporter.sendMail(mailOptions);
 
-
-        res.status(200).json({ 
+        res.json({ 
             success: true,
-            message: 'Seller request rejected successfully',
-            email,
-            reason
+            message: "Seller rejected successfully",
+            email: email,
+            reason: reason
         });
 
     } catch (error) {
         console.error("Error rejecting seller:", error);
         res.status(500).json({ 
             success: false,
-            message: 'Failed to reject seller request',
-            error: error.message 
+            error: "Internal server error",
+            details: error.message 
         });
     }
 });
+
 
 module.exports = router;
