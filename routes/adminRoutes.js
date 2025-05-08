@@ -4,6 +4,7 @@ const router = express.Router();
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Order = require('../models/orderModel');
+const Image = require('../models/imageModel');
 const { authMiddleware } = require('./authRoutes'); // Use your existing auth middleware
 const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
@@ -538,6 +539,35 @@ router.get('/sellers/:id', authMiddleware, adminMiddleware, async (req, res) => 
             message: 'Error fetching seller details',
             error: error.message
         });
+    }
+});
+
+
+router.get('/seller/:id/details', authMiddleware, adminMiddleware, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const seller = await User.findById(id).populate('managedRestaurant');
+        if (!seller) {
+            return res.status(404).json({ message: 'Seller not found' });
+        }
+        const totalProducts = await Image.countDocuments({ restaurant: seller.managedRestaurant._id });
+        const totalOrders = await Order.countDocuments({ restaurantId: seller.managedRestaurant._id });
+        const totalEarnings = await Order.aggregate([
+            { $match: { restaurantId: seller.managedRestaurant._id, status: 'delivered' } },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+        ]);
+        const earnings = totalEarnings[0]?.total || 0; // Get total earnings
+        const rating = seller.rating || 0; // Assuming you have a rating field in the User model
+        const lastActive = seller.lastActive || 'Not available'; // Assuming you have a lastActive field in the User model
+        res.status(200).json({
+            totalProducts,
+            totalOrders,
+            totalEarnings: earnings,
+            rating,
+            lastActive
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
     }
 });
 
