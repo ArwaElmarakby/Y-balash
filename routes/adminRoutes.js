@@ -9,6 +9,7 @@ const { authMiddleware } = require('./authRoutes'); // Use your existing auth mi
 const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
+const nodemailer = require('nodemailer'); 
 
 
 
