@@ -29,7 +29,7 @@ exports.addCategory = async (req, res) => {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name } = req.body;
+    const { name, description } = req.body;
     const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
 
     if (!name || !imageUrl) {
@@ -37,7 +37,7 @@ exports.addCategory = async (req, res) => {
     }
 
     try {
-      const newCategory = new Category({ name, imageUrl });
+      const newCategory = new Category({ name, imageUrl, description: description || "" });
       await newCategory.save();
       res.status(201).json({ message: 'Category added successfully', category: newCategory });
     } catch (error) {
