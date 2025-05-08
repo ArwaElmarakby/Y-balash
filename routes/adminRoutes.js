@@ -667,30 +667,58 @@ router.get('/orders/all', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 
-
 router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) => {
-    const { userId } = req.body;
+    const { email, reason } = req.body;
+
     try {
-        const user = await User.findById(userId);
+
+        const user = await User.findOne({ email });
         if (!user) {
-            return res.status(404).json({ message: 'User  not found' });
+            return res.status(404).json({ 
+                success: false,
+                message: 'User not found' 
+            });
         }
 
-        user.isSeller = false;
-        user.managedRestaurant = undefined; 
-        await user.save();
+
+        if (user.isSeller) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'User is already a seller' 
+            });
+        }
+
+
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: email,
+            subject: 'Your Seller Application Has Been Rejected',
+            html: `
+                <h1>Seller Application Rejected</h1>
+                <p>We regret to inform you that your seller application has been rejected.</p>
+                ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+                <p>You may contact support for more information.</p>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+
+
         res.status(200).json({ 
-            message: 'Seller rejected successfully',
-            user: {
-                _id: user._id,
-                email: user.email,
-                isSeller: false
-            }
+            success: true,
+            message: 'Seller request rejected successfully',
+            email,
+            reason
         });
+
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        console.error("Error rejecting seller:", error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Failed to reject seller request',
+            error: error.message 
+        });
     }
 });
-
 
 module.exports = router;
