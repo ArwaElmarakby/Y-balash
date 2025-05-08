@@ -673,65 +673,81 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
     try {
         const { email, reason } = req.body;
         
+        // التحقق من البيانات المدخلة
         if (!email || !reason) {
             return res.status(400).json({ 
                 success: false,
-                error: "Email and rejection reason are required" 
+                message: "يجب تقديم البريد الإلكتروني وسبب الرفض"
             });
         }
 
+        // البحث عن المستخدم
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({
                 success: false,
-                error: "User not found"
+                message: "لم يتم العثور على المستخدم"
             });
         }
 
-        // إرسال بريد إلكتروني بالرفض
+        // إعداد إرسال البريد (يُفضل نقل هذا الجزء إلى service منفصل)
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 465,
             secure: true,
             auth: {
-                user: process.env.EMAIL,
-                pass: process.env.EMAIL_PASSWORD
+                user: process.env.EMAIL, // تأكد من تعريفه في .env
+                pass: process.env.EMAIL_PASSWORD // تأكد من تعريفه في .env
             },
             tls: {
                 rejectUnauthorized: false
             }
         });
 
+        // محتوى البريد الإلكتروني
         const mailOptions = {
-            from: process.env.EMAIL,
+            from: `"YaBalash Admin" <${process.env.EMAIL}>`,
             to: email,
-            subject: "Your Seller Application Status",
+            subject: "حالة طلب الانضمام كبائع",
             html: `
-                <h1>Seller Application Rejected</h1>
-                <p>We regret to inform you that your seller application has been rejected.</p>
-                <p><strong>Reason:</strong> ${reason}</p>
-                <p>You can contact support if you have any questions.</p>
+                <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+                    <h2 style="color: #d9534f;">تم رفض طلبك كبائع</h2>
+                    <p>عزيزي/عزيزتنا ${user.firstName || 'البائع'},</p>
+                    <p>نأسف لإبلاغك بأن طلب الانضمام كبائع في منصتنا قد تم رفضه للأسباب التالية:</p>
+                    <p style="background-color: #f8f9fa; padding: 10px; border-right: 3px solid #d9534f;">
+                        <strong>سبب الرفض:</strong> ${reason}
+                    </p>
+                    <p>يمكنك التواصل مع الدعم الفني في حال لديك أي استفسارات.</p>
+                    <hr>
+                    <p>مع تحيات,<br>فريق YaBalash</p>
+                </div>
             `
         };
 
+        // إرسال البريد
         await transporter.sendMail(mailOptions);
 
-        res.json({ 
+        // إرجاع النجاح
+        res.status(200).json({ 
             success: true,
-            message: "Seller rejected successfully",
-            email: email,
-            reason: reason
+            message: "تم رفض البائع وإرسال الإخطار بنجاح",
+            data: {
+                email,
+                reason,
+                timestamp: new Date().toISOString()
+            }
         });
 
     } catch (error) {
-        console.error("Error rejecting seller:", error);
+        console.error("فشل في رفض البائع:", error);
         res.status(500).json({ 
             success: false,
-            error: "Internal server error",
-            details: error.message 
+            message: "حدث خطأ أثناء معالجة الطلب",
+            error: error.message 
         });
     }
 });
+
 
 
 module.exports = router;
