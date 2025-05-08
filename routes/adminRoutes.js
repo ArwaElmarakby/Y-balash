@@ -541,7 +541,4 @@ router.get('/sellers/:id', authMiddleware, adminMiddleware, async (req, res) => 
     }
 });
 
-
-router.get('/sellers/:sellerId/performance', authMiddleware, adminMiddleware, adminController.getSellerPerformance);
-
 module.exports = router;
