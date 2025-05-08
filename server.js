@@ -873,7 +873,6 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const updateLastActive = require('./middleware/activityMiddleware');
 
 
 
@@ -936,14 +935,6 @@ app.use(passport.session());
 //   },
 // });
 
-
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api') && !req.path.includes('/auth')) {
-      updateLastActive(req, res, next);
-  } else {
-      next();
-  }
-});
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
@@ -1186,7 +1177,7 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
-// // arwaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+// // arwaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 
 
