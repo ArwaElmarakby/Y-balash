@@ -8,7 +8,7 @@ const { authMiddleware } = require('./authRoutes'); // Use your existing auth mi
 const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
-
+const { getSellerPerformance } = require('../controllers/adminController');
 
 
 router.get('/welcome', authMiddleware, adminMiddleware, (req, res) => {
@@ -542,84 +542,6 @@ router.get('/sellers/:id', authMiddleware, adminMiddleware, async (req, res) => 
 });
 
 
-
-// Get seller store performance metrics
-router.get('/seller-performance/:sellerId', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-        const { sellerId } = req.params;
-
-        // Get seller info
-        const seller = await User.findById(sellerId)
-            .select('email managedRestaurant lastActive')
-            .populate('managedRestaurant', 'name');
-        
-        if (!seller) {
-            return res.status(404).json({ message: 'Seller not found' });
-        }
-
-        if (!seller.managedRestaurant) {
-            return res.status(400).json({ message: 'No restaurant assigned to this seller' });
-        }
-
-        // Calculate performance metrics
-        const [totalProducts, totalOrders, totalEarnings] = await Promise.all([
-            Image.countDocuments({ restaurant: seller.managedRestaurant._id }),
-            Order.countDocuments({ restaurantId: seller.managedRestaurant._id }),
-            Order.aggregate([
-                { 
-                    $match: { 
-                        restaurantId: seller.managedRestaurant._id,
-                        status: 'delivered'
-                    } 
-                },
-                { $group: { _id: null, total: { $sum: "$totalAmount" } } }
-            ])
-        ]);
-
-        // Calculate seller rating (simplified example)
-        const rating = await calculateSellerRating(sellerId);
-
-        res.status(200).json({
-            seller: {
-                email: seller.email,
-                restaurant: seller.managedRestaurant.name,
-                lastActive: seller.lastActive || 'Not available'
-            },
-            performance: {
-                totalProducts: totalProducts || 0,
-                totalOrders: totalOrders || 0,
-                totalEarnings: (totalEarnings[0]?.total || 0).toFixed(2) + ' EGP',
-                rating: rating.toFixed(1) + '/5' // Example: 4.2/5
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
-    }
-});
-
-// Helper function to calculate seller rating
-async function calculateSellerRating(sellerId) {
-    // This is a simplified example - you would implement your actual rating logic here
-    try {
-        const seller = await User.findById(sellerId);
-        if (!seller.managedRestaurant) return 0;
-        
-        // Get all orders for this seller's restaurant
-        const orders = await Order.find({ 
-            restaurantId: seller.managedRestaurant,
-            status: 'delivered'
-        }).select('rating');
-        
-        if (orders.length === 0) return 0;
-        
-        // Calculate average rating (assuming orders have a rating field)
-        const totalRating = orders.reduce((sum, order) => sum + (order.rating || 0), 0);
-        return totalRating / orders.length;
-    } catch (error) {
-        console.error("Error calculating rating:", error);
-        return 0;
-    }
-}
-
+router.get('/seller-performance/:sellerId', authMiddleware, adminMiddleware, adminController.getSellerPerformance);
 
 module.exports = router;
