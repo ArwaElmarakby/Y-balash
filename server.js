@@ -927,6 +927,19 @@ app.use(passport.session());
 
 app.use(trackActivity);
 
+app.use((err, req, res, next) => {
+  console.error('Global Error Handler:', err);
+  
+  res.status(500).json({
+      message: 'Internal Server Error',
+      error: process.env.NODE_ENV === 'development' ? {
+          name: err.name,
+          message: err.message,
+          stack: err.stack
+      } : {}
+  });
+});
+
 // Email Transporter Configuration
 // const transporter = nodemailer.createTransport({
 //   host: process.env.SMTP_HOST,

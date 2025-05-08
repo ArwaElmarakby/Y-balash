@@ -2,6 +2,9 @@ const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
 const Category = require('../models/categoryModel');
+const mongoose = require('mongoose');
+const Order = require('../models/orderModel');
+const Rating = require('../models/ratingModel');
 
 
 exports.assignSellerToRestaurant = async (req, res) => {
@@ -117,6 +120,10 @@ exports.getSellerPerformance = async (req, res) => {
     const { sellerId } = req.params;
 
     try {
+        if (!mongoose.Types.ObjectId.isValid(sellerId)) {
+            return res.status(400).json({ message: 'Invalid seller ID format' });
+        }
+
         const seller = await User.findById(sellerId)
             .select('email managedRestaurant createdAt lastActive')
             .populate('managedRestaurant', 'name imageUrl');
@@ -129,7 +136,7 @@ exports.getSellerPerformance = async (req, res) => {
             return res.status(400).json({ message: 'Seller is not managing any restaurant' });
         }
 
-        const [totalProducts, totalOrders, totalEarnings] = await Promise.all([
+        const [totalProducts, totalOrders, totalEarnings, ratingStats] = await Promise.all([
             Image.countDocuments({ restaurant: seller.managedRestaurant._id }),
             Order.countDocuments({ restaurantId: seller.managedRestaurant._id }),
             Order.aggregate([
@@ -145,22 +152,21 @@ exports.getSellerPerformance = async (req, res) => {
                         total: { $sum: "$totalAmount" }
                     }
                 }
+            ]),
+            Rating.aggregate([
+                {
+                    $match: {
+                        sellerId: seller._id
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        average: { $avg: "$rating" },
+                        count: { $sum: 1 }
+                    }
+                }
             ])
-        ]);
-
-        const ratingStats = await Rating.aggregate([
-            {
-                $match: {
-                    sellerId: seller._id
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    average: { $avg: "$rating" },
-                    count: { $sum: 1 }
-                }
-            }
         ]);
 
         const sellerRating = ratingStats[0]?.average || 0;
@@ -189,6 +195,14 @@ exports.getSellerPerformance = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        console.error('Error in getSellerPerformance:', error);
+        res.status(500).json({ 
+            message: 'Server error',
+            error: {
+                name: error.name,
+                message: error.message,
+                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            }
+        });
     }
 };
