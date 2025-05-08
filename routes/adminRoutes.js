@@ -749,4 +749,38 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
 });
 
 
+
+
+router.get('/pending-sellers', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+
+        const pendingSellers = await User.find({
+            isSeller: false, 
+            $or: [
+                { sellerApplication: { $exists: true } },
+                { managedRestaurant: { $exists: false } }
+            ]
+        }).select('email phone sellerApplication createdAt');
+
+        res.status(200).json({
+            success: true,
+            count: pendingSellers.length,
+            pendingSellers: pendingSellers.map(seller => ({
+                email: seller.email,
+                phone: seller.phone,
+                message: seller.sellerApplication?.message || 'No additional message',
+                applicationDate: seller.createdAt
+            }))
+        });
+
+    } catch (error) {
+        console.error("Failed to fetch pending sellers:", error);
+        res.status(500).json({ 
+            success: false,
+            message: "An error occurred while fetching pending applications",
+            error: error.message 
+        });
+    }
+});
+
 module.exports = router;
