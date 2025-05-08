@@ -753,13 +753,10 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
 
 router.get('/pending-sellers', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-
+        // البحث عن المستخدمين الذين لديهم طلبات بائعين ولم تتم الموافقة أو الرفض
         const pendingSellers = await User.find({
-            isSeller: false, 
-            $or: [
-                { sellerApplication: { $exists: true } },
-                { managedRestaurant: { $exists: false } }
-            ]
+            'sellerApplication.status': 'pending',
+            isSeller: false
         }).select('email phone sellerApplication createdAt');
 
         res.status(200).json({
@@ -769,7 +766,8 @@ router.get('/pending-sellers', authMiddleware, adminMiddleware, async (req, res)
                 email: seller.email,
                 phone: seller.phone,
                 message: seller.sellerApplication?.message || 'No additional message',
-                applicationDate: seller.createdAt
+                applicationDate: seller.createdAt,
+                _id: seller._id // مهم لعمليات الموافقة/الرفض لاحقًا
             }))
         });
 
