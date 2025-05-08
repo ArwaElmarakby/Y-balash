@@ -8,7 +8,6 @@ const { authMiddleware } = require('./authRoutes'); // Use your existing auth mi
 const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
-const Image = require('../models/imageModel');
 
 
 
@@ -541,83 +540,5 @@ router.get('/sellers/:id', authMiddleware, adminMiddleware, async (req, res) => 
         });
     }
 });
-
-router.get('/seller-performance/:sellerId', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-        const seller = await User.findById(req.params.sellerId)
-            .select('isSeller managedRestaurant lastActive updatedAt createdAt');
-
-        if (!seller || !seller.isSeller) {
-            return res.status(404).json({
-                success: false,
-                message: 'Seller not found or not a seller'
-            });
-        }
-
-        if (!seller.managedRestaurant) {
-            return res.status(400).json({
-                success: false,
-                message: 'Seller has no restaurant assigned'
-            });
-        }
-
-        const [productsCount, orders] = await Promise.all([
-            Image.countDocuments({ restaurant: seller.managedRestaurant }),
-            Order.find({ restaurantId: seller.managedRestaurant })
-                .select('totalAmount status rating')
-        ]);
-
-        // حساب الإحصائيات
-        const totalEarnings = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-        const completedOrders = orders.filter(o => o.status === 'delivered').length;
-        
-        // حل نهائي لمعالجة التواريخ
-        const getSafeDate = () => {
-            const possibleDates = [
-                seller.lastActive,
-                seller.updatedAt,
-                seller.createdAt,
-                new Date()
-            ];
-            return possibleDates.find(date => date instanceof Date && !isNaN(date)) || new Date();
-        };
-
-        const performanceData = {
-            totalProducts: productsCount,
-            totalOrders: orders.length,
-            completedOrders: completedOrders,
-            totalEarnings: `${totalEarnings.toFixed(2)} EGP`,
-            sellerRating: calculateSellerRating(orders),
-            lastActive: getSafeDate().toISOString()
-        };
-
-        res.status(200).json({
-            success: true,
-            performance: performanceData
-        });
-
-    } catch (error) {
-        console.error('Error in seller-performance:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            error: error.message
-        });
-    }
-});
-
-function calculateSellerRating(orders) {
-    try {
-        const ratedOrders = orders.filter(o => o.rating && !isNaN(o.rating));
-        if (ratedOrders.length === 0) return 'Not rated yet';
-        
-        const avgRating = ratedOrders.reduce((sum, o) => sum + o.rating, 0) / ratedOrders.length;
-        return `${avgRating.toFixed(1)}/5`;
-    } catch {
-        return 'Rating unavailable';
-    }
-}
-
-
 
 module.exports = router;
