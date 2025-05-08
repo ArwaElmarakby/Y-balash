@@ -8,6 +8,7 @@ const { authMiddleware } = require('./authRoutes'); // Use your existing auth mi
 const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
+const Image = require('../models/imageModel');
 
 
 
@@ -540,5 +541,61 @@ router.get('/sellers/:id', authMiddleware, adminMiddleware, async (req, res) => 
         });
     }
 });
+
+
+router.get('/seller-performance/:sellerId', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const seller = await User.findById(req.params.sellerId);
+        
+        if (!seller || !seller.isSeller) {
+            return res.status(404).json({
+                success: false,
+                message: 'Seller not found'
+            });
+        }
+
+        const [productsCount, orders, lastActive] = await Promise.all([
+            Image.countDocuments({ restaurant: seller.managedRestaurant }),
+            Order.find({ restaurantId: seller.managedRestaurant }),
+            seller.lastActive || seller.updatedAt
+        ]);
+
+        const totalEarnings = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const completedOrders = orders.filter(o => o.status === 'delivered').length;
+
+        const performanceData = {
+            totalProducts: productsCount,
+            totalOrders: orders.length,
+            completedOrders: completedOrders,
+            totalEarnings: totalEarnings.toFixed(2) + ' EGP',
+            sellerRating: calculateRating(orders), 
+            lastActive: lastActive.toISOString()
+        };
+
+        res.status(200).json({
+            success: true,
+            performance: performanceData
+        });
+
+    } catch (error) {
+        console.error('Error fetching seller performance:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching seller performance',
+            error: error.message
+        });
+    }
+});
+
+
+function calculateRating(orders) {
+    const ratedOrders = orders.filter(o => o.rating);
+    if (ratedOrders.length === 0) return 'No ratings yet';
+    
+    const totalRating = ratedOrders.reduce((sum, order) => sum + order.rating, 0);
+    return (totalRating / ratedOrders.length).toFixed(1) + ' stars';
+}
+
+
 
 module.exports = router;

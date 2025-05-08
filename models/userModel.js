@@ -76,6 +76,15 @@ const userSchema = new mongoose.Schema({
           type: Date,
           default: null
       },
+      lastActive: {
+        type: Date,
+        default: Date.now
+    },
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5
+  },
         mobileWallet: {
             provider: String,
             number: String
