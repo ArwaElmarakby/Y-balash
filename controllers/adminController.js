@@ -2,7 +2,7 @@ const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
 const Category = require('../models/categoryModel');
-
+const Order = require('../models/orderModel');
 
 exports.assignSellerToRestaurant = async (req, res) => {
     const { userId, restaurantId } = req.body;
