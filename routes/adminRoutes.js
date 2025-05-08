@@ -627,4 +627,44 @@ router.get('/seller/:id/products', authMiddleware, adminMiddleware, async (req, 
     }
 });
 
+router.get('/orders/all', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const orders = await Order.find()
+            .populate('userId', 'email') 
+            .populate('restaurantId', 'name')
+            .sort({ createdAt: -1 });
+
+        if (!orders || orders.length === 0) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'No orders found' 
+            });
+        }
+
+
+        const formattedOrders = orders.map(order => ({
+            orderId: order._id,
+            clientEmail: order.userId.email,
+            restaurantName: order.restaurantId.name,
+            date: order.createdAt.toLocaleDateString('en-GB'), 
+            totalAmount: `${order.totalAmount} EGP`, 
+            status: order.status
+        }));
+
+        res.status(200).json({
+            success: true,
+            count: formattedOrders.length,
+            orders: formattedOrders
+        });
+
+    } catch (error) {
+        res.status(500).json({ 
+            success: false,
+            message: 'Server error',
+            error: error.message 
+        });
+    }
+});
+
+
 module.exports = router;
