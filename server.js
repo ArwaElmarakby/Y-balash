@@ -870,6 +870,7 @@ const pointsRoutes = require('./routes/pointsRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const trackActivity = require('./middleware/activityMiddleware');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -923,6 +924,8 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.use(trackActivity);
 
 // Email Transporter Configuration
 // const transporter = nodemailer.createTransport({

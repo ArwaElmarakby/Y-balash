@@ -113,4 +113,82 @@ exports.getTopCategories = async (req, res) => {
 };
 
 
+exports.getSellerPerformance = async (req, res) => {
+    const { sellerId } = req.params;
 
+    try {
+        const seller = await User.findById(sellerId)
+            .select('email managedRestaurant createdAt lastActive')
+            .populate('managedRestaurant', 'name imageUrl');
+        
+        if (!seller) {
+            return res.status(404).json({ message: 'Seller not found' });
+        }
+
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'Seller is not managing any restaurant' });
+        }
+
+        const [totalProducts, totalOrders, totalEarnings] = await Promise.all([
+            Image.countDocuments({ restaurant: seller.managedRestaurant._id }),
+            Order.countDocuments({ restaurantId: seller.managedRestaurant._id }),
+            Order.aggregate([
+                {
+                    $match: {
+                        restaurantId: seller.managedRestaurant._id,
+                        status: { $ne: 'cancelled' }
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: "$totalAmount" }
+                    }
+                }
+            ])
+        ]);
+
+        const ratingStats = await Rating.aggregate([
+            {
+                $match: {
+                    sellerId: seller._id
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    average: { $avg: "$rating" },
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const sellerRating = ratingStats[0]?.average || 0;
+        const ratingCount = ratingStats[0]?.count || 0;
+
+        res.status(200).json({
+            seller: {
+                _id: seller._id,
+                email: seller.email,
+                lastActive: seller.lastActive || seller.createdAt,
+                restaurant: {
+                    _id: seller.managedRestaurant._id,
+                    name: seller.managedRestaurant.name,
+                    imageUrl: seller.managedRestaurant.imageUrl
+                }
+            },
+            performance: {
+                totalProducts,
+                totalOrders,
+                totalEarnings: totalEarnings[0]?.total || 0,
+                currency: 'EGP',
+                rating: sellerRating,
+                ratingCount,
+                lastUpdated: new Date()
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
