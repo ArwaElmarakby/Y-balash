@@ -558,7 +558,7 @@ router.get('/seller/:id/details', authMiddleware, adminMiddleware, async (req, r
         ]);
         const earnings = totalEarnings[0]?.total || 0; // Get total earnings
         const rating = seller.rating || 0; // Assuming you have a rating field in the User model
-        const lastActive = seller.lastActive || 'Not available'; // Assuming you have a lastActive field in the User model
+        const lastActive = seller.lastActive ? seller.lastActive.toISOString() : 'Not available'; // Format the date
         res.status(200).json({
             totalProducts,
             totalOrders,

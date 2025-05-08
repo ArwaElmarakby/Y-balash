@@ -44,6 +44,7 @@ const userSchema = new mongoose.Schema({
     isSeller: { type: Boolean, default: false },
     isSellerRequested: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
+    lastActive: { type: Date, default: Date.now },
     managedRestaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
     language: { type: String, default: null },
     plan: {
@@ -96,6 +97,7 @@ userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    this.lastActive = Date.now(); 
     next();
 });
 
