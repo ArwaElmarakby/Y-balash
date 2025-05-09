@@ -37,6 +37,7 @@ const userSchema = new mongoose.Schema({
     phone: String,
     gender: { type: String, enum: ['male', 'female', 'other'], default: null },
     birthday: { type: Date },
+    requestStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     profileImage: { type: String },
     cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
     points: { type: Number, default: 0 },
