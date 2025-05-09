@@ -751,11 +751,10 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
 
 router.get('/pending-sellers', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-
         const pendingSellers = await User.find({
             isSeller: true,
-            managedRestaurant: { $exists: false } 
-        }).select('email phone'); 
+            managedRestaurant: { $exists: false } // Ensure they don't have an assigned restaurant
+        }).select('email phone'); // Select only the email and phone
         res.status(200).json({
             count: pendingSellers.length,
             pendingSellers
@@ -764,6 +763,7 @@ router.get('/pending-sellers', authMiddleware, adminMiddleware, async (req, res)
         res.status(500).json({ message: 'Server error', error });
     }
 });
+
 
 
 module.exports = router;
