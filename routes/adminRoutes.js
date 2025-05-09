@@ -749,4 +749,31 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
 });
 
 
+
+router.get('/rejected-sellers', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const rejectedSellers = await User.find({ 
+      'sellerRequest.status': 'rejected' 
+    }).select('email phone sellerRequest');
+
+    res.status(200).json({
+      success: true,
+      count: rejectedSellers.length,
+      rejectedSellers: rejectedSellers.map(seller => ({
+        email: seller.email,
+        phone: seller.phone,
+        rejectionReason: seller.sellerRequest.rejectionReason,
+        requestDate: seller.sellerRequest.requestDate
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch rejected sellers',
+      error: error.message
+    });
+  }
+});
+
+
 module.exports = router;
