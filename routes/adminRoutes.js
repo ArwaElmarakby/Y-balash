@@ -749,24 +749,4 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
 });
 
 
-
-
-router.get('/pending-sellers', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-
-        const pendingSellers = await User.find({
-            isSeller: true,
-            requestStatus: 'pending' 
-        }).select('email phone message'); 
-        res.status(200).json({
-            count: pendingSellers.length,
-            pendingSellers
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
-    }
-});
-
-
-
 module.exports = router;
