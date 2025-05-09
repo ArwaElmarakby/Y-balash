@@ -73,6 +73,16 @@ const userSchema = new mongoose.Schema({
           enum: ['pending', 'active', 'suspended'],
           default: 'pending'
       },
+      sellerRequest: {
+        submitted: { type: Boolean, default: false },
+        message: String,
+        status: { 
+            type: String, 
+            enum: ['pending', 'approved', 'rejected'],
+            default: 'pending'
+        },
+        submittedAt: { type: Date, default: Date.now }
+    },
       premiumExpiresAt: {
           type: Date,
           default: null

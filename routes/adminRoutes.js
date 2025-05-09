@@ -749,4 +749,38 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
 });
 
 
+
+
+router.get('/pending-sellers', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+
+        const pendingRequests = await User.find({
+            isSeller: false, 
+            sellerRequest: { $exists: true } 
+        }).select('email phone sellerRequest.message createdAt');
+
+        if (!pendingRequests || pendingRequests.length === 0) {
+            return res.status(404).json({ 
+                success: false,
+                message: "No pending seller requests found"
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            count: pendingRequests.length,
+            pendingRequests
+        });
+
+    } catch (error) {
+        console.error("Error fetching pending sellers:", error);
+        res.status(500).json({ 
+            success: false,
+            message: "Server error",
+            error: error.message 
+        });
+    }
+});
+
+
 module.exports = router;
