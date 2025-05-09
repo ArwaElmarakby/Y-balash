@@ -870,6 +870,7 @@ const pointsRoutes = require('./routes/pointsRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const SellerRequest = require('./models/sellerRequestModel');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -1040,34 +1041,101 @@ app.post("/verify-otp", (req, res) => {
   }
 });
 
-app.post("/api/request-seller", async (req, res) => {
-  const { email, message, phone } = req.body; 
+// app.post("/api/request-seller", async (req, res) => {
+//   const { email, message, phone } = req.body; 
 
-  if (!email) {
+//   if (!email) {
+//     return res.status(400).json({ 
+//       success: false,
+//       message: "Email is required" 
+//     });
+//   }
+
+//   try {
+
+//     const mailOptions = {
+//       from: process.env.EMAIL,
+//       to: process.env.ADMIN_EMAIL || "yabalash001@gmail.com",
+//       subject: "New Seller Request",
+//       text: `New seller request from ${email}.\nPhone: ${phone || 'Not provided'}\n\nMessage: ${message || 'No additional message'}`,
+//       html: `
+//         <h1>New Seller Request</h1>
+//         <p>Email: <strong>${email}</strong></p>
+//         <p>Phone: <strong>${phone || 'Not provided'}</strong></p>
+//         ${message ? `<p>Message: ${message}</p>` : ''}
+//       `
+//     };
+
+//     await transporter.sendMail(mailOptions);
+
+
+//     const userMailOptions = {
+//       from: process.env.EMAIL,
+//       to: email,
+//       subject: "Your Seller Request Received",
+//       text: `Thank you for your interest! We've received your request to become a seller and will contact you soon.`,
+//       html: `
+//         <h1>Request Received</h1>
+//         <p>We'll review your request and get back to you shortly.</p>
+//       `
+//     };
+
+//     await transporter.sendMail(userMailOptions);
+
+//     res.status(200).json({ 
+//       success: true,
+//       message: "Seller request submitted successfully" 
+//     });
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).json({ 
+//       success: false,
+//       message: "Failed to process request",
+//       error: error.message 
+//     });
+//   }
+// });
+
+
+
+app.post("/api/request-seller", async (req, res) => {
+  const { email, message, phone } = req.body;
+
+  if (!email || !phone) {
     return res.status(400).json({ 
       success: false,
-      message: "Email is required" 
+      message: "Email and phone are required" 
     });
   }
 
   try {
+    // 1. حفظ الطلب في قاعدة البيانات
+    const newRequest = new SellerRequest({
+      email,
+      phone,
+      message: message || 'No additional message',
+      status: 'pending'
+    });
+    await newRequest.save();
 
+    // 2. إرسال البريد الإلكتروني للإدارة
     const mailOptions = {
       from: process.env.EMAIL,
       to: process.env.ADMIN_EMAIL || "yabalash001@gmail.com",
       subject: "New Seller Request",
-      text: `New seller request from ${email}.\nPhone: ${phone || 'Not provided'}\n\nMessage: ${message || 'No additional message'}`,
+      text: `New seller request from ${email}.\nPhone: ${phone}\n\nMessage: ${message || 'No additional message'}`,
       html: `
         <h1>New Seller Request</h1>
         <p>Email: <strong>${email}</strong></p>
-        <p>Phone: <strong>${phone || 'Not provided'}</strong></p>
+        <p>Phone: <strong>${phone}</strong></p>
         ${message ? `<p>Message: ${message}</p>` : ''}
+        <p>Request ID: ${newRequest._id}</p>
       `
     };
 
     await transporter.sendMail(mailOptions);
 
-
+    // 3. إرسال تأكيد للبائع
     const userMailOptions = {
       from: process.env.EMAIL,
       to: email,
@@ -1076,6 +1144,7 @@ app.post("/api/request-seller", async (req, res) => {
       html: `
         <h1>Request Received</h1>
         <p>We'll review your request and get back to you shortly.</p>
+        <p>Your request ID: ${newRequest._id}</p>
       `
     };
 
@@ -1083,7 +1152,8 @@ app.post("/api/request-seller", async (req, res) => {
 
     res.status(200).json({ 
       success: true,
-      message: "Seller request submitted successfully" 
+      message: "Seller request submitted successfully",
+      requestId: newRequest._id
     });
   } catch (error) {
     console.error("Error:", error);
@@ -1094,6 +1164,7 @@ app.post("/api/request-seller", async (req, res) => {
     });
   }
 });
+
 
 // Custom API routes
 app.use('/api/auth', authRoutes);
