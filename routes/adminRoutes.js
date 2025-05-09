@@ -10,7 +10,6 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
 const nodemailer = require('nodemailer'); 
-const SellerRequest = require('../models/sellerRequestModel');
 
 
 
@@ -744,33 +743,6 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
         res.status(500).json({ 
             success: false,
             message: "An error occurred while processing your request",
-            error: error.message 
-        });
-    }
-});
-
-
-router.get('/pending-sellers', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-        const pendingRequests = await SellerRequest.find({ status: 'pending' })
-            .sort({ createdAt: -1 });
-
-        res.status(200).json({
-            success: true,
-            count: pendingRequests.length,
-            requests: pendingRequests.map(request => ({
-                id: request._id,
-                email: request.email,
-                phone: request.phone,
-                message: request.message,
-                createdAt: request.createdAt
-            }))
-        });
-    } catch (error) {
-        console.error("Error fetching pending sellers:", error);
-        res.status(500).json({ 
-            success: false,
-            message: "Server error",
             error: error.message 
         });
     }
