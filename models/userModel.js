@@ -57,6 +57,13 @@ const userSchema = new mongoose.Schema({
       enum: ['pending', 'active', 'suspended'],
       default: 'pending'
   },
+  sellerStatus: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: null
+    },
+    rejectionReason: String,
+    rejectedAt: Date,
     paymentSettings: {
         bankAccount: {
             accountNumber: String,
