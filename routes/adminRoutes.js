@@ -780,28 +780,4 @@ router.get('/rejected-sellers', authMiddleware, adminMiddleware, async (req, res
 });
 
 
-
-
-router.get('/approved-sellers', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-        // Find all users who are approved sellers (isSeller: true)
-        const approvedSellers = await User.find({ isSeller: true })
-            .populate('managedRestaurant', 'name imageUrl')
-            .select('-password')
-            .sort({ createdAt: -1 }); // Sort by newest first
-
-        res.status(200).json({
-            success: true,
-            count: approvedSellers.length,
-            approvedSellers
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Failed to fetch approved sellers",
-            error: error.message
-        });
-    }
-});
-
 module.exports = router;
