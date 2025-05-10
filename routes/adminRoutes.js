@@ -11,7 +11,6 @@ const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
 const nodemailer = require('nodemailer'); 
 const RejectedSeller = require('../models/rejectedSellerModel');
-const { getApprovedSellers } = require('../controllers/adminController');
 
 
 
@@ -779,10 +778,6 @@ router.get('/rejected-sellers', authMiddleware, adminMiddleware, async (req, res
         });
     }
 });
-
-
-
-router.get('/approved-sellers', authMiddleware, adminMiddleware, adminController.getApprovedSellers);
 
 
 module.exports = router;
