@@ -11,6 +11,7 @@ const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
 const nodemailer = require('nodemailer'); 
 const RejectedSeller = require('../models/rejectedSellerModel');
+const ApprovedSeller = require('../models/approvedSellerModel');
 
 
 
@@ -778,6 +779,31 @@ router.get('/rejected-sellers', authMiddleware, adminMiddleware, async (req, res
         });
     }
 });
+
+
+
+
+router.get('/approved-sellers', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const approvedSellers = await ApprovedSeller.find()
+            .populate('restaurantId', 'name') 
+            .populate('adminId', 'email') 
+            .sort({ approvedAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            count: approvedSellers.length,
+            approvedSellers
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch approved sellers",
+            error: error.message
+        });
+    }
+});
+
 
 
 module.exports = router;

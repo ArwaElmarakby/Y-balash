@@ -758,6 +758,8 @@ router.get('/my-restaurant',
     sellerMiddleware,
     sellerController.getCustomerAnalytics
   );
+
+
   router.post('/approve-seller', async (req, res) => {
     try {
         const { email, password, restaurantId, name } = req.body;
@@ -797,6 +799,16 @@ router.get('/my-restaurant',
             });
             await user.save();
         }
+
+
+         const approvalRecord = new ApprovedSeller({
+            email,
+            restaurantId,
+            adminId: req.user._id
+        });
+        await approvalRecord.save();
+
+        
 
         res.json({ 
             success: true,
