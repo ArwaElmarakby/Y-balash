@@ -113,4 +113,26 @@ exports.getTopCategories = async (req, res) => {
 };
 
 
+exports.getApprovedSellers = async (req, res) => {
+    try {
+        const approvedSellers = await User.find({ 
+            isSeller: true,
+            managedRestaurant: { $exists: true, $ne: null }
+        })
+        .populate('managedRestaurant', 'name imageUrl')
+        .select('-password')
+        .sort({ updatedAt: -1 }); 
 
+        res.status(200).json({
+            success: true,
+            count: approvedSellers.length,
+            approvedSellers
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch approved sellers",
+            error: error.message
+        });
+    }
+};
