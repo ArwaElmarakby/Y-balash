@@ -10,6 +10,7 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
 const nodemailer = require('nodemailer'); 
+const SellerRequest = require('../models/sellerRequestModel');
 
 
 
@@ -745,6 +746,16 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
             message: "An error occurred while processing your request",
             error: error.message 
         });
+    }
+});
+
+
+router.get('/seller-requests', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const requests = await SellerRequest.find().sort({ createdAt: -1 });
+        res.status(200).json({ success: true, requests });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
     }
 });
 
