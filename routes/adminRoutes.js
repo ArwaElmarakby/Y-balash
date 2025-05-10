@@ -10,6 +10,7 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
 const nodemailer = require('nodemailer'); 
+const SellerRequest = require('../models/sellerRequestModel');
 
 
 
@@ -669,42 +670,145 @@ router.get('/orders/all', authMiddleware, adminMiddleware, async (req, res) => {
 
 
 
-router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) => {
+router.post('/approve-seller', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        const { email, reason } = req.body;
+        const { requestId, email, password, restaurantId, name } = req.body;
         
-        // Validate input
-        if (!email || !reason) {
+        if (!email || !password || !restaurantId || !requestId) {
             return res.status(400).json({ 
                 success: false,
-                message: "Email and rejection reason are required"
+                error: "Email, password, restaurant ID and request ID are required" 
             });
         }
 
-        // Find user
-        const user = await User.findOne({ email });
-        if (!user) {
+
+        const request = await SellerRequest.findByIdAndUpdate(
+            requestId,
+            { 
+                status: 'approved',
+                respondedAt: new Date(),
+                adminResponse: 'Approved by admin'
+            },
+            { new: true }
+        );
+
+        if (!request) {
             return res.status(404).json({
                 success: false,
-                message: "User not found"
+                error: "Request not found"
             });
         }
 
-        // Email setup (consider moving to a separate service)
+        let user = await User.findOne({ email });
+        const restaurant = await Restaurant.findById(restaurantId).select('name');
+        
+        if (!restaurant) {
+            return res.status(404).json({
+                success: false,
+                error: "Restaurant not found"
+            });
+        }
+
+        if (user) {
+            user.isSeller = true;
+            user.managedRestaurant = restaurantId;
+            user.password = password;
+            await user.save();
+        } else {
+            user = new User({
+                email,
+                password,
+                name: name || "New Seller",
+                isSeller: true,
+                managedRestaurant: restaurantId
+            });
+            await user.save();
+        }
+
+
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: email,
+            subject: "Your Seller Application Has Been Approved",
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+                    <h2 style="color: #5cb85c;">Congratulations!</h2>
+                    <p>Your seller application has been approved.</p>
+                    <p>You can now login to your seller dashboard using the credentials you provided.</p>
+                    <hr>
+                    <p>Best regards,<br>The YaBalash Team</p>
+                </div>
+            `
+        };
+        await transporter.sendMail(mailOptions);
+
+        res.json({ 
+            success: true,
+            message: "Seller approved successfully",
+            user: {
+                email: user.email,
+                name: user.name,
+                isSeller: user.isSeller,
+                managedRestaurant: {
+                    id: restaurantId,
+                    name: restaurant.name
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Error approving seller:", error);
+        res.status(500).json({ 
+            success: false,
+            error: "Internal server error",
+            details: error.message 
+        });
+    }
+});
+
+
+router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { requestId, email, reason } = req.body;
+        
+        if (!email || !reason || !requestId) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Email, rejection reason and request ID are required"
+            });
+        }
+
+        // تحديث حالة الطلب
+        const request = await SellerRequest.findByIdAndUpdate(
+            requestId,
+            { 
+                status: 'rejected',
+                respondedAt: new Date(),
+                adminResponse: reason
+            },
+            { new: true }
+        );
+
+        if (!request) {
+            return res.status(404).json({
+                success: false,
+                message: "Request not found"
+            });
+        }
+
+        // إرسال البريد الإلكتروني
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 465,
             secure: true,
             auth: {
-                user: process.env.EMAIL, // Make sure it's defined in .env
-                pass: process.env.EMAIL_PASSWORD // Make sure it's defined in .env
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD
             },
             tls: {
                 rejectUnauthorized: false
             }
         });
 
-        // Email content
         const mailOptions = {
             from: `"YaBalash Admin" <${process.env.EMAIL}>`,
             to: email,
@@ -712,7 +816,7 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
                     <h2 style="color: #d9534f;">Your Seller Application Has Been Rejected</h2>
-                    <p>Dear ${user.firstName || 'Seller'},</p>
+                    <p>Dear ${email},</p>
                     <p>We regret to inform you that your seller application has been rejected for the following reason:</p>
                     <p style="background-color: #f8f9fa; padding: 10px; border-left: 3px solid #d9534f;">
                         <strong>Reason:</strong> ${reason}
@@ -724,10 +828,8 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
             `
         };
 
-        // Send email
         await transporter.sendMail(mailOptions);
 
-        // Return success
         res.status(200).json({ 
             success: true,
             message: "Seller rejected and notification sent successfully",
@@ -737,13 +839,32 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
                 timestamp: new Date().toISOString()
             }
         });
-
     } catch (error) {
         console.error("Failed to reject seller:", error);
         res.status(500).json({ 
             success: false,
             message: "An error occurred while processing your request",
             error: error.message 
+        });
+    }
+});
+
+
+router.get('/pending-seller-requests', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const pendingRequests = await SellerRequest.find({ status: 'pending' })
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            count: pendingRequests.length,
+            requests: pendingRequests
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching pending seller requests',
+            error: error.message
         });
     }
 });

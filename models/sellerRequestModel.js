@@ -1,0 +1,17 @@
+
+const mongoose = require('mongoose');
+
+const sellerRequestSchema = new mongoose.Schema({
+    email: { type: String, required: true },
+    phone: { type: String },
+    message: { type: String },
+    status: { 
+        type: String, 
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
+    },
+    adminResponse: { type: String },
+    respondedAt: { type: Date }
+}, { timestamps: true });
+
+module.exports = mongoose.model('SellerRequest', sellerRequestSchema);
