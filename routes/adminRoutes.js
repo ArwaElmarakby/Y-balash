@@ -673,6 +673,7 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
     try {
         const { email, reason } = req.body;
         
+        // Validate input
         if (!email || !reason) {
             return res.status(400).json({ 
                 success: false,
@@ -680,6 +681,7 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
             });
         }
 
+        // Find user
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({
@@ -688,14 +690,21 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
             });
         }
 
+        // Email setup (consider moving to a separate service)
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: {
+                user: process.env.EMAIL, // Make sure it's defined in .env
+                pass: process.env.EMAIL_PASSWORD // Make sure it's defined in .env
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
 
-        user.isSeller = false;
-        user.sellerStatus = 'rejected';
-        user.rejectionReason = reason;
-        user.rejectedAt = new Date();
-        await user.save();
-
-
+        // Email content
         const mailOptions = {
             from: `"YaBalash Admin" <${process.env.EMAIL}>`,
             to: email,
@@ -715,8 +724,10 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
             `
         };
 
+        // Send email
         await transporter.sendMail(mailOptions);
 
+        // Return success
         res.status(200).json({ 
             success: true,
             message: "Seller rejected and notification sent successfully",
@@ -726,36 +737,12 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
                 timestamp: new Date().toISOString()
             }
         });
+
     } catch (error) {
         console.error("Failed to reject seller:", error);
         res.status(500).json({ 
             success: false,
             message: "An error occurred while processing your request",
-            error: error.message 
-        });
-    }
-});
-
-
-
-router.get('/rejected-sellers', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-
-
-        const rejectedSellers = await User.find({ 
-            isSeller: false,
-            sellerStatus: 'rejected' 
-        }).select('email firstName lastName phone rejectionReason createdAt');
-
-        res.status(200).json({
-            success: true,
-            count: rejectedSellers.length,
-            rejectedSellers
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false,
-            message: "Failed to fetch rejected sellers",
             error: error.message 
         });
     }
