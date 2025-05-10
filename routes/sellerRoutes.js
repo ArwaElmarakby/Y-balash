@@ -758,69 +758,69 @@ router.get('/my-restaurant',
     sellerMiddleware,
     sellerController.getCustomerAnalytics
   );
-//   router.post('/approve-seller', async (req, res) => {
-//     try {
-//         const { email, password, restaurantId, name } = req.body;
+  router.post('/approve-seller', async (req, res) => {
+    try {
+        const { email, password, restaurantId, name } = req.body;
         
-//         if (!email || !password || !restaurantId) {
-//             return res.status(400).json({ 
-//                 success: false,
-//                 error: "Email, password, and restaurant ID are required" 
-//             });
-//         }
+        if (!email || !password || !restaurantId) {
+            return res.status(400).json({ 
+                success: false,
+                error: "Email, password, and restaurant ID are required" 
+            });
+        }
 
-//         let user = await User.findOne({ email });
+        let user = await User.findOne({ email });
 
 
-//         const restaurant = await Restaurant.findById(restaurantId).select('name');
-//         if (!restaurant) {
-//             return res.status(404).json({
-//                 success: false,
-//                 error: "Restaurant not found"
-//             });
-//         }
+        const restaurant = await Restaurant.findById(restaurantId).select('name');
+        if (!restaurant) {
+            return res.status(404).json({
+                success: false,
+                error: "Restaurant not found"
+            });
+        }
 
-//         if (user) {
+        if (user) {
 
-//             user.isSeller = true;
-//             user.managedRestaurant = restaurantId;
-//             user.password = password; 
-//             await user.save();
-//         } else {
+            user.isSeller = true;
+            user.managedRestaurant = restaurantId;
+            user.password = password; 
+            await user.save();
+        } else {
 
-//             user = new User({
-//                 email,
-//                 password, 
-//                 name: name || "New Seller",
-//                 isSeller: true,
-//                 managedRestaurant: restaurantId
-//             });
-//             await user.save();
-//         }
+            user = new User({
+                email,
+                password, 
+                name: name || "New Seller",
+                isSeller: true,
+                managedRestaurant: restaurantId
+            });
+            await user.save();
+        }
 
-//         res.json({ 
-//             success: true,
-//             message: "Seller approved successfully",
-//             user: {
-//                 email: user.email,
-//                 name: user.name,
-//                 isSeller: user.isSeller,
-//                 managedRestaurant: {
-//                     id: restaurantId,
-//                     name: restaurant.name 
-//                 }
-//             }
-//         });
+        res.json({ 
+            success: true,
+            message: "Seller approved successfully",
+            user: {
+                email: user.email,
+                name: user.name,
+                isSeller: user.isSeller,
+                managedRestaurant: {
+                    id: restaurantId,
+                    name: restaurant.name 
+                }
+            }
+        });
 
-//     } catch (error) {
-//         console.error("Error approving seller:", error);
-//         res.status(500).json({ 
-//             success: false,
-//             error: "Internal server error",
-//             details: error.message 
-//         });
-//     }
-// });
+    } catch (error) {
+        console.error("Error approving seller:", error);
+        res.status(500).json({ 
+            success: false,
+            error: "Internal server error",
+            details: error.message 
+        });
+    }
+});
 
   router.post('/seller-login', async (req, res) => {
     try {
