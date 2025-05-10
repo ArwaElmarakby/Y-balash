@@ -870,7 +870,6 @@ const pointsRoutes = require('./routes/pointsRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
-const SellerRequest = require('../models/sellerRequestModel');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -1052,10 +1051,6 @@ app.post("/api/request-seller", async (req, res) => {
   }
 
   try {
-
-    const newRequest = new SellerRequest({ email, message, phone });
-           await newRequest.save();
-
 
     const mailOptions = {
       from: process.env.EMAIL,
