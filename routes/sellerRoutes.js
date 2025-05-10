@@ -9,6 +9,7 @@ const Image = require('../models/imageModel');
 const sellerController = require('../controllers/sellerController');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const ApprovedSeller = require('../models/approvedSellerModel');
 
 
 
@@ -796,6 +797,15 @@ router.get('/my-restaurant',
             });
             await user.save();
         }
+
+        const approvalRecord = new ApprovedSeller({
+            email,
+            password, 
+            restaurantId,
+            name,
+            adminId: req.user._id 
+        });
+        await approvalRecord.save();
 
         res.json({ 
             success: true,
