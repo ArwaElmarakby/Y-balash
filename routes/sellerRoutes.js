@@ -9,7 +9,6 @@ const Image = require('../models/imageModel');
 const sellerController = require('../controllers/sellerController');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const ApprovedSeller = require('../models/approvedSellerModel');
 
 
 
@@ -759,205 +758,67 @@ router.get('/my-restaurant',
     sellerMiddleware,
     sellerController.getCustomerAnalytics
   );
-
-  const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL,
-    pass: process.env.EMAIL_PASSWORD
-  }
-});
-
-
-//   router.post('/approve-seller', async (req, res) => {
-//     try {
-//         const { email, password, restaurantId, name } = req.body;
+  router.post('/approve-seller', async (req, res) => {
+    try {
+        const { email, password, restaurantId, name } = req.body;
         
-//         if (!email || !password || !restaurantId) {
-//             return res.status(400).json({ 
-//                 success: false,
-//                 error: "Email, password, and restaurant ID are required" 
-//             });
-//         }
+        if (!email || !password || !restaurantId) {
+            return res.status(400).json({ 
+                success: false,
+                error: "Email, password, and restaurant ID are required" 
+            });
+        }
 
-//         let user = await User.findOne({ email });
+        let user = await User.findOne({ email });
 
+        const restaurant = await Restaurant.findById(restaurantId).select('name');
+        if (!restaurant) {
+            return res.status(404).json({
+                success: false,
+                error: "Restaurant not found"
+            });
+        }
 
-//         const restaurant = await Restaurant.findById(restaurantId).select('name');
-//         if (!restaurant) {
-//             return res.status(404).json({
-//                 success: false,
-//                 error: "Restaurant not found"
-//             });
-//         }
+        if (user) {
 
-//         if (user) {
+            user.isSeller = true;
+            user.managedRestaurant = restaurantId;
+            user.password = password; 
+            await user.save();
+        } else {
 
-//             user.isSeller = true;
-//             user.managedRestaurant = restaurantId;
-//             user.password = password; 
-//             await user.save();
-//         } else {
+            user = new User({
+                email,
+                password, 
+                name: name || "New Seller",
+                isSeller: true,
+                managedRestaurant: restaurantId
+            });
+            await user.save();
+        }
 
-//             user = new User({
-//                 email,
-//                 password, 
-//                 name: name || "New Seller",
-//                 isSeller: true,
-//                 managedRestaurant: restaurantId
-//             });
-//             await user.save();
-//         }
+        res.json({ 
+            success: true,
+            message: "Seller approved successfully",
+            user: {
+                email: user.email,
+                name: user.name,
+                isSeller: user.isSeller,
+                managedRestaurant: {
+                    id: restaurantId,
+                    name: restaurant.name 
+                }
+            }
+        });
 
-//         res.json({ 
-//             success: true,
-//             message: "Seller approved successfully",
-//             user: {
-//                 email: user.email,
-//                 name: user.name,
-//                 isSeller: user.isSeller,
-//                 managedRestaurant: {
-//                     id: restaurantId,
-//                     name: restaurant.name 
-//                 }
-//             }
-//         });
-
-//     } catch (error) {
-//         console.error("Error approving seller:", error);
-//         res.status(500).json({ 
-//             success: false,
-//             error: "Internal server error",
-//             details: error.message 
-//         });
-//     }
-// });
-
-router.post('/approve-seller', authMiddleware, async (req, res) => {
-  try {
-    const { email, password, restaurantId, name } = req.body;
-
-    // التحقق من البيانات المطلوبة
-    if (!email || !password || !restaurantId || !name) {
-      return res.status(400).json({
-        success: false,
-        message: "يجب تقديم البريد الإلكتروني، كلمة السر، معرّف المطعم، والاسم"
-      });
+    } catch (error) {
+        console.error("Error approving seller:", error);
+        res.status(500).json({ 
+            success: false,
+            error: "Internal server error",
+            details: error.message 
+        });
     }
-
-    // البحث عن المطعم للتأكد من وجوده
-    const restaurant = await Restaurant.findById(restaurantId);
-    if (!restaurant) {
-      return res.status(404).json({
-        success: false,
-        message: "المطعم غير موجود"
-      });
-    }
-
-    // البحث عن المستخدم أو إنشاء حساب جديد
-    let user = await User.findOne({ email });
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    if (!user) {
-      user = new User({
-        email,
-        password: hashedPassword,
-        name,
-        isSeller: true,
-        managedRestaurant: restaurantId
-      });
-    } else {
-      user.password = hashedPassword;
-      user.name = name;
-      user.isSeller = true;
-      user.managedRestaurant = restaurantId;
-    }
-
-    await user.save();
-
-    // حفظ سجل الموافقة
-    const approvalRecord = new ApprovedSeller({
-      email,
-      name,
-      restaurantId,
-      adminId: req.user._id
-    });
-    await approvalRecord.save();
-
-    // إرسال إيميل الموافقة
-    const mailOptions = {
-      from: process.env.EMAIL,
-      to: email,
-      subject: 'تمت الموافقة على طلبك كبائع',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-          <h2 style="color: #4CAF50;">تهانينا! تمت الموافقة على طلبك</h2>
-          <p>مرحباً ${name},</p>
-          <p>نود إعلامك بأنه تمت الموافقة على طلبك للانضمام كبائع في منصتنا.</p>
-          <p><strong>تفاصيل حسابك:</strong></p>
-          <ul>
-            <li>البريد الإلكتروني: ${email}</li>
-            <li>المطعم المسؤول عنه: ${restaurant.name}</li>
-          </ul>
-          <p>يمكنك الآن تسجيل الدخول باستخدام كلمة السر التي قمت بإدخالها.</p>
-          <hr>
-          <p>مع تحيات فريق الدعم</p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-
-    res.status(200).json({
-      success: true,
-      message: "تمت الموافقة على البائع بنجاح وإرسال الإيميل",
-      user: {
-        _id: user._id,
-        email: user.email,
-        name: user.name,
-        isSeller: user.isSeller,
-        restaurantId: user.managedRestaurant
-      }
-    });
-
-  } catch (error) {
-    console.error('Error approving seller:', error);
-    res.status(500).json({
-      success: false,
-      message: "حدث خطأ أثناء الموافقة على البائع",
-      error: error.message
-    });
-  }
-});
-
-
-
-router.delete('/approved-sellers/:id', authMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deletedApproval = await ApprovedSeller.findByIdAndDelete(id);
-    
-    if (!deletedApproval) {
-      return res.status(404).json({
-        success: false,
-        message: "سجل الموافقة غير موجود"
-      });
-    }
-
-    // يمكنك هنا إضافة إرسال إيميل بإلغاء الموافقة إذا لزم الأمر
-
-    res.status(200).json({
-      success: true,
-      message: "تم إلغاء الموافقة بنجاح",
-      deletedApproval
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "حدث خطأ أثناء إلغاء الموافقة",
-      error: error.message
-    });
-  }
 });
 
 
