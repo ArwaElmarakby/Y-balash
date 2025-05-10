@@ -1052,13 +1052,6 @@ app.post("/api/request-seller", async (req, res) => {
 
   try {
 
-    const newRequest = new SellerRequest({
-      email,
-      phone,
-      message
-    });
-    await newRequest.save();
-
     const mailOptions = {
       from: process.env.EMAIL,
       to: process.env.ADMIN_EMAIL || "yabalash001@gmail.com",
