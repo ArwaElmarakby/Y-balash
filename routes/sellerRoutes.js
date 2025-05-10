@@ -9,7 +9,6 @@ const Image = require('../models/imageModel');
 const sellerController = require('../controllers/sellerController');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const ApprovedSeller = require('../models/approvedSellerModel');
 
 
 
@@ -772,6 +771,7 @@ router.get('/my-restaurant',
 
         let user = await User.findOne({ email });
 
+
         const restaurant = await Restaurant.findById(restaurantId).select('name');
         if (!restaurant) {
             return res.status(404).json({
@@ -798,15 +798,6 @@ router.get('/my-restaurant',
             await user.save();
         }
 
-        const approvalRecord = new ApprovedSeller({
-            email,
-            password, 
-            restaurantId,
-            name,
-            adminId: req.user._id 
-        });
-        await approvalRecord.save();
-
         res.json({ 
             success: true,
             message: "Seller approved successfully",
@@ -830,7 +821,6 @@ router.get('/my-restaurant',
         });
     }
 });
-
 
   router.post('/seller-login', async (req, res) => {
     try {
