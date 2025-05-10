@@ -10,6 +10,7 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
 const nodemailer = require('nodemailer'); 
+const SellerRequest = require('../models/sellerRequestModel');
 
 
 
@@ -747,6 +748,112 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
         });
     }
 });
+
+
+
+router.get('/seller-requests', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const requests = await SellerRequest.find().sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      count: requests.length,
+      requests
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching seller requests',
+      error: error.message
+    });
+  }
+});
+
+
+
+router.post('/approve-seller', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { requestId } = req.body;
+    
+    const request = await SellerRequest.findById(requestId);
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Request not found"
+      });
+    }
+
+    request.status = 'approved';
+    await request.save();
+
+    // هنا يمكنك إضافة منطق إنشاء حساب بائع جديد كما في الكود الأصلي
+    // ...
+
+    res.status(200).json({
+      success: true,
+      message: "Seller approved successfully",
+      request
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error approving seller",
+      error: error.message
+    });
+  }
+});
+
+
+
+router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { requestId, reason } = req.body;
+    
+    const request = await SellerRequest.findById(requestId);
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Request not found"
+      });
+    }
+
+    request.status = 'rejected';
+    await request.save();
+
+    // إرسال إيميل الرفض
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: request.email,
+      subject: "Your Seller Application Status",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+          <h2 style="color: #d9534f;">Your Seller Application Has Been Rejected</h2>
+          <p>Dear Seller,</p>
+          <p>We regret to inform you that your seller application has been rejected for the following reason:</p>
+          <p style="background-color: #f8f9fa; padding: 10px; border-left: 3px solid #d9534f;">
+            <strong>Reason:</strong> ${reason}
+          </p>
+          <p>Please contact our support team if you have any questions.</p>
+          <hr>
+          <p>Best regards,<br>The YaBalash Team</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({
+      success: true,
+      message: "Seller rejected and notification sent successfully"
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error rejecting seller",
+      error: error.message
+    });
+  }
+});
+
 
 
 module.exports = router;
