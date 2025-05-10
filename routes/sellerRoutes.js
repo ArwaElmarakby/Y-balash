@@ -9,8 +9,6 @@ const Image = require('../models/imageModel');
 const sellerController = require('../controllers/sellerController');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const SellerRequest = require('../models/sellerRequestModel');
-const nodemailer = require('nodemailer');
 
 
 
