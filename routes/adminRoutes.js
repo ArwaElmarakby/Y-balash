@@ -13,6 +13,12 @@ const nodemailer = require('nodemailer');
 const RejectedSeller = require('../models/rejectedSellerModel');
 const { getApprovedSellers, approveSeller } = require('../controllers/adminController');
 const { getPendingSellerRequests } = require('../controllers/adminController');
+const { 
+  getPendingSellerRequests,
+  approveSellerRequest,
+  rejectSellerRequest,
+  getAllSellerRequests
+} = require('../controllers/adminController');
 
 
 
@@ -788,5 +794,16 @@ router.get('/approved-sellers', authMiddleware, adminMiddleware, getApprovedSell
 router.post('/approve-seller', authMiddleware, adminMiddleware, approveSeller);
 
 router.get('/pending-seller-requests', authMiddleware, adminMiddleware, getPendingSellerRequests);
+
+router.get('/seller-requests/pending', authMiddleware, adminMiddleware, getPendingSellerRequests);
+
+// كل الطلبات مع إمكانية الفلترة
+router.get('/seller-requests', authMiddleware, adminMiddleware, getAllSellerRequests);
+
+// الموافقة على طلب
+router.post('/seller-requests/approve', authMiddleware, adminMiddleware, approveSellerRequest);
+
+// رفض طلب
+router.post('/seller-requests/reject', authMiddleware, adminMiddleware, rejectSellerRequest);
 
 module.exports = router;

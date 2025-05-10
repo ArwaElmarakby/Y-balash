@@ -4,6 +4,7 @@ const Image = require('../models/imageModel');
 const Category = require('../models/categoryModel');
 const ApprovedSeller = require('../models/approvedSellerModel');
 const SellerRequest = require('../models/sellerRequestModel');
+const RejectedSeller = require('../models/rejectedSellerModel');
 
 
 exports.assignSellerToRestaurant = async (req, res) => {
@@ -137,6 +138,32 @@ exports.getApprovedSellers = async (req, res) => {
 };
 
 
+exports.getAllSellerRequests = async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = {};
+    
+    if (status) filter.status = status;
+
+    const requests = await SellerRequest.find(filter)
+      .sort({ createdAt: -1 })
+      .populate('processedBy', 'email')
+      .populate('restaurantAssigned', 'name');
+
+    res.status(200).json({
+      success: true,
+      count: requests.length,
+      requests
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch requests",
+      error: error.message
+    });
+  }
+};
+
 
 
 exports.approveSeller = async (req, res) => {
@@ -181,6 +208,132 @@ exports.approveSeller = async (req, res) => {
     }
 };
 
+exports.approveSellerRequest = async (req, res) => {
+  try {
+    const { requestId, restaurantId } = req.body;
+
+    const request = await SellerRequest.findById(requestId);
+    if (!request) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Request not found" 
+      });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({ 
+        success: false,
+        message: "Request already processed" 
+      });
+    }
+
+    // 1. تحديث حالة الطلب
+    request.status = 'approved';
+    request.processedAt = new Date();
+    request.processedBy = req.user._id;
+    request.restaurantAssigned = restaurantId;
+    await request.save();
+
+    // 2. إنشاء سجل في ApprovedSellers
+    const newApprovedSeller = new ApprovedSeller({
+      email: request.email,
+      adminId: req.user._id,
+      restaurantId,
+      additionalNotes: request.message
+    });
+    await newApprovedSeller.save();
+
+    // 3. تحديث مستخدم أو إنشاء جديد
+    let user = await User.findOne({ email: request.email });
+    if (user) {
+      user.isSeller = true;
+      user.managedRestaurant = restaurantId;
+    } else {
+      user = new User({
+        email: request.email,
+        phone: request.phone,
+        isSeller: true,
+        managedRestaurant: restaurantId
+      });
+    }
+    await user.save();
+
+    // 4. إرسال بريد الموافقة
+    // ... كود إرسال البريد الإلكتروني هنا
+
+    res.status(200).json({
+      success: true,
+      message: "Seller request approved successfully",
+      request,
+      user: {
+        id: user._id,
+        email: user.email,
+        isSeller: user.isSeller
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error approving seller request",
+      error: error.message
+    });
+  }
+};
+
+
+
+
+exports.rejectSellerRequest = async (req, res) => {
+  try {
+    const { requestId, reason } = req.body;
+
+    const request = await SellerRequest.findById(requestId);
+    if (!request) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Request not found" 
+      });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({ 
+        success: false,
+        message: "Request already processed" 
+      });
+    }
+
+    // 1. تحديث حالة الطلب
+    request.status = 'rejected';
+    request.processedAt = new Date();
+    request.processedBy = req.user._id;
+    request.rejectionReason = reason;
+    await request.save();
+
+    // 2. إنشاء سجل في RejectedSellers
+    const newRejectedSeller = new RejectedSeller({
+      email: request.email,
+      reason,
+      rejectedAt: new Date(),
+      adminId: req.user._id
+    });
+    await newRejectedSeller.save();
+
+    // 3. إرسال بريد الرفض
+    // ... كود إرسال البريد الإلكتروني هنا
+
+    res.status(200).json({
+      success: true,
+      message: "Seller request rejected successfully",
+      request
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error rejecting seller request",
+      error: error.message
+    });
+  }
+};
 
 exports.getPendingSellerRequests = async (req, res) => {
   try {
@@ -190,7 +343,7 @@ exports.getPendingSellerRequests = async (req, res) => {
     res.status(200).json({
       success: true,
       count: pendingRequests.length,
-      pendingRequests
+      requests: pendingRequests
     });
   } catch (error) {
     res.status(500).json({
