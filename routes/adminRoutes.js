@@ -12,6 +12,7 @@ const { getTopCategories } = require('../controllers/adminController');
 const nodemailer = require('nodemailer'); 
 const RejectedSeller = require('../models/rejectedSellerModel');
 const { getApprovedSellers, approveSeller } = require('../controllers/adminController');
+const SellerRequest = require('../models/sellerRequestModel');
 
 
 
@@ -786,5 +787,129 @@ router.get('/approved-sellers', authMiddleware, adminMiddleware, getApprovedSell
 
 router.post('/approve-seller', authMiddleware, adminMiddleware, approveSeller);
 
+
+router.get('/seller-requests', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = status ? { status } : {};
+
+    const requests = await SellerRequest.find(filter)
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: requests.length,
+      requests
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch requests",
+      error: error.message
+    });
+  }
+});
+
+// Approve a seller request
+router.post('/seller-requests/:id/approve', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { adminNotes } = req.body;
+
+    const request = await SellerRequest.findById(id);
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Request not found"
+      });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: "Request already processed"
+      });
+    }
+
+    // Update request status
+    request.status = 'approved';
+    request.processedAt = new Date();
+    request.adminNotes = adminNotes;
+    await request.save();
+
+    // Create user account or update existing one
+    let user = await User.findOne({ email: request.email });
+    if (!user) {
+      user = new User({
+        email: request.email,
+        phone: request.phone,
+        isSeller: true
+      });
+      await user.save();
+    } else {
+      user.isSeller = true;
+      await user.save();
+    }
+
+    // Send approval email (optional)
+    // ...
+
+    res.status(200).json({
+      success: true,
+      message: "Seller request approved",
+      request
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to approve request",
+      error: error.message
+    });
+  }
+});
+
+// Reject a seller request
+router.post('/seller-requests/:id/reject', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { adminNotes } = req.body;
+
+    const request = await SellerRequest.findById(id);
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Request not found"
+      });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: "Request already processed"
+      });
+    }
+
+    // Update request status
+    request.status = 'rejected';
+    request.processedAt = new Date();
+    request.adminNotes = adminNotes;
+    await request.save();
+
+    // Send rejection email (optional)
+    // ...
+
+    res.status(200).json({
+      success: true,
+      message: "Seller request rejected",
+      request
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to reject request",
+      error: error.message
+    });
+  }
+});
 
 module.exports = router;
