@@ -3,6 +3,7 @@ const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
 const Category = require('../models/categoryModel');
 const ApprovedSeller = require('../models/approvedSellerModel');
+const SellerRequest = require('../models/sellerRequestModel');
 
 
 exports.assignSellerToRestaurant = async (req, res) => {
@@ -178,6 +179,26 @@ exports.approveSeller = async (req, res) => {
             error: error.message
         });
     }
+};
+
+
+exports.getPendingSellerRequests = async (req, res) => {
+  try {
+    const pendingRequests = await SellerRequest.find({ status: 'pending' })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: pendingRequests.length,
+      pendingRequests
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pending requests",
+      error: error.message
+    });
+  }
 };
 
 

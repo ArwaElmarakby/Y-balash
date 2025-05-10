@@ -12,6 +12,7 @@ const { getTopCategories } = require('../controllers/adminController');
 const nodemailer = require('nodemailer'); 
 const RejectedSeller = require('../models/rejectedSellerModel');
 const { getApprovedSellers, approveSeller } = require('../controllers/adminController');
+const { getPendingSellerRequests } = require('../controllers/adminController');
 
 
 
@@ -786,5 +787,6 @@ router.get('/approved-sellers', authMiddleware, adminMiddleware, getApprovedSell
 
 router.post('/approve-seller', authMiddleware, adminMiddleware, approveSeller);
 
+router.get('/pending-seller-requests', authMiddleware, adminMiddleware, getPendingSellerRequests);
 
 module.exports = router;
