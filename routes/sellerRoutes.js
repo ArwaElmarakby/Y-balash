@@ -9,6 +9,7 @@ const Image = require('../models/imageModel');
 const sellerController = require('../controllers/sellerController');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const ApprovedSeller = require('../models/approvedSellerModel');
 
 
 
@@ -770,6 +771,7 @@ router.get('/my-restaurant',
         }
 
         let user = await User.findOne({ email });
+        
 
 
         const restaurant = await Restaurant.findById(restaurantId).select('name');
@@ -798,6 +800,15 @@ router.get('/my-restaurant',
             await user.save();
         }
 
+          const approvalRecord = new ApprovedSeller({
+            email,
+            password: await bcrypt.hash(password, 10), 
+            restaurantId,
+            name,
+            adminId: req.user._id 
+        });
+        await approvalRecord.save();
+
         res.json({ 
             success: true,
             message: "Seller approved successfully",
@@ -821,6 +832,29 @@ router.get('/my-restaurant',
         });
     }
 });
+
+
+router.get('/approved-sellers', authMiddleware, async (req, res) => {
+    try {
+        const approvedSellers = await ApprovedSeller.find()
+            .sort({ approvedAt: -1 }) 
+            .select('-password'); 
+
+        res.status(200).json({
+            success: true,
+            count: approvedSellers.length,
+            approvedSellers
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to bring in the approved sellers",
+            error: error.message
+        });
+    }
+});
+
+
 
   router.post('/seller-login', async (req, res) => {
     try {
