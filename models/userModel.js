@@ -45,8 +45,6 @@ const userSchema = new mongoose.Schema({
     isSellerRequested: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     lastActive: { type: Date, default: Date.now },
-    rejected: { type: Boolean, default: false }, 
-    rejectionReason: { type: String },
     managedRestaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
     language: { type: String, default: null },
     plan: {

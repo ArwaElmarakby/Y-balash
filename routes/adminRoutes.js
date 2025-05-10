@@ -749,16 +749,4 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
 });
 
 
-
-router.get('/rejected-sellers', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-        const rejectedSellers = await User.find({ rejected: true }).select('email rejectionReason');
-        res.status(200).json(rejectedSellers);
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
-    }
-});
-
-
-
 module.exports = router;
