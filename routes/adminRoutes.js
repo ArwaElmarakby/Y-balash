@@ -10,6 +10,7 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 const { getAdminAlerts } = require('../controllers/adminController');
 const { getTopCategories } = require('../controllers/adminController');
 const nodemailer = require('nodemailer'); 
+const RejectedSeller = require('../models/rejectedSellerModel');
 
 
 
@@ -690,6 +691,15 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
             });
         }
 
+
+        const rejectionRecord = new RejectedSeller({
+            email,
+            reason,
+            adminId: req.user._id
+        });
+        await rejectionRecord.save();
+        
+
         // Email setup (consider moving to a separate service)
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
@@ -744,6 +754,27 @@ router.post('/reject-seller', authMiddleware, adminMiddleware, async (req, res) 
             success: false,
             message: "An error occurred while processing your request",
             error: error.message 
+        });
+    }
+});
+
+
+
+router.get('/rejected-sellers', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const rejectedSellers = await RejectedSeller.find()
+            .sort({ rejectedAt: -1 }); 
+
+        res.status(200).json({
+            success: true,
+            count: rejectedSellers.length,
+            rejectedSellers
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch rejected sellers",
+            error: error.message
         });
     }
 });
