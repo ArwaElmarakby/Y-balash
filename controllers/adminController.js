@@ -2,6 +2,7 @@ const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
 const Category = require('../models/categoryModel');
+const ApprovedSeller = require('../models/approvedSellerModel');
 
 
 exports.assignSellerToRestaurant = async (req, res) => {
@@ -107,6 +108,73 @@ exports.getTopCategories = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Failed to fetch top categories",
+            error: error.message
+        });
+    }
+};
+
+
+exports.getApprovedSellers = async (req, res) => {
+    try {
+        const approvedSellers = await ApprovedSeller.find()
+            .populate('adminId', 'email')
+            .populate('restaurantId', 'name')
+            .sort({ approvedAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            count: approvedSellers.length,
+            approvedSellers
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch approved sellers",
+            error: error.message
+        });
+    }
+};
+
+
+
+
+exports.approveSeller = async (req, res) => {
+    try {
+        const { email, restaurantId, additionalNotes } = req.body;
+
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                message: "User not found" 
+            });
+        }
+
+
+        const newApprovedSeller = new ApprovedSeller({
+            email,
+            adminId: req.user._id,
+            restaurantId,
+            additionalNotes
+        });
+
+        await newApprovedSeller.save();
+
+
+        user.isSeller = true;
+        user.managedRestaurant = restaurantId;
+        await user.save();
+
+        res.status(201).json({
+            success: true,
+            message: "Seller approved successfully",
+            approvedSeller: newApprovedSeller
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error approving seller",
             error: error.message
         });
     }
