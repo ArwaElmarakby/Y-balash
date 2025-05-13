@@ -35,7 +35,15 @@ const userSchema = new mongoose.Schema({
     firstName: { type: String },
     lastName: { type: String },
     phone: String,
-    gender: { type: String, enum: ['Male', 'Female', 'Other'], default: null },
+    gender: {
+        type: String,
+        enum: ['Male', 'Female', 'Other'], 
+        set: (value) => {
+            if (!value) return value;
+            return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase(); 
+        },
+        default: null
+    },
     birthday: { type: String },
     profileImage: { type: String },
     cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
