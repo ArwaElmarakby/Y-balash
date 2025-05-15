@@ -110,29 +110,66 @@ router.put('/update-phone', authMiddleware, async (req, res) => {
 // Update User Profile Image
 router.put('/update-profile-image', authMiddleware, upload.single('image'), async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: 'No image uploaded' });
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        const result = await cloudinary.uploader.upload_stream({ resource_type: 'auto' }, async (error, result) => {
-            if (error) {
-                return res.status(500).json({ message: 'Image upload failed', error });
+
+        if (!req.file) {
+            if (user.profileImage) {
+
+                const publicId = user.profileImage.split('/').pop().split('.')[0];
+                await cloudinary.uploader.destroy(publicId);
             }
 
-            const user = await User.findByIdAndUpdate(
-                req.user._id,
-                { profileImage: result.secure_url },
-                { new: true }
-            ).select('-password');
+            user.profileImage = null;
+            await user.save();
 
-            if (!user) {
-                return res.status(404).json({ message: 'User not found' });
+            return res.status(200).json({ 
+                message: 'Profile image removed successfully',
+                user: {
+                    _id: user._id,
+                    email: user.email,
+                    profileImage: null
+                }
+            });
+        }
+
+
+        const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+                { folder: 'user-profiles' },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            ).end(req.file.buffer);
+        });
+
+
+        if (user.profileImage) {
+            const oldPublicId = user.profileImage.split('/').pop().split('.')[0];
+            await cloudinary.uploader.destroy(oldPublicId);
+        }
+
+        user.profileImage = result.secure_url;
+        await user.save();
+
+        res.status(200).json({
+            message: 'Profile image updated successfully',
+            user: {
+                _id: user._id,
+                email: user.email,
+                profileImage: result.secure_url
             }
+        });
 
-            res.status(200).json({ message: 'Profile image updated successfully', user });
-        }).end(req.file.buffer);
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
     }
 });
 

@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema({
         default: null
     },
     birthday: { type: String },
-    profileImage: { type: String },
+    profileImage: { type: String, default: null },
     cart: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
     points: { type: Number, default: 0 },
     isAdmin: { type: Boolean, default: false },
