@@ -56,7 +56,7 @@ exports.addImage = async (req, res) => {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku , description  } = req.body;
+    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku , description, restaurantId  } = req.body;
     const imageUrl = req.file ? req.file.path : null;
 
     if (!name || !quantity || !price || !imageUrl || !categoryId) {
@@ -76,7 +76,11 @@ exports.addImage = async (req, res) => {
         endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
       } : undefined;
 
-      const newImage = new Image({ name, sku, description, quantity, price, imageUrl, category: categoryId, discount });
+      if (!restaurantId) {
+                return res.status(400).json({ message: "Restaurant ID is required" });
+            }
+
+      const newImage = new Image({ name, sku, description, quantity, price, imageUrl, category: categoryId, restaurant: restaurantId, discount });
       await newImage.save();
 
       category.items.push(newImage._id);
