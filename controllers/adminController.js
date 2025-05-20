@@ -143,13 +143,13 @@ exports.approveSeller = async (req, res) => {
         const { email, restaurantId, additionalNotes } = req.body;
 
 
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ 
-                success: false,
-                message: "User not found" 
-            });
-        }
+        // const user = await User.findOne({ email });
+        // if (!user) {
+        //     return res.status(404).json({ 
+        //         success: false,
+        //         message: "User not found" 
+        //     });
+        // }
 
 
         const newApprovedSeller = new ApprovedSeller({
