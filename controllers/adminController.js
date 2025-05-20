@@ -140,17 +140,33 @@ exports.getApprovedSellers = async (req, res) => {
 
 exports.approveSeller = async (req, res) => {
     try {
-        const { email, restaurantId, additionalNotes } = req.body;
+        const { email, restaurantId, additionalNotes, name, password } = req.body;
 
-
-        const user = await User.findOne({ email });
-        if (!user) {
+        const restaurant = await Restaurant.findById(restaurantId);
+        if (!restaurant) {
             return res.status(404).json({ 
                 success: false,
-                message: "User not found" 
+                message: "Restaurant not found" 
             });
         }
 
+        let user = await User.findOne({ email });
+        
+        if (!user) {
+            user = new User({
+                email,
+                password: password || 'defaultPassword123', 
+                name: name || 'New Seller',
+                isSeller: true,
+                managedRestaurant: restaurantId
+            });
+            
+            await user.save();
+        } else {
+            user.isSeller = true;
+            user.managedRestaurant = restaurantId;
+            await user.save();
+        }
 
         const newApprovedSeller = new ApprovedSeller({
             email,
@@ -161,15 +177,16 @@ exports.approveSeller = async (req, res) => {
 
         await newApprovedSeller.save();
 
-
-        user.isSeller = true;
-        user.managedRestaurant = restaurantId;
-        await user.save();
-
         res.status(201).json({
             success: true,
             message: "Seller approved successfully",
-            approvedSeller: newApprovedSeller
+            approvedSeller: newApprovedSeller,
+            user: {
+                _id: user._id,
+                email: user.email,
+                isSeller: user.isSeller,
+                managedRestaurant: restaurant.name
+            }
         });
     } catch (error) {
         res.status(500).json({
@@ -179,6 +196,3 @@ exports.approveSeller = async (req, res) => {
         });
     }
 };
-
-
-
