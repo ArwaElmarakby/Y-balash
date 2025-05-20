@@ -140,45 +140,86 @@ exports.getApprovedSellers = async (req, res) => {
 
 exports.approveSeller = async (req, res) => {
     try {
-        const { email, restaurantId, additionalNotes } = req.body;
+        const { email, restaurantId, additionalNotes, name, password } = req.body;
 
-
-        const user = await User.findOne({ email });
-        if (!user) {
+        // 1. التحقق من وجود المطعم
+        const restaurant = await Restaurant.findById(restaurantId);
+        if (!restaurant) {
             return res.status(404).json({ 
                 success: false,
-                message: "User not found" 
+                message: "Restaurant not found" 
             });
         }
 
+        // 2. البحث عن المستخدم أو إنشاء حساب جديد
+        let user = await User.findOne({ email });
+        
+        if (!user) {
+            // إنشاء حساب جديد إذا لم يتم العثور على المستخدم
+            if (!name || !password) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Name and password are required to create new account"
+                });
+            }
 
+            user = new User({
+                email,
+                name,
+                password, // سيتم تشفيرها تلقائياً بفضل middleware في الموديل
+                isSeller: true,
+                managedRestaurant: restaurantId
+            });
+        } else {
+            // تحديث المستخدم الموجود
+            user.isSeller = true;
+            user.managedRestaurant = restaurantId;
+        }
+
+        // 3. إنشاء سجل الموافقة
         const newApprovedSeller = new ApprovedSeller({
             email,
             adminId: req.user._id,
             restaurantId,
+            restaurantName: restaurant.name,
             additionalNotes
         });
 
-        await newApprovedSeller.save();
+        // 4. حفظ كل شيء
+        await Promise.all([
+            user.save(),
+            newApprovedSeller.save()
+        ]);
 
-
-        user.isSeller = true;
-        user.managedRestaurant = restaurantId;
-        await user.save();
-
+        // 5. الرد النهائي
         res.status(201).json({
             success: true,
             message: "Seller approved successfully",
-            approvedSeller: newApprovedSeller
+            data: {
+                seller: {
+                    id: user._id,
+                    email: user.email,
+                    name: user.name,
+                    isSeller: user.isSeller,
+                    restaurant: {
+                        id: restaurant._id,
+                        name: restaurant.name
+                    }
+                },
+                approvalRecord: {
+                    id: newApprovedSeller._id,
+                    approvedAt: newApprovedSeller.approvedAt,
+                    approvedBy: newApprovedSeller.adminId
+                }
+            }
         });
+
     } catch (error) {
+        console.error("Error in approveSeller:", error);
         res.status(500).json({
             success: false,
-            message: "Error approving seller",
+            message: "Internal server error",
             error: error.message
         });
     }
 };
-
-
-
