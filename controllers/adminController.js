@@ -142,6 +142,7 @@ exports.approveSeller = async (req, res) => {
     try {
         const { email, restaurantId, additionalNotes, name, password } = req.body;
 
+        // التحقق من وجود المطعم
         const restaurant = await Restaurant.findById(restaurantId);
         if (!restaurant) {
             return res.status(404).json({ 
@@ -150,12 +151,14 @@ exports.approveSeller = async (req, res) => {
             });
         }
 
+        // البحث عن المستخدم أو إنشاء حساب جديد
         let user = await User.findOne({ email });
         
         if (!user) {
+            // إنشاء حساب جديد بكلمة المرور المقدمة في الطلب
             user = new User({
                 email,
-                password: password || 'defaultPassword123', 
+                password: password, // استخدام كلمة المرور المرسلة مباشرة
                 name: name || 'New Seller',
                 isSeller: true,
                 managedRestaurant: restaurantId
@@ -163,11 +166,13 @@ exports.approveSeller = async (req, res) => {
             
             await user.save();
         } else {
+            // تحديث المستخدم الحالي ليكون بائعاً
             user.isSeller = true;
             user.managedRestaurant = restaurantId;
             await user.save();
         }
 
+        // إنشاء سجل الموافقة
         const newApprovedSeller = new ApprovedSeller({
             email,
             adminId: req.user._id,
@@ -188,7 +193,9 @@ exports.approveSeller = async (req, res) => {
                 managedRestaurant: restaurant.name
             }
         });
+
     } catch (error) {
+        console.error("Approval Error:", error);
         res.status(500).json({
             success: false,
             message: "Error approving seller",
