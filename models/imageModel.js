@@ -19,7 +19,7 @@ const imageSchema = new mongoose.Schema({
     required: false
   },
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
-  restaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
+  restaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant', required: true },
   lastStockStatus: { 
     type: String, 
     enum: ['in', 'out', null],

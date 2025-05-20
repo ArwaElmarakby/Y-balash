@@ -4,6 +4,8 @@ const Image = require('../models/imageModel');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const Category = require('../models/categoryModel');
+const User = require('../models/userModel');
 
 
 // Cloudinary Configuration
@@ -156,40 +158,100 @@ exports.getRestaurantById = async (req, res) => {
 
 
 exports.addImageToRestaurant = async (req, res) => {
-  const { restaurantId, imageId } = req.body; 
-
   try {
-    const restaurant = await Restaurant.findById(restaurantId);
-    if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
-    }
+    upload(req, res, async (err) => {
+      if (err) {
+        return res.status(500).json({ 
+          success: false,
+          message: "Image upload failed",
+          error: err.message 
+        });
+      }
 
-    const image = await Image.findById(imageId); 
-    if (!image) {
-      return res.status(404).json({ message: 'Image not found' });
-    }
+      const { name, price, quantity, categoryId } = req.body;
+      const imageUrl = req.file ? req.file.path : null;
 
-    if (!restaurant.images.includes(imageId)) { 
-      restaurant.images.push(imageId);
+      if (!name || !price || !quantity || !categoryId || !imageUrl) {
+        return res.status(400).json({
+          success: false,
+          message: "Name, price, quantity, categoryId and image are required"
+        });
+      }
+
+      const seller = await User.findById(req.user._id);
+      if (!seller || !seller.isSeller || !seller.managedRestaurant) {
+        return res.status(403).json({
+          success: false,
+          message: "Only sellers with assigned restaurants can add items"
+        });
+      }
+
+      const restaurantId = seller.managedRestaurant;
+
+      const restaurant = await Restaurant.findById(restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({
+          success: false,
+          message: "Restaurant not found"
+        });
+      }
+
+      const category = await Category.findById(categoryId);
+      if (!category) {
+        return res.status(404).json({
+          success: false,
+          message: "Category not found"
+        });
+      }
+
+      const newItem = new Image({
+        name,
+        price,
+        quantity,
+        imageUrl,
+        category: categoryId,
+        restaurant: restaurantId
+      });
+
+      await newItem.save();
+
+      restaurant.images.push(newItem._id);
       await restaurant.save();
-    }
 
-    image.restaurant = restaurantId;
-    await image.save();
+      category.items.push(newItem._id);
+      await category.save();
 
-    res.status(200).json({ 
-      message: 'Image added to restaurant successfully', 
-      restaurant 
+      return res.status(201).json({
+        success: true,
+        message: "Item added successfully",
+        data: {
+          item: {
+            id: newItem._id,
+            name: newItem.name,
+            price: newItem.price,
+            quantity: newItem.quantity,
+            imageUrl: newItem.imageUrl
+          },
+          restaurant: {
+            id: restaurant._id,
+            name: restaurant.name
+          },
+          category: {
+            id: category._id,
+            name: category.name
+          }
+        }
+      });
     });
   } catch (error) {
     console.error("Error in addImageToRestaurant:", error);
-    res.status(500).json({ 
-      message: 'Server error',
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
       error: error.message
     });
   }
 };
-
 
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
