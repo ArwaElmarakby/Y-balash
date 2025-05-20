@@ -822,89 +822,58 @@ router.get('/my-restaurant',
     }
 });
 
- router.post('/seller-login', async (req, res) => {
+  router.post('/seller-login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+      const { email, password } = req.body;
+  
 
-        // Validate input
-        if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: "Email and password are required",
-                error: "MISSING_CREDENTIALS"
-            });
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+  
+
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+  
+
+      if (!user.isSeller) {
+        return res.status(403).json({ error: "Access denied. Not a seller." });
+      }
+  
+
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+  
+
+      const token = jwt.sign(
+        { 
+          userId: user._id,
+          isSeller: user.isSeller,
+          restaurantId: user.managedRestaurant 
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '8h' }
+      );
+  
+
+      res.json({
+        success: true,
+        token,
+        user: {
+          id: user._id,
+          email: user.email,
+          restaurantId: user.managedRestaurant
         }
-
-        // Find seller account
-        const seller = await User.findOne({ 
-            email: email.toLowerCase().trim(), // Case-insensitive and trim whitespace
-            isSeller: true 
-        });
-
-        if (!seller) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid email or seller account doesn't exist",
-                error: "INVALID_CREDENTIALS"
-            });
-        }
-
-        // Verify password
-        const isPasswordValid = await bcrypt.compare(password, seller.password);
-        if (!isPasswordValid) {
-            return res.status(401).json({
-                success: false,
-                message: "Incorrect password",
-                error: "INVALID_CREDENTIALS"
-            });
-        }
-
-        // Verify restaurant assignment
-        if (!seller.managedRestaurant) {
-            return res.status(403).json({
-                success: false,
-                message: "Seller account not assigned to any restaurant",
-                error: "NO_RESTAURANT_ASSIGNED"
-            });
-        }
-
-        // Create JWT token
-        const token = jwt.sign(
-            {
-                userId: seller._id,
-                email: seller.email,
-                restaurantId: seller.managedRestaurant,
-                isSeller: true
-            },
-            process.env.JWT_SECRET,
-            { expiresIn: '8h' }
-        );
-
-        // Successful response
-        return res.status(200).json({
-            success: true,
-            message: "Seller login successful",
-            data: {
-                token,
-                seller: {
-                    id: seller._id,
-                    name: seller.name,
-                    email: seller.email,
-                    phone: seller.phone,
-                    restaurantId: seller.managedRestaurant
-                }
-            }
-        });
-
+      });
+  
     } catch (error) {
-        console.error("Seller login error:", error);
-        return res.status(500).json({
-            success: false,
-            message: "An error occurred during login",
-            error: "SERVER_ERROR",
-            systemError: error.message
-        });
+      res.status(500).json({ error: error.message });
     }
 });
+
   
 module.exports = router;

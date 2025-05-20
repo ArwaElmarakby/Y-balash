@@ -3,8 +3,6 @@ const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
 const Category = require('../models/categoryModel');
 const ApprovedSeller = require('../models/approvedSellerModel');
-const nodemailer = require('nodemailer');
-const bcrypt = require('bcrypt');
 
 
 exports.assignSellerToRestaurant = async (req, res) => {
@@ -142,65 +140,45 @@ exports.getApprovedSellers = async (req, res) => {
 
 exports.approveSeller = async (req, res) => {
     try {
-        const { email, restaurantId, password, name, phone } = req.body;
+        const { email, restaurantId, additionalNotes } = req.body;
 
-        // Validation
-        if (!email || !restaurantId || !password || !name || !phone) {
-            return res.status(400).json({
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ 
                 success: false,
-                message: "Email, restaurant ID, password, name and phone are required"
+                message: "User not found" 
             });
         }
 
-        // // Check if user exists
-        // const existingUser = await User.findOne({ email });
-        // if (existingUser) {
-        //     return res.status(400).json({
-        //         success: false,
-        //         message: "Email already exists"
-        //     });
-        // }
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Create seller account
-        const newSeller = new User({
-            email,
-            password: hashedPassword,
-            name,
-            phone,
-            isSeller: true,
-            managedRestaurant: restaurantId
-        });
-
-        await newSeller.save();
-
-        // Create approval record
-        const approvalRecord = new ApprovedSeller({
+        const newApprovedSeller = new ApprovedSeller({
             email,
             adminId: req.user._id,
             restaurantId,
-            approvedAt: new Date()
+            additionalNotes
         });
 
-        await approvalRecord.save();
+        await newApprovedSeller.save();
+
+
+        user.isSeller = true;
+        user.managedRestaurant = restaurantId;
+        await user.save();
 
         res.status(201).json({
             success: true,
-            message: "Seller account created successfully",
-            data: {
-                sellerId: newSeller._id,
-                email: newSeller.email,
-                restaurantId: newSeller.managedRestaurant
-            }
+            message: "Seller approved successfully",
+            approvedSeller: newApprovedSeller
         });
-
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: "Error creating seller account",
+            message: "Error approving seller",
             error: error.message
         });
     }
 };
+
+
+
