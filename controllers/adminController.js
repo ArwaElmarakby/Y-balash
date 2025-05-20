@@ -142,6 +142,15 @@ exports.approveSeller = async (req, res) => {
     try {
         const { email, restaurantId, additionalNotes, name, password, phone } = req.body;
 
+        const existingApproval = await ApprovedSeller.findOne({ email });
+        if (existingApproval) {
+            return res.status(400).json({
+                success: false,
+                message: "Seller already approved",
+                existingApproval
+            });
+        }
+        
         // 1. التحقق من وجود المطعم
         const restaurant = await Restaurant.findById(restaurantId);
         if (!restaurant) {
