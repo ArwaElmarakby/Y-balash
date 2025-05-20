@@ -824,54 +824,83 @@ router.get('/my-restaurant',
 
   router.post('/seller-login', async (req, res) => {
     try {
-      const { email, password } = req.body;
-  
+        const { email, password } = req.body;
 
-      if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
-      }
-  
-
-      const user = await User.findOne({ email });
-      if (!user) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
-  
-
-      if (!user.isSeller) {
-        return res.status(403).json({ error: "Access denied. Not a seller." });
-      }
-  
-
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(401).json({ error: "Invalid credentials" });
-      }
-  
-
-      const token = jwt.sign(
-        { 
-          userId: user._id,
-          isSeller: user.isSeller,
-          restaurantId: user.managedRestaurant 
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: '8h' }
-      );
-  
-
-      res.json({
-        success: true,
-        token,
-        user: {
-          id: user._id,
-          email: user.email,
-          restaurantId: user.managedRestaurant
+        // Validate input
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and password are required",
+                error: "MISSING_CREDENTIALS"
+            });
         }
-      });
-  
+
+        // Find user with seller role
+        const user = await User.findOne({ email, isSeller: true });
+        
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid credentials or not a seller",
+                error: "INVALID_CREDENTIALS"
+            });
+        }
+
+        // Verify password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid credentials",
+                error: "INVALID_CREDENTIALS"
+            });
+        }
+
+        // Check if seller has a restaurant assigned
+        if (!user.managedRestaurant) {
+            return res.status(403).json({
+                success: false,
+                message: "No restaurant assigned to this seller",
+                error: "NO_RESTAURANT_ASSIGNED"
+            });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            {
+                userId: user._id,
+                isSeller: user.isSeller,
+                restaurantId: user.managedRestaurant,
+                email: user.email
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '8h' }
+        );
+
+        // Successful login response
+        return res.status(200).json({
+            success: true,
+            message: "Seller login successful",
+            data: {
+                token,
+                seller: {
+                    id: user._id,
+                    email: user.email,
+                    name: user.name,
+                    phone: user.phone,
+                    restaurantId: user.managedRestaurant
+                }
+            }
+        });
+
     } catch (error) {
-      res.status(500).json({ error: error.message });
+        console.error("Seller login error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: "SERVER_ERROR",
+            systemError: error.message
+        });
     }
 });
 

@@ -142,13 +142,13 @@ exports.getApprovedSellers = async (req, res) => {
 
 exports.approveSeller = async (req, res) => {
     try {
-        const { email, restaurantId, additionalNotes, name, phone } = req.body;
+        const { email, restaurantId, additionalNotes, name, phone, password } = req.body;
 
         // Validate required fields
-        if (!email || !restaurantId || !name || !phone) {
+        if (!email || !restaurantId || !name || !phone || !password) {
             return res.status(400).json({ 
                 success: false,
-                message: "Email, restaurant ID, name and phone are required" 
+                message: "Email, restaurant ID, name, phone and password are required" 
             });
         }
 
@@ -167,14 +167,12 @@ exports.approveSeller = async (req, res) => {
         if (user) {
             return res.status(400).json({
                 success: false,
-                message: "Email already exists",
-                suggestion: "Use a different email or ask the seller to login first"
+                message: "Email already exists"
             });
         }
 
-        // Create a temporary password
-        const tempPassword = Math.random().toString(36).slice(-8);
-        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+        // Hash the admin-provided password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create new seller user
         user = new User({
@@ -198,7 +196,7 @@ exports.approveSeller = async (req, res) => {
 
         await newApprovedSeller.save();
 
-        // Send email with credentials
+        // Send email notification (without password)
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
@@ -210,17 +208,12 @@ exports.approveSeller = async (req, res) => {
         const mailOptions = {
             from: `"YaBalash Admin" <${process.env.EMAIL}>`,
             to: email,
-            subject: 'Your Seller Account Approval',
+            subject: 'Your Seller Account Has Been Approved',
             html: `
                 <h1>Welcome ${name}!</h1>
                 <p>Your seller account has been approved by the admin.</p>
-                <p>Here are your login credentials:</p>
-                <ul>
-                    <li><strong>Email:</strong> ${email}</li>
-                    <li><strong>Temporary Password:</strong> ${tempPassword}</li>
-                </ul>
+                <p>You can now login to your seller dashboard using the credentials provided by the admin.</p>
                 <p>Restaurant assigned: <strong>${restaurant.name}</strong></p>
-                <p>Please change your password after first login.</p>
                 <a href="https://y-balash.vercel.app/seller/login" style="
                     display: inline-block;
                     padding: 10px 20px;
@@ -237,7 +230,7 @@ exports.approveSeller = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: "Seller approved and account created successfully",
+            message: "Seller approved successfully",
             data: {
                 seller: {
                     id: user._id,
