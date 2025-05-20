@@ -140,7 +140,7 @@ exports.getApprovedSellers = async (req, res) => {
 
 exports.approveSeller = async (req, res) => {
     try {
-        const { email, restaurantId, additionalNotes, name, password } = req.body;
+        const { email, restaurantId, additionalNotes, name, password, phone } = req.body;
 
         // 1. التحقق من وجود المطعم
         const restaurant = await Restaurant.findById(restaurantId);
@@ -156,17 +156,18 @@ exports.approveSeller = async (req, res) => {
         
         if (!user) {
             // إنشاء حساب جديد إذا لم يتم العثور على المستخدم
-            if (!name || !password) {
+            if (!name || !password || !phone) {
                 return res.status(400).json({
                     success: false,
-                    message: "Name and password are required to create new account"
+                    message: "Name, password and phone are required"
                 });
             }
 
             user = new User({
                 email,
                 name,
-                password, // سيتم تشفيرها تلقائياً بفضل middleware في الموديل
+                password, 
+                phone: phone || "0000000000",// سيتم تشفيرها تلقائياً بفضل middleware في الموديل
                 isSeller: true,
                 managedRestaurant: restaurantId
             });
