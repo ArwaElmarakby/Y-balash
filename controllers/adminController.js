@@ -140,37 +140,18 @@ exports.getApprovedSellers = async (req, res) => {
 
 exports.approveSeller = async (req, res) => {
     try {
-        const { email, restaurantId, additionalNotes, name, password } = req.body;
+        const { email, restaurantId, additionalNotes } = req.body;
 
-        // التحقق من وجود المطعم
-        const restaurant = await Restaurant.findById(restaurantId);
-        if (!restaurant) {
+
+        const user = await User.findOne({ email });
+        if (!user) {
             return res.status(404).json({ 
                 success: false,
-                message: "Restaurant not found" 
+                message: "User not found" 
             });
         }
 
-        // البحث عن المستخدم أو إنشاء حساب جديد
-        let user = await User.findOne({ email });
-        if (!user) {
-            // إنشاء حساب جديد للبائع إذا لم يكن موجودًا
-            user = new User({
-                email,
-                password: password || 'defaultPassword123', // يجب تغيير هذا في البيئة الحقيقية
-                name: name || 'New Seller',
-                isSeller: true,
-                managedRestaurant: restaurantId
-            });
-            await user.save();
-        } else {
-            // تحديث المستخدم الحالي ليكون بائعًا
-            user.isSeller = true;
-            user.managedRestaurant = restaurantId;
-            await user.save();
-        }
 
-        // إنشاء سجل جديد للبائع المعتمد
         const newApprovedSeller = new ApprovedSeller({
             email,
             adminId: req.user._id,
@@ -180,16 +161,15 @@ exports.approveSeller = async (req, res) => {
 
         await newApprovedSeller.save();
 
+
+        user.isSeller = true;
+        user.managedRestaurant = restaurantId;
+        await user.save();
+
         res.status(201).json({
             success: true,
             message: "Seller approved successfully",
-            approvedSeller: newApprovedSeller,
-            user: {
-                _id: user._id,
-                email: user.email,
-                isSeller: user.isSeller,
-                managedRestaurant: restaurant.name
-            }
+            approvedSeller: newApprovedSeller
         });
     } catch (error) {
         res.status(500).json({
