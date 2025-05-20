@@ -142,53 +142,18 @@ exports.getApprovedSellers = async (req, res) => {
 
 exports.approveSeller = async (req, res) => {
     try {
-        const { email, restaurantId, additionalNotes, name, phone } = req.body;
+        const { email, restaurantId, additionalNotes } = req.body;
 
-        // Validate required fields
-        if (!email || !restaurantId || !name || !phone) {
-            return res.status(400).json({ 
-                success: false,
-                message: "Email, restaurant ID, name and phone are required" 
-            });
-        }
 
-        // Check if restaurant exists
-        const restaurant = await Restaurant.findById(restaurantId);
-        if (!restaurant) {
+        const user = await User.findOne({ email });
+        if (!user) {
             return res.status(404).json({ 
                 success: false,
-                message: "Restaurant not found" 
+                message: "User not found" 
             });
         }
 
-        // Check if email already exists
-        let user = await User.findOne({ email });
-        
-        if (user) {
-            return res.status(400).json({
-                success: false,
-                message: "Email already exists",
-                suggestion: "Use a different email or ask the seller to login first"
-            });
-        }
 
-        // Create a temporary password
-        const tempPassword = Math.random().toString(36).slice(-8);
-        const hashedPassword = await bcrypt.hash(tempPassword, 10);
-
-        // Create new seller user
-        user = new User({
-            email,
-            password: hashedPassword,
-            name,
-            phone,
-            isSeller: true,
-            managedRestaurant: restaurantId
-        });
-
-        await user.save();
-
-        // Create approval record
         const newApprovedSeller = new ApprovedSeller({
             email,
             adminId: req.user._id,
@@ -198,62 +163,17 @@ exports.approveSeller = async (req, res) => {
 
         await newApprovedSeller.save();
 
-        // Send email with credentials
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.EMAIL_PASSWORD
-            }
-        });
 
-        const mailOptions = {
-            from: `"YaBalash Admin" <${process.env.EMAIL}>`,
-            to: email,
-            subject: 'Your Seller Account Approval',
-            html: `
-                <h1>Welcome ${name}!</h1>
-                <p>Your seller account has been approved by the admin.</p>
-                <p>Here are your login credentials:</p>
-                <ul>
-                    <li><strong>Email:</strong> ${email}</li>
-                    <li><strong>Temporary Password:</strong> ${tempPassword}</li>
-                </ul>
-                <p>Restaurant assigned: <strong>${restaurant.name}</strong></p>
-                <p>Please change your password after first login.</p>
-                <a href="https://y-balash.vercel.app/seller/login" style="
-                    display: inline-block;
-                    padding: 10px 20px;
-                    background-color: #4CAF50;
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 5px;
-                    margin-top: 15px;
-                ">Login to Your Seller Account</a>
-            `
-        };
-
-        await transporter.sendMail(mailOptions);
+        user.isSeller = true;
+        user.managedRestaurant = restaurantId;
+        await user.save();
 
         res.status(201).json({
             success: true,
-            message: "Seller approved and account created successfully",
-            data: {
-                seller: {
-                    id: user._id,
-                    email: user.email,
-                    name: user.name,
-                    phone: user.phone
-                },
-                restaurant: {
-                    id: restaurant._id,
-                    name: restaurant.name
-                }
-            }
+            message: "Seller approved successfully",
+            approvedSeller: newApprovedSeller
         });
-
     } catch (error) {
-        console.error("Error approving seller:", error);
         res.status(500).json({
             success: false,
             message: "Error approving seller",
@@ -261,5 +181,6 @@ exports.approveSeller = async (req, res) => {
         });
     }
 };
+
 
 
