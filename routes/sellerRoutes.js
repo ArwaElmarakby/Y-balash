@@ -822,7 +822,7 @@ router.get('/my-restaurant',
     }
 });
 
-  router.post('/seller-login', async (req, res) => {
+ router.post('/seller-login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -835,60 +835,63 @@ router.get('/my-restaurant',
             });
         }
 
-        // Find user with seller role
-        const user = await User.findOne({ email, isSeller: true });
-        
-        if (!user) {
+        // Find seller account
+        const seller = await User.findOne({ 
+            email: email.toLowerCase().trim(), // Case-insensitive and trim whitespace
+            isSeller: true 
+        });
+
+        if (!seller) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid credentials or not a seller",
+                message: "Invalid email or seller account doesn't exist",
                 error: "INVALID_CREDENTIALS"
             });
         }
 
         // Verify password
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        const isPasswordValid = await bcrypt.compare(password, seller.password);
         if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid credentials",
+                message: "Incorrect password",
                 error: "INVALID_CREDENTIALS"
             });
         }
 
-        // Check if seller has a restaurant assigned
-        if (!user.managedRestaurant) {
+        // Verify restaurant assignment
+        if (!seller.managedRestaurant) {
             return res.status(403).json({
                 success: false,
-                message: "No restaurant assigned to this seller",
+                message: "Seller account not assigned to any restaurant",
                 error: "NO_RESTAURANT_ASSIGNED"
             });
         }
 
-        // Generate JWT token
+        // Create JWT token
         const token = jwt.sign(
             {
-                userId: user._id,
-                isSeller: user.isSeller,
-                restaurantId: user.managedRestaurant,
-                email: user.email
+                userId: seller._id,
+                email: seller.email,
+                restaurantId: seller.managedRestaurant,
+                isSeller: true
             },
             process.env.JWT_SECRET,
             { expiresIn: '8h' }
         );
 
-        // Successful login response
+        // Successful response
         return res.status(200).json({
             success: true,
             message: "Seller login successful",
             data: {
                 token,
                 seller: {
-                    id: user._id,
-                    email: user.email,
-                    name: user.name,
-                    phone: user.phone,
-                    restaurantId: user.managedRestaurant
+                    id: seller._id,
+                    name: seller.name,
+                    email: seller.email,
+                    phone: seller.phone,
+                    restaurantId: seller.managedRestaurant
                 }
             }
         });
@@ -897,12 +900,11 @@ router.get('/my-restaurant',
         console.error("Seller login error:", error);
         return res.status(500).json({
             success: false,
-            message: "Internal server error",
+            message: "An error occurred during login",
             error: "SERVER_ERROR",
             systemError: error.message
         });
     }
 });
-
   
 module.exports = router;

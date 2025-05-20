@@ -142,40 +142,30 @@ exports.getApprovedSellers = async (req, res) => {
 
 exports.approveSeller = async (req, res) => {
     try {
-        const { email, restaurantId, additionalNotes, name, phone, password } = req.body;
+        const { email, restaurantId, password, name, phone } = req.body;
 
-        // Validate required fields
-        if (!email || !restaurantId || !name || !phone || !password) {
-            return res.status(400).json({ 
-                success: false,
-                message: "Email, restaurant ID, name, phone and password are required" 
-            });
-        }
-
-        // Check if restaurant exists
-        const restaurant = await Restaurant.findById(restaurantId);
-        if (!restaurant) {
-            return res.status(404).json({ 
-                success: false,
-                message: "Restaurant not found" 
-            });
-        }
-
-        // Check if email already exists
-        let user = await User.findOne({ email });
-        
-        if (user) {
+        // Validation
+        if (!email || !restaurantId || !password || !name || !phone) {
             return res.status(400).json({
                 success: false,
-                message: "Email already exists"
+                message: "Email, restaurant ID, password, name and phone are required"
             });
         }
 
-        // Hash the admin-provided password
+        // // Check if user exists
+        // const existingUser = await User.findOne({ email });
+        // if (existingUser) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: "Email already exists"
+        //     });
+        // }
+
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create new seller user
-        user = new User({
+        // Create seller account
+        const newSeller = new User({
             email,
             password: hashedPassword,
             name,
@@ -184,72 +174,32 @@ exports.approveSeller = async (req, res) => {
             managedRestaurant: restaurantId
         });
 
-        await user.save();
+        await newSeller.save();
 
         // Create approval record
-        const newApprovedSeller = new ApprovedSeller({
+        const approvalRecord = new ApprovedSeller({
             email,
             adminId: req.user._id,
             restaurantId,
-            additionalNotes
+            approvedAt: new Date()
         });
 
-        await newApprovedSeller.save();
-
-        // Send email notification (without password)
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.EMAIL_PASSWORD
-            }
-        });
-
-        const mailOptions = {
-            from: `"YaBalash Admin" <${process.env.EMAIL}>`,
-            to: email,
-            subject: 'Your Seller Account Has Been Approved',
-            html: `
-                <h1>Welcome ${name}!</h1>
-                <p>Your seller account has been approved by the admin.</p>
-                <p>You can now login to your seller dashboard using the credentials provided by the admin.</p>
-                <p>Restaurant assigned: <strong>${restaurant.name}</strong></p>
-                <a href="https://y-balash.vercel.app/seller/login" style="
-                    display: inline-block;
-                    padding: 10px 20px;
-                    background-color: #4CAF50;
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 5px;
-                    margin-top: 15px;
-                ">Login to Your Seller Account</a>
-            `
-        };
-
-        await transporter.sendMail(mailOptions);
+        await approvalRecord.save();
 
         res.status(201).json({
             success: true,
-            message: "Seller approved successfully",
+            message: "Seller account created successfully",
             data: {
-                seller: {
-                    id: user._id,
-                    email: user.email,
-                    name: user.name,
-                    phone: user.phone
-                },
-                restaurant: {
-                    id: restaurant._id,
-                    name: restaurant.name
-                }
+                sellerId: newSeller._id,
+                email: newSeller.email,
+                restaurantId: newSeller.managedRestaurant
             }
         });
 
     } catch (error) {
-        console.error("Error approving seller:", error);
         res.status(500).json({
             success: false,
-            message: "Error approving seller",
+            message: "Error creating seller account",
             error: error.message
         });
     }
