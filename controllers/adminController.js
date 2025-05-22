@@ -151,7 +151,7 @@ exports.approveSeller = async (req, res) => {
             });
         }
         
-        // 1. التحقق من وجود المطعم
+        
         const restaurant = await Restaurant.findById(restaurantId);
         if (!restaurant) {
             return res.status(404).json({ 
@@ -160,11 +160,11 @@ exports.approveSeller = async (req, res) => {
             });
         }
 
-        // 2. البحث عن المستخدم أو إنشاء حساب جديد
+        
         let user = await User.findOne({ email });
         
         if (!user) {
-            // إنشاء حساب جديد إذا لم يتم العثور على المستخدم
+            
             if (!name || !password || !phone) {
                 return res.status(400).json({
                     success: false,
@@ -176,17 +176,17 @@ exports.approveSeller = async (req, res) => {
                 email,
                 name,
                 password, 
-                phone: phone || "0000000000",// سيتم تشفيرها تلقائياً بفضل middleware في الموديل
+                phone: phone || "0000000000",
                 isSeller: true,
                 managedRestaurant: restaurantId
             });
         } else {
-            // تحديث المستخدم الموجود
+        
             user.isSeller = true;
             user.managedRestaurant = restaurantId;
         }
 
-        // 3. إنشاء سجل الموافقة
+        
         const newApprovedSeller = new ApprovedSeller({
             email,
             adminId: req.user._id,
@@ -195,13 +195,11 @@ exports.approveSeller = async (req, res) => {
             additionalNotes
         });
 
-        // 4. حفظ كل شيء
         await Promise.all([
             user.save(),
             newApprovedSeller.save()
         ]);
 
-        // 5. الرد النهائي
         res.status(201).json({
             success: true,
             message: "Seller approved successfully",
