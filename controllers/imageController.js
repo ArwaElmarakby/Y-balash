@@ -69,6 +69,10 @@ exports.addImage = async (req, res) => {
         return res.status(404).json({ message: 'Category not found' });
       }
 
+      if (req.user.isSeller && !req.user.managedRestaurant) {
+        return res.status(403).json({ message: 'You are not assigned to any restaurant' });
+      }
+
 
       const discount = discountPercentage > 0 ? {
         percentage: discountPercentage,
@@ -116,6 +120,9 @@ exports.getImages = async (req, res) => {
       if (!image) {
         return res.status(404).json({ message: 'Image not found' });
       }
+      if (req.user.isSeller && !req.user.managedRestaurant) {
+        return res.status(403).json({ message: 'You are not assigned to any restaurant' });
+      }
       res.status(200).json({ message: 'Item deleted successfully' });
     } catch (error) {
       res.status(500).json({ message: 'Server error', error });
@@ -144,6 +151,10 @@ exports.getImages = async (req, res) => {
         const updateData = { name, price, quantity };
         if (imageUrl) updateData.imageUrl = imageUrl;
   
+
+        if (req.user.isSeller && !req.user.managedRestaurant) {
+        return res.status(403).json({ message: 'You are not assigned to any restaurant' });
+      }
 
         if (discountPercentage !== undefined) {
           updateData.discount = discountPercentage > 0 ? {

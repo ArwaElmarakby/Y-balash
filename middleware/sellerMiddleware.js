@@ -5,8 +5,8 @@ const sellerMiddleware = async (req, res, next) => {
 
     try {
         const user = await User.findById(userId);
-        if (!user || !user.isSeller) {
-            return res.status(403).json({ message: 'Access denied. Sellers only.' });
+        if (!user || (!user.isSeller && !user.isAdmin)) {
+            return res.status(403).json({ message: 'Access denied. Sellers or Admins only.' });
         }
         req.seller = user;
         next();
