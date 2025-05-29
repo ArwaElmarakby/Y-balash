@@ -974,31 +974,9 @@ app.get("/", (req, res) => {
 
 app.get("/auth/google", passport.authenticate("google", {scope: ["profile", "email"]}));
 
-// app.get("/auth/google/callback", passport.authenticate('google', {failureRedirect: "/"}), (req, res) => {
-//     res.redirect('/profile');
-// });
-
-
-app.get("/auth/google/callback", (req, res, next) => {
-    passport.authenticate('google', (err, user, info) => {
-        if (err) {
-            return res.status(500).json({ message: 'Authentication error', error: err });
-        }
-        if (!user) {
-            return res.status(401).json({ message: 'Authentication failed', info });
-        }
-        req.logIn(user, (err) => {
-            if (err) {
-                return res.status(500).json({ message: 'Login error', error: err });
-            }
-            const token = user.id; // أو استخدم JWT لتوليد توكن
-            const email = user.emails[0].value;
-            const name = user.displayName;
-            res.json({ token, email, name });
-        });
-    })(req, res, next);
+app.get("/auth/google/callback", passport.authenticate('google', {failureRedirect: "/"}), (req, res) => {
+    res.redirect('/profile');
 });
-
 
 app.get("/profile", (req, res) => {
     if (!req.user) {
