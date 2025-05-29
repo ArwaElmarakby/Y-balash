@@ -974,9 +974,20 @@ app.get("/", (req, res) => {
 
 app.get("/auth/google", passport.authenticate("google", {scope: ["profile", "email"]}));
 
-app.get("/auth/google/callback", passport.authenticate('google', {failureRedirect: "/"}), (req, res) => {
-    res.redirect('/profile');
+// app.get("/auth/google/callback", passport.authenticate('google', {failureRedirect: "/"}), (req, res) => {
+//     res.redirect('/profile');
+// });
+
+
+
+app.get("/auth/google/callback", passport.authenticate('google', { failureRedirect: "/" }), (req, res) => {
+    res.status(200).json({
+        token: req.user.id,  // Assuming you want to return the user ID as a token
+        email: req.user.emails[0].value,  // Get the user's email
+        displayName: req.user.displayName  // Include the display name if needed
+    });
 });
+
 
 app.get("/profile", (req, res) => {
     if (!req.user) {
