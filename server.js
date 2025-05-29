@@ -974,9 +974,21 @@ app.get("/", (req, res) => {
 
 app.get("/auth/google", passport.authenticate("google", {scope: ["profile", "email"]}));
 
+// app.get("/auth/google/callback", passport.authenticate('google', {failureRedirect: "/"}), (req, res) => {
+//     res.redirect('/profile');
+// });
+
+
 app.get("/auth/google/callback", passport.authenticate('google', {failureRedirect: "/"}), (req, res) => {
-    res.redirect('/profile');
+    const token = req.user.id;
+    const email = req.user.emails[0].value;
+    const name = req.user.displayName;
+    const phone = req.user.phoneNumbers[0].value; 
+    res.json({ token, email, name, phone });
 });
+
+
+
 
 app.get("/profile", (req, res) => {
     if (!req.user) {
