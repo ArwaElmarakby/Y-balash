@@ -979,15 +979,25 @@ app.get("/auth/google", passport.authenticate("google", {scope: ["profile", "ema
 // });
 
 
-app.get("/auth/google/callback", passport.authenticate('google', {failureRedirect: "/"}), (req, res) => {
-    const token = req.user.id;
-    const email = req.user.emails[0].value;
-    const name = req.user.displayName;
-    const phone = req.user.phoneNumbers[0].value; 
-    res.json({ token, email, name, phone });
+app.get("/auth/google/callback", (req, res, next) => {
+    passport.authenticate('google', (err, user, info) => {
+        if (err) {
+            return res.status(500).json({ message: 'Authentication error', error: err });
+        }
+        if (!user) {
+            return res.status(401).json({ message: 'Authentication failed', info });
+        }
+        req.logIn(user, (err) => {
+            if (err) {
+                return res.status(500).json({ message: 'Login error', error: err });
+            }
+            const token = user.id; // أو استخدم JWT لتوليد توكن
+            const email = user.emails[0].value;
+            const name = user.displayName;
+            res.json({ token, email, name });
+        });
+    })(req, res, next);
 });
-
-
 
 
 app.get("/profile", (req, res) => {
