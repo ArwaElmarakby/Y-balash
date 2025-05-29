@@ -974,49 +974,9 @@ app.get("/", (req, res) => {
 
 app.get("/auth/google", passport.authenticate("google", {scope: ["profile", "email"]}));
 
-// app.get("/auth/google/callback", passport.authenticate('google', {failureRedirect: "/"}), (req, res) => {
-//     res.redirect('/profile');
-// });
-
-app.get("/auth/google/callback", passport.authenticate('google', { failureRedirect: "/" }), async (req, res) => {
-    try {
-        // ابحث عن المستخدم في قاعدة البيانات باستخدام البريد الإلكتروني
-        let user = await User.findOne({ email: req.user.email });
-
-        // إذا لم يكن موجودًا، قم بإنشاء مستخدم جديد
-        if (!user) {
-            user = new User({
-                email: req.user.email,
-                firstName: req.user.given_name, // تأكد من أن لديك هذه البيانات
-                lastName: req.user.family_name, // تأكد من أن لديك هذه البيانات
-                isSeller: false, // أو أي قيمة افتراضية أخرى
-                isAdmin: false, // أو أي قيمة افتراضية أخرى
-                // يمكنك إضافة المزيد من الحقول حسب الحاجة
-            });
-            await user.save();
-        }
-
-        // إنشاء التوكن
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-
-        // إرجاع التوكن ومعلومات المستخدم
-        res.status(200).json({
-            success: true,
-            token,
-            user: {
-                email: user.email,
-                phone: user.phone,
-                isSeller: user.isSeller,
-                isAdmin: user.isAdmin
-            }
-        });
-    } catch (error) {
-        console.error("Error during Google login:", error);
-        res.status(500).json({ message: 'Server error' });
-    }
+app.get("/auth/google/callback", passport.authenticate('google', {failureRedirect: "/"}), (req, res) => {
+    res.redirect('/profile');
 });
-
-
 
 app.get("/profile", (req, res) => {
     if (!req.user) {
