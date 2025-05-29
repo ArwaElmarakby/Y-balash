@@ -980,13 +980,26 @@ app.get("/auth/google", passport.authenticate("google", {scope: ["profile", "ema
 
 app.get("/auth/google/callback", passport.authenticate('google', { failureRedirect: "/" }), async (req, res) => {
     try {
-        const user = await User.findOne({ email: req.user.email });
+        // ابحث عن المستخدم في قاعدة البيانات باستخدام البريد الإلكتروني
+        let user = await User.findOne({ email: req.user.email });
+
+        // إذا لم يكن موجودًا، قم بإنشاء مستخدم جديد
         if (!user) {
-            return res.status(404).json({ message: 'User  not found' });
+            user = new User({
+                email: req.user.email,
+                firstName: req.user.given_name, // تأكد من أن لديك هذه البيانات
+                lastName: req.user.family_name, // تأكد من أن لديك هذه البيانات
+                isSeller: false, // أو أي قيمة افتراضية أخرى
+                isAdmin: false, // أو أي قيمة افتراضية أخرى
+                // يمكنك إضافة المزيد من الحقول حسب الحاجة
+            });
+            await user.save();
         }
 
+        // إنشاء التوكن
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
+        // إرجاع التوكن ومعلومات المستخدم
         res.status(200).json({
             success: true,
             token,
@@ -1002,6 +1015,7 @@ app.get("/auth/google/callback", passport.authenticate('google', { failureRedire
         res.status(500).json({ message: 'Server error' });
     }
 });
+
 
 
 app.get("/profile", (req, res) => {
