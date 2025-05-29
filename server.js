@@ -974,9 +974,35 @@ app.get("/", (req, res) => {
 
 app.get("/auth/google", passport.authenticate("google", {scope: ["profile", "email"]}));
 
-app.get("/auth/google/callback", passport.authenticate('google', {failureRedirect: "/"}), (req, res) => {
-    res.redirect('/profile');
+// app.get("/auth/google/callback", passport.authenticate('google', {failureRedirect: "/"}), (req, res) => {
+//     res.redirect('/profile');
+// });
+
+app.get("/auth/google/callback", passport.authenticate('google', { failureRedirect: "/" }), async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.user.email });
+        if (!user) {
+            return res.status(404).json({ message: 'User  not found' });
+        }
+
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+        res.status(200).json({
+            success: true,
+            token,
+            user: {
+                email: user.email,
+                phone: user.phone,
+                isSeller: user.isSeller,
+                isAdmin: user.isAdmin
+            }
+        });
+    } catch (error) {
+        console.error("Error during Google login:", error);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
+
 
 app.get("/profile", (req, res) => {
     if (!req.user) {
