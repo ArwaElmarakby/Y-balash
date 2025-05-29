@@ -980,14 +980,32 @@ app.get("/auth/google", passport.authenticate("google", {scope: ["profile", "ema
 
 
 
+// app.get("/auth/google/callback", passport.authenticate('google', { failureRedirect: "/" }), (req, res) => {
+//     res.status(200).json({
+//         token: req.user.id,  // Assuming you want to return the user ID as a token
+//         email: req.user.emails[0].value,  // Get the user's email
+//         displayName: req.user.displayName  // Include the display name if needed
+//     });
+// });
+
+
+
+const jwt = require('jsonwebtoken');
+
 app.get("/auth/google/callback", passport.authenticate('google', { failureRedirect: "/" }), (req, res) => {
+    // Create a token using user information
+    const token = jwt.sign({
+        id: req.user.id, // This should be a unique identifier for the user
+        email: req.user.emails[0].value,
+        displayName: req.user.displayName
+    }, process.env.JWT_SECRET, { expiresIn: '1h' }); // Set your secret and expiration
+
     res.status(200).json({
-        token: req.user.id,  // Assuming you want to return the user ID as a token
-        email: req.user.emails[0].value,  // Get the user's email
-        displayName: req.user.displayName  // Include the display name if needed
+        token, // Return the generated token
+        email: req.user.emails[0].value,
+        displayName: req.user.displayName
     });
 });
-
 
 app.get("/profile", (req, res) => {
     if (!req.user) {
