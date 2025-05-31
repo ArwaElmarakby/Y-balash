@@ -80,7 +80,7 @@ exports.addImage = async (req, res) => {
                 return res.status(400).json({ message: "Restaurant ID is required" });
             }
 
-      const newImage = new Image({ name, sku, description, quantity, price, imageUrl, category: categoryId, restaurant: restaurantId, discount, productionDate, expiryDate });
+      const newImage = new Image({ name, sku, description, quantity, price, imageUrl, category: categoryId, restaurant: restaurantId, discount, productionDate: productionDate ? productionDate.split('T')[0] : null, expiryDate: expiryDate ? expiryDate.split('T')[0] : null });
       await newImage.save();
 
       category.items.push(newImage._id);
