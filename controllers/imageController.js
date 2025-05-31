@@ -56,10 +56,10 @@ exports.addImage = async (req, res) => {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku , description, restaurantId  } = req.body;
+    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku , description, restaurantId, productionDate, expiryDate } = req.body;
     const imageUrl = req.file ? req.file.path : null;
 
-    if (!name || !quantity || !price || !imageUrl || !categoryId) {
+    if (!name || !quantity || !price || !imageUrl || !categoryId || !productionDate || !expiryDate) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -80,7 +80,7 @@ exports.addImage = async (req, res) => {
                 return res.status(400).json({ message: "Restaurant ID is required" });
             }
 
-      const newImage = new Image({ name, sku, description, quantity, price, imageUrl, category: categoryId, restaurant: restaurantId, discount });
+      const newImage = new Image({ name, sku, description, quantity, price, imageUrl, category: categoryId, restaurant: restaurantId, discount, productionDate: productionDate ? new Date(productionDate) : null, expiryDate: expiryDate ? new Date(expiryDate) : null });
       await newImage.save();
 
       category.items.push(newImage._id);
