@@ -4,9 +4,6 @@ const Category = require('../models/categoryModel');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const axios = require('axios');
-const cron = require('node-cron');
-
 
 
 // Cloudinary Configuration
@@ -73,37 +70,15 @@ exports.addImage = async (req, res) => {
       }
 
 
-      // const discount = discountPercentage > 0 ? {
-      //   percentage: discountPercentage,
-      //   startDate: discountStartDate || new Date(),
-      //   endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
-      // } : undefined;
+      const discount = discountPercentage > 0 ? {
+        percentage: discountPercentage,
+        startDate: discountStartDate || new Date(),
+        endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
+      } : undefined;
 
       if (!restaurantId) {
                 return res.status(400).json({ message: "Restaurant ID is required" });
             }
-
-       // حساب السعر المخفض تلقائياً باستخدام API النموذج
-      let predictedPrice = price; // القيمة الافتراضية
-      try {
-        const response = await axios.post('http://185.225.233.14:8001/predict_price', {
-          production_date: productionDate,
-          expiry_date: expiryDate,
-          price_fresh: price
-        });
-        predictedPrice = response.data.predicted_price;
-      } catch (apiError) {
-        console.error("Failed to get predicted price:", apiError.message);
-        // نستمر بالقيمة الأصلية في حالة فشل API
-      }
-
-
-      const discount = {
-        percentage: Math.round(((price - predictedPrice) / price) * 100),
-        startDate: discountStartDate || new Date(),
-        endDate: discountEndDate || expiryDate,
-        predictedPrice: predictedPrice
-      };
 
       const newImage = new Image({ name, sku, description, quantity, price, imageUrl, category: categoryId, restaurant: restaurantId, discount, productionDate: productionDate ? productionDate.split('T')[0] : null, expiryDate: expiryDate ? expiryDate.split('T')[0] : null });
       await newImage.save();
@@ -111,14 +86,7 @@ exports.addImage = async (req, res) => {
       category.items.push(newImage._id);
       await category.save();
 
-     // res.status(201).json({ message: 'Item added successfully', image: newImage });
-     res.status(201).json({ 
-        message: 'Item added successfully', 
-        image: {
-          ...newImage.toObject(),
-          discountedPrice: predictedPrice
-        } 
-      });
+      res.status(201).json({ message: 'Item added successfully', image: newImage });
     } catch (error) {
       if (error.code === 11000 && error.keyPattern.sku) {
         return res.status(400).json({ 
@@ -283,52 +251,3 @@ exports.getItemsSummary = async (req, res) => {
       res.status(500).json({ message: 'Server error', error });
   }
 };
-
-
-// وظيفة لتحديث الأسعار بناءً على تاريخ الصلاحية
-async function updateProductPrices() {
-  try {
-    const products = await Image.find({
-      expiryDate: { $exists: true, $ne: null }
-    });
-
-    const today = new Date();
-    
-    for (const product of products) {
-      try {
-        // حساب الأيام المتبقية حتى انتهاء الصلاحية
-        const expiryDate = new Date(product.expiryDate);
-        const daysRemaining = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
-
-        // تحديث السعر فقط إذا كانت الأيام المتبقية أقل من 7 أيام
-        if (daysRemaining < 7) {
-          const response = await axios.post('http://185.225.233.14:8001/predict_price', {
-            production_date: product.productionDate,
-            expiry_date: product.expiryDate,
-            price_fresh: product.price
-          });
-
-          const newPrice = response.data.predicted_price;
-          
-          await Image.findByIdAndUpdate(product._id, {
-            $set: {
-              'discount.percentage': Math.round(((product.price - newPrice) / product.price) * 100),
-              'discount.predictedPrice': newPrice,
-              'discount.startDate': today,
-              'discount.endDate': expiryDate
-            }
-          });
-
-          console.log(`Updated price for product ${product.name} to ${newPrice}`);
-        }
-      } catch (err) {
-        console.error(`Failed to update product ${product.name}:`, err.message);
-      }
-    }
-  } catch (error) {
-    console.error("Error in price update job:", error);
-  }
-}
-
-// جدولة تحديث الأسعار يومياً في الساعة 2 صباحاً
-cron.schedule('0 2 * * *', updateProductPrices);
