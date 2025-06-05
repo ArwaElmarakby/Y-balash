@@ -4,6 +4,8 @@ const Category = require('../models/categoryModel');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const axios = require('axios');
+const cron = require('node-cron');
 
 
 // Cloudinary Configuration
@@ -50,13 +52,70 @@ cloudinary.config({
 // };
 
 
+exports.calculateDiscountedPrice = async (productionDate, expiryDate, originalPrice) => {
+  try {
+    const response = await axios.post('http://185.225.233.14:8001/predict_price', {
+      production_date: productionDate,
+      expiry_date: expiryDate,
+      price_fresh: originalPrice
+    });
+    
+    return response.data.predicted_price;
+  } catch (error) {
+    console.error('Error calculating discounted price:', error);
+    return originalPrice; // في حالة الخطأ نعيد السعر الأصلي
+  }
+};
+
+// جدولة تحديث الأسعار يومياً
+cron.schedule('0 2 * * *', async () => {
+  try {
+    console.log('Running daily price update job...');
+    
+    const products = await Image.find({
+      expiryDate: { $exists: true, $ne: null },
+      productionDate: { $exists: true, $ne: null }
+    });
+    
+    for (const product of products) {
+      try {
+        const discountedPrice = await exports.calculateDiscountedPrice(
+          product.productionDate,
+          product.expiryDate,
+          product.price
+        );
+        
+        await Image.findByIdAndUpdate(product._id, {
+          $set: {
+            'discount.percentage': calculateDiscountPercentage(product.price, discountedPrice),
+            'discount.stock': product.quantity,
+            price: discountedPrice
+          }
+        });
+        
+        console.log(`Updated price for product ${product.name}`);
+      } catch (error) {
+        console.error(`Error updating product ${product.name}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error('Error in price update job:', error);
+  }
+});
+
+// دالة مساعدة لحساب نسبة الخصم
+function calculateDiscountPercentage(originalPrice, discountedPrice) {
+  return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
+}
+
+
 exports.addImage = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku , description, restaurantId, productionDate, expiryDate } = req.body;
+    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantId, productionDate, expiryDate } = req.body;
     const imageUrl = req.file ? req.file.path : null;
 
     if (!name || !quantity || !price || !imageUrl || !categoryId || !productionDate || !expiryDate) {
@@ -69,24 +128,49 @@ exports.addImage = async (req, res) => {
         return res.status(404).json({ message: 'Category not found' });
       }
 
+      // حساب السعر المخفض تلقائياً
+      const discountedPrice = await exports.calculateDiscountedPrice(
+        productionDate,
+        expiryDate,
+        price
+      );
 
-      const discount = discountPercentage > 0 ? {
-        percentage: discountPercentage,
+      const discount = {
+        percentage: calculateDiscountPercentage(price, discountedPrice),
         startDate: discountStartDate || new Date(),
-        endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
-      } : undefined;
+        endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        stock: quantity
+      };
 
       if (!restaurantId) {
-                return res.status(400).json({ message: "Restaurant ID is required" });
-            }
+        return res.status(400).json({ message: "Restaurant ID is required" });
+      }
 
-      const newImage = new Image({ name, sku, description, quantity, price, imageUrl, category: categoryId, restaurant: restaurantId, discount, productionDate: productionDate ? productionDate.split('T')[0] : null, expiryDate: expiryDate ? expiryDate.split('T')[0] : null });
+      const newImage = new Image({ 
+        name, 
+        sku, 
+        description, 
+        quantity, 
+        price: discountedPrice, // نستخدم السعر المخفض
+        imageUrl, 
+        category: categoryId, 
+        restaurant: restaurantId, 
+        discount,
+        productionDate: productionDate ? productionDate.split('T')[0] : null, 
+        expiryDate: expiryDate ? expiryDate.split('T')[0] : null 
+      });
+
       await newImage.save();
 
       category.items.push(newImage._id);
       await category.save();
 
-      res.status(201).json({ message: 'Item added successfully', image: newImage });
+      res.status(201).json({ 
+        message: 'Item added successfully', 
+        image: newImage,
+        originalPrice: price, // نرسل السعر الأصلي في الرد
+        discountedPrice: discountedPrice // والسعر بعد الخصم
+      });
     } catch (error) {
       if (error.code === 11000 && error.keyPattern.sku) {
         return res.status(400).json({ 
