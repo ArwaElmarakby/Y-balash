@@ -63,11 +63,11 @@ exports.calculateDiscountedPrice = async (productionDate, expiryDate, originalPr
     return response.data.predicted_price;
   } catch (error) {
     console.error('Error calculating discounted price:', error);
-    return originalPrice; // في حالة الخطأ نعيد السعر الأصلي
+    return originalPrice; 
   }
 };
 
-// جدولة تحديث الأسعار يومياً
+
 cron.schedule('0 2 * * *', async () => {
   try {
     console.log('Running daily price update job...');
@@ -103,7 +103,7 @@ cron.schedule('0 2 * * *', async () => {
   }
 });
 
-// دالة مساعدة لحساب نسبة الخصم
+
 function calculateDiscountPercentage(originalPrice, discountedPrice) {
   return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
 }
@@ -128,7 +128,7 @@ exports.addImage = async (req, res) => {
         return res.status(404).json({ message: 'Category not found' });
       }
 
-      // حساب السعر المخفض تلقائياً
+      
       const discountedPrice = await exports.calculateDiscountedPrice(
         productionDate,
         expiryDate,
@@ -151,7 +151,7 @@ exports.addImage = async (req, res) => {
         sku, 
         description, 
         quantity, 
-        price: discountedPrice, // نستخدم السعر المخفض
+        price: discountedPrice, 
         imageUrl, 
         category: categoryId, 
         restaurant: restaurantId, 
@@ -168,8 +168,8 @@ exports.addImage = async (req, res) => {
       res.status(201).json({ 
         message: 'Item added successfully', 
         image: newImage,
-        originalPrice: price, // نرسل السعر الأصلي في الرد
-        discountedPrice: discountedPrice // والسعر بعد الخصم
+        originalPrice: price, 
+        discountedPrice: discountedPrice 
       });
     } catch (error) {
       if (error.code === 11000 && error.keyPattern.sku) {
