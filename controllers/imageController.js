@@ -4,6 +4,7 @@ const Category = require('../models/categoryModel');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { updateProductPrices } = require('../services/priceUpdateService');
 
 
 // Cloudinary Configuration
@@ -56,7 +57,7 @@ exports.addImage = async (req, res) => {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku , description, restaurantId, productionDate, expiryDate } = req.body;
+    const { name, quantity, price, categoryId, sku , description, restaurantId, productionDate, expiryDate } = req.body;
     const imageUrl = req.file ? req.file.path : null;
 
     if (!name || !quantity || !price || !imageUrl || !categoryId || !productionDate || !expiryDate) {
@@ -70,17 +71,29 @@ exports.addImage = async (req, res) => {
       }
 
 
-      const discount = discountPercentage > 0 ? {
-        percentage: discountPercentage,
-        startDate: discountStartDate || new Date(),
-        endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
-      } : undefined;
+      // const discount = discountPercentage > 0 ? {
+      //   percentage: discountPercentage,
+      //   startDate: discountStartDate || new Date(),
+      //   endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) 
+      // } : undefined;
 
       if (!restaurantId) {
                 return res.status(400).json({ message: "Restaurant ID is required" });
             }
 
-      const newImage = new Image({ name, sku, description, quantity, price, imageUrl, category: categoryId, restaurant: restaurantId, discount, productionDate: productionDate ? productionDate.split('T')[0] : null, expiryDate: expiryDate ? expiryDate.split('T')[0] : null });
+      const newImage = new Image({ name,
+        sku,
+        description,
+        quantity,
+        price,
+        discountedPrice: price, // في البداية يكون السعر المخفض مساوي للسعر الأصلي
+        imageUrl,
+        category: categoryId,
+        restaurant: restaurantId,
+        productionDate: new Date(productionDate),
+        expiryDate: new Date(expiryDate),
+        lastPriceUpdate: new Date()
+      });
       await newImage.save();
 
       category.items.push(newImage._id);
@@ -249,5 +262,23 @@ exports.getItemsSummary = async (req, res) => {
       res.status(200).json(items);
   } catch (error) {
       res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
+
+exports.manualPriceUpdate = async (req, res) => {
+  try {
+    await updateProductPrices();
+    res.status(200).json({ 
+      success: true,
+      message: 'Price update process completed successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update prices',
+      error: error.message
+    });
   }
 };

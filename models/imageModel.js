@@ -5,6 +5,7 @@ const imageSchema = new mongoose.Schema({
   sku: { type: String, unique: true },
   description: { type: String },
   price: { type: String, required: true },
+  discountedPrice: { type: Number },
   productionDate: { type: String },
   expiryDate: { type: String },  
   quantity: { type: String, required: true },
@@ -22,6 +23,7 @@ const imageSchema = new mongoose.Schema({
   },
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   restaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant', default: '67902b150d502e92f5ce1a9f' },
+  lastPriceUpdate: { type: Date },
   lastStockStatus: { 
     type: String, 
     enum: ['in', 'out', null],
