@@ -875,7 +875,7 @@ const clientInfoRoutes = require('./routes/clientInfoRoutes');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-
+const { schedulePriceUpdates } = require('./services/priceUpdateService');
 
 
 // Initialize app
@@ -1204,9 +1204,14 @@ app.get('*', (req, res) => {
     res.status(404).send('Page not found');
 });
 
+schedulePriceUpdates();
+
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log('Price update service scheduled to run daily at 2 AM');
+});
 
 
 

@@ -5,6 +5,7 @@ const { addImage, getImages, deleteImage, updateImage, searchImage, incrementVie
 const { authMiddleware } = require('./authRoutes');
 const adminMiddleware = require('../middleware/adminMiddleware');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
+const { manualPriceUpdate } = require('../controllers/imageController');
 
 router.post('/add', authMiddleware, addImage); // Image upload is handled inside the controller
 router.get('/all', getImages);
@@ -15,6 +16,7 @@ router.put('/view/:id', incrementViews);
 router.get('/best-selling', getBestSelling);
 router.post('/item-details', getItemDetails);
 router.get('/summary', getItemsSummary);
+router.post('/update-prices', authMiddleware, adminMiddleware, manualPriceUpdate)
 
 
 module.exports = router;
