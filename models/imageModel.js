@@ -5,11 +5,8 @@ const imageSchema = new mongoose.Schema({
   sku: { type: String, unique: true },
   description: { type: String },
   price: { type: String, required: true },
-  discountedPrice: { type: Number },
-  // productionDate: { type: String },
-  // expiryDate: { type: String },  
-  productionDate: { type: Date, required: true }, 
-  expiryDate: { type: Date, required: true },
+  productionDate: { type: String },
+  expiryDate: { type: String },  
   quantity: { type: String, required: true },
   imageUrl: { type: String, required: true },
   views: { type: Number, default: 0 },
@@ -29,8 +26,7 @@ const imageSchema = new mongoose.Schema({
     type: String, 
     enum: ['in', 'out', null],
     default: null 
-  },
-  lastPriceUpdate: { type: Date } 
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Image', imageSchema);
