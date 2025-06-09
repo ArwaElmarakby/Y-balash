@@ -321,12 +321,12 @@ exports.approveSeller = async (req, res) => {
 
 exports.getLowStockItems = async (req, res) => {
     try {
-        // تحديد الحد الأدنى للكمية (15 في هذه الحالة)
-        const LOW_STOCK_THRESHOLD = 4;
+        // يمكن جعل الـ threshold قابل للتعديل عبر query parameter
+        const threshold = parseInt(req.query.threshold) || 7; // Default: 7
 
-        // البحث عن المنتجات التي كميتها أقل من أو تساوي 15
+        // البحث عن المنتجات التي كميتها أقل من أو تساوي threshold
         const lowStockItems = await Image.find({ 
-            quantity: { $lte: LOW_STOCK_THRESHOLD }
+            quantity: { $lte: threshold }
         }).populate('category', 'name');
 
         if (!lowStockItems || lowStockItems.length === 0) {
@@ -336,20 +336,18 @@ exports.getLowStockItems = async (req, res) => {
             });
         }
 
-        // تنسيق البيانات للإرجاع
-        const formattedItems = lowStockItems.map(item => ({
-            id: item._id,
+        // تنسيق البيانات للإرجاع (الحد الأدنى من الحقول)
+        const simplifiedItems = lowStockItems.map(item => ({
             name: item.name,
-            remainingQuantity: item.quantity,
             category: item.category ? item.category.name : 'Uncategorized',
-            imageUrl: item.imageUrl || null
+            remainingQuantity: item.quantity
         }));
 
         res.status(200).json({
             success: true,
-            threshold: LOW_STOCK_THRESHOLD,
-            count: formattedItems.length,
-            items: formattedItems
+            threshold,
+            count: simplifiedItems.length,
+            items: simplifiedItems
         });
 
     } catch (error) {
