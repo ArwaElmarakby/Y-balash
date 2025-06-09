@@ -6,7 +6,7 @@ const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const axios = require('axios');
 const cron = require('node-cron');
-
+const { logActivity } = require('./activityController');
 
 // Cloudinary Configuration
 cloudinary.config({
@@ -164,6 +164,12 @@ exports.addImage = async (req, res) => {
 
       category.items.push(newImage._id);
       await category.save();
+
+      await logActivity('product_added', req.user._id, {
+    productName: name,
+    productId: newImage._id
+});
+
 
       res.status(201).json({ 
         message: 'Item added successfully', 
