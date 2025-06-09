@@ -235,13 +235,13 @@ exports.getImages = async (req, res) => {
         if (imageUrl) updateData.imageUrl = imageUrl;
   
 
-        if (discountPercentage !== undefined) {
-          updateData.discount = discountPercentage > 0 ? {
-            percentage: discountPercentage,
-            startDate: discountStartDate || new Date(),
-            endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-          } : null;
-        }
+        // if (discountPercentage !== undefined) {
+        //   updateData.discount = discountPercentage > 0 ? {
+        //     percentage: discountPercentage,
+        //     startDate: discountStartDate || new Date(),
+        //     endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        //   } : null;
+        // }
   
         const updatedImage = await Image.findByIdAndUpdate(
           id,
