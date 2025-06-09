@@ -248,16 +248,19 @@ exports.getImages = async (req, res) => {
           updateData,
           { new: true }
         );
-        if (quantity !== undefined && quantity !== updatedImage.quantity) {
-    await logActivity('stock_updated', req.user._id, {
-        productName: updatedImage.name,
-        newQuantity: quantity
-    });
-}
+       
   
         if (!updatedImage) {
           return res.status(404).json({ message: 'Item not found' });
         }
+
+         if (quantity !== undefined && quantity !== updatedImage.quantity) {
+        await logActivity('stock_updated', req.user._id, {
+          productName: updatedImage.name,
+          newQuantity: quantity
+        });
+      }
+
   
         res.status(200).json({
           message: 'Item updated successfully',
