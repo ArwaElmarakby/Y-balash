@@ -165,6 +165,8 @@ exports.addImage = async (req, res) => {
       category.items.push(newImage._id);
       await category.save();
 
+      await logActivity('Product Added', `Added product: ${newImage.name}`, req.user._id);
+
       res.status(201).json({ 
         message: 'Item added successfully', 
         image: newImage,
