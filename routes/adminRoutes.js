@@ -781,6 +781,56 @@ router.get('/rejected-sellers', authMiddleware, adminMiddleware, async (req, res
 });
 
 
+router.get('/orders-summary', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const now = new Date();
+        
+        // Today's date at 00:00:00
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        
+        // Start of this week (Sunday)
+        const startOfWeek = new Date();
+        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        
+        // Start of this month
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        // Count orders for each period
+        const [todayCount, weekCount, monthCount] = await Promise.all([
+            Order.countDocuments({
+                createdAt: { $gte: startOfToday, $lte: now }
+            }),
+            Order.countDocuments({
+                createdAt: { $gte: startOfWeek, $lte: now }
+            }),
+            Order.countDocuments({
+                createdAt: { $gte: startOfMonth, $lte: now }
+            })
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                today: todayCount,
+                thisWeek: weekCount,
+                thisMonth: monthCount
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching orders summary:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch orders summary',
+            error: error.message
+        });
+    }
+});
+
+
 router.get('/approved-sellers', authMiddleware, adminMiddleware, getApprovedSellers);
 
 
