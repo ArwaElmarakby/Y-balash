@@ -6,7 +6,7 @@ const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const axios = require('axios');
 const cron = require('node-cron');
-
+const { logActivity } = require('./activityController');
 
 // Cloudinary Configuration
 cloudinary.config({
