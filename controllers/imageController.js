@@ -6,7 +6,6 @@ const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const axios = require('axios');
 const cron = require('node-cron');
-const { logActivity } = require('./activityController');
 
 
 // Cloudinary Configuration
@@ -168,6 +167,7 @@ exports.addImage = async (req, res) => {
     productId: newImage._id
 });
 
+
       category.items.push(newImage._id);
       await category.save();
 
@@ -252,14 +252,6 @@ exports.getImages = async (req, res) => {
         if (!updatedImage) {
           return res.status(404).json({ message: 'Item not found' });
         }
-
-        if (quantity && quantity !== originalImage.quantity) {
-  await logActivity('stock_updated', req.user._id, {
-    productName: originalImage.name,
-    newQuantity: quantity
-  });
-}
-
   
         res.status(200).json({
           message: 'Item updated successfully',

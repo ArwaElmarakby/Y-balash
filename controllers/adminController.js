@@ -285,10 +285,6 @@ exports.approveSeller = async (req, res) => {
             user.save(),
             newApprovedSeller.save()
         ]);
-        await logActivity('new_seller', req.user._id, {
-  sellerEmail: email,
-  restaurantName: restaurant.name
-});
 
         res.status(201).json({
             success: true,
