@@ -322,7 +322,7 @@ exports.approveSeller = async (req, res) => {
 exports.getLowStockItems = async (req, res) => {
     try {
         // تحديد الحد الأدنى للكمية (15 في هذه الحالة)
-        const LOW_STOCK_THRESHOLD = 15;
+        const LOW_STOCK_THRESHOLD = 7;
 
         // البحث عن المنتجات التي كميتها أقل من أو تساوي 15
         const lowStockItems = await Image.find({ 
