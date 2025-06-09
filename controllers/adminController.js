@@ -3,7 +3,7 @@ const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
 const Category = require('../models/categoryModel');
 const ApprovedSeller = require('../models/approvedSellerModel');
-
+const { logActivity } = require('./activityController');
 
 exports.assignSellerToRestaurant = async (req, res) => {
     const { userId, restaurantId } = req.body;
@@ -285,6 +285,12 @@ exports.approveSeller = async (req, res) => {
             user.save(),
             newApprovedSeller.save()
         ]);
+
+        await logActivity('new_seller', req.user._id, {
+    sellerEmail: email,
+    restaurantName: restaurant.name
+});
+        
 
         res.status(201).json({
             success: true,
