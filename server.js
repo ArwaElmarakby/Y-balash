@@ -959,6 +959,7 @@ passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: "https://y-balash.vercel.app/auth/google/callback",
+    passReqToCallback: true
 }, (accessToken, refreshToken, profile, done) => {
     // You can save user profile to database here
     return done(null, profile);
@@ -992,27 +993,106 @@ app.get("/auth/google", passport.authenticate("google", {scope: ["profile", "ema
 
 const jwt = require('jsonwebtoken');
 
-app.get("/auth/google/callback", passport.authenticate('google', { failureRedirect: "/" }), (req, res) => {
-    // Create a token using user information
+// app.get("/auth/google/callback", passport.authenticate('google', { failureRedirect: "/" }), (req, res) => {
+//     // Create a token using user information
+//     const token = jwt.sign({
+//         id: req.user.id, // This should be a unique identifier for the user
+//         email: req.user.emails[0].value,
+//         displayName: req.user.displayName
+//     }, process.env.JWT_SECRET, { expiresIn: '1h' }); // Set your secret and expiration
+
+//     res.status(200).json({
+//         token, // Return the generated token
+//         email: req.user.emails[0].value,
+//         displayName: req.user.displayName
+//     });
+// });
+
+
+
+
+app.get("/auth/google/callback", 
+  passport.authenticate('google', { failureRedirect: "/auth/failed" }), 
+  (req, res) => {
+    // Create JWT token
     const token = jwt.sign({
-        id: req.user.id, // This should be a unique identifier for the user
+        id: req.user.id,
         email: req.user.emails[0].value,
         displayName: req.user.displayName
-    }, process.env.JWT_SECRET, { expiresIn: '1h' }); // Set your secret and expiration
+    }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    res.status(200).json({
-        token, // Return the generated token
-        email: req.user.emails[0].value,
-        displayName: req.user.displayName
-    });
+    // Redirect with Deep Link
+    const deepLink = `ybalash://auth/callback?token=${token}&email=${encodeURIComponent(req.user.emails[0].value)}&displayName=${encodeURIComponent(req.user.displayName)}`;
+    
+    // For testing purposes, also provide a fallback
+    res.send(`
+      <html>
+        <head>
+          <title>Redirecting...</title>
+          <meta http-equiv="refresh" content="0;url=${deepLink}" />
+          <script>
+            window.location.href = "${deepLink}";
+            setTimeout(function() {
+              document.getElementById('fallback').style.display = 'block';
+            }, 1000);
+          </script>
+        </head>
+        <body>
+          <p id="fallback" style="display:none;">
+            If you are not redirected automatically, 
+            <a href="${deepLink}">click here</a>.
+          </p>
+        </body>
+      </html>
+    `);
 });
 
-app.get("/profile", (req, res) => {
-    if (!req.user) {
-        return res.redirect('/');
+// Test endpoint for Deep Link
+app.get("/test-deep-link", (req, res) => {
+    const testToken = jwt.sign({
+        id: 'test123',
+        email: 'test@example.com',
+        displayName: 'Test User'
+    }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    const deepLink = `ybalash://auth/callback?token=${testToken}&email=test@example.com&displayName=Test%20User`;
+    
+    res.send(`<a href="${deepLink}">Test Deep Link</a>`);
+});
+
+// Verify Deep Link token
+app.get("/verify-deep-link", (req, res) => {
+    const { token } = req.query;
+    
+    if (!token) {
+        return res.status(400).json({ success: false, message: 'Missing token' });
     }
-    res.send(`Welcome ${req.user.displayName}`);
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        res.json({
+            success: true,
+            user: decoded
+        });
+    } catch (err) {
+        res.status(401).json({
+            success: false,
+            message: 'Invalid token'
+        });
+    }
 });
+
+// Authentication failed route
+app.get("/auth/failed", (req, res) => {
+    res.status(401).json({ success: false, message: "Google authentication failed" });
+});
+
+// app.get("/profile", (req, res) => {
+//     if (!req.user) {
+//         return res.redirect('/');
+//     }
+//     res.send(`Welcome ${req.user.displayName}`);
+// });
 
 app.get("/logout", (req, res) => {
     req.logout(() => {
