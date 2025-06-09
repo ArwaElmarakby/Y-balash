@@ -3,7 +3,6 @@ const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
 const Category = require('../models/categoryModel');
 const ApprovedSeller = require('../models/approvedSellerModel');
-const ActivityLog = require('../models/activityLogModel');
 
 
 exports.assignSellerToRestaurant = async (req, res) => {
@@ -358,35 +357,5 @@ exports.getLowStockItems = async (req, res) => {
             message: 'Failed to fetch low stock items',
             error: error.message
         });
-    }
-};
-
-
-
-exports.logActivity = async (action, details, userId) => {
-    try {
-        const activityLog = new ActivityLog({ action, details, userId });
-        await activityLog.save();
-    } catch (error) {
-        console.error("Error logging activity:", error);
-    }
-};
-
-// دالة لجلب الأنشطة الأخيرة
-exports.getRecentActivities = async (req, res) => {
-    try {
-        const activities = await ActivityLog.find()
-            .populate('userId', 'email') // جلب البريد الإلكتروني للمستخدم
-            .sort({ createdAt: -1 }) // ترتيب الأنشطة من الأحدث إلى الأقدم
-            .limit(10); // جلب آخر 10 أنشطة
-
-        res.status(200).json({
-            success: true,
-            count: activities.length,
-            activities
-        });
-    } catch (error) {
-        console.error("Error fetching recent activities:", error);
-        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
