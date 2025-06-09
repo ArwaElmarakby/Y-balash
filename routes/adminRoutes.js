@@ -836,6 +836,5 @@ router.get('/approved-sellers', authMiddleware, adminMiddleware, getApprovedSell
 
 router.post('/approve-seller', authMiddleware, adminMiddleware, approveSeller);
 
-router.get('/low-stock-items', authMiddleware, adminMiddleware, adminController.getLowStockItems);
 
 module.exports = router;
