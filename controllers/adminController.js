@@ -319,26 +319,104 @@ exports.approveSeller = async (req, res) => {
 };
 
 
-exports.getLowStockItems = async (req, res) => {
+function parseQuantity(qtyStr) {
+    if (!qtyStr) return null;
+    // Match number (integer or float) followed by optional space and unit string
+    const match = qtyStr.trim().toLowerCase().match(/^([\d\.]+)\s*([a-zA-Z]+)?/);
+    if (!match) return null;
+    return {
+        value: parseFloat(match[1]),
+        unit: match[2] || '' // unit might be undefined
+    };
+}
+
+
+exports.getLowStockItemsByUnit = async (req, res) => {
     try {
-        const lowStockItems = await Image.find({
-            quantity: { $lt: 500 } // أقل من 500 جرام
-        }).populate('category', 'name'); // جلب اسم الفئة
-        if (lowStockItems.length === 0) {
-            return res.status(404).json({ message: 'لا توجد عناصر ذات مخزون منخفض' });
+        // Fetch all items with populated category for name
+        const items = await Image.find({})
+            .populate('category', 'name');
+        if (!items.length) {
+            return res.status(404).json({ message: 'لا توجد عناصر' });
         }
-        const formattedItems = lowStockItems.map(item => ({
-            name: item.name,
-            category: item.category ? item.category.name : 'not category',
-            remainingQuantity: item.quantity
-        }));
-        res.status(200).json({
+        // Thresholds defined for different units and general counts
+        const thresholds = {
+            // Unit: threshold value (less than)
+            'kg': 1,          // less than 1 kilogram
+            'gm': 250,        // less than 250 grams
+            'g': 250,         // shorthand for grams
+            'gram': 250,
+            'grams': 250,
+            'piece': 15,      // less than 15 pieces
+            'pieces': 15,
+            'loaf': 15,
+            'loaves': 15,
+            'liter': 1,
+            'litre': 1,
+            'bottle': 15,
+            'bottles': 15,
+            'bag': 15,
+            'unit': 15,       // generic unit count threshold
+            '' : 15            // no unit treated as count threshold less than 15
+        };
+        // Function to decide if item is low stock based on parsed quantity
+        function isLowStock(quantityStr) {
+            const parsed = parseQuantity(quantityStr);
+            if (!parsed) return false;
+            const { value, unit } = parsed;
+            // Normalize unit for comparison (singular)
+            let normalizedUnit = unit.toLowerCase();
+            if (normalizedUnit.endsWith('s')) {
+                normalizedUnit = normalizedUnit.slice(0, -1);
+            }
+            // Special case for kg vs gm/litres (convert to numeric unit for easier comparison)
+            if (normalizedUnit === 'kg') {
+                // threshold is 1 kg -> value < 1
+                return value < thresholds['kg'];
+            } else if (['gm','g','gram','grams'].includes(normalizedUnit)) {
+                // threshold 250 gm
+                return value < thresholds['gm'];
+            } else if (normalizedUnit === 'liter' || normalizedUnit === 'litre') {
+                // threshold 1 liter
+                return value < thresholds['liter'];
+            } else if (['piece','loaf','bottle','bag','unit'].includes(normalizedUnit)) {
+                return value < thresholds[normalizedUnit];
+            } else if (normalizedUnit === '') {
+                // no unit: treat as general count threshold 15
+                return value < thresholds[''];
+            } else {
+                // Unit not in thresholds, ignore (not low stock)
+                return false;
+            }
+        }
+        // Filter items matching low stock condition
+        const lowStockItems = items.filter(item => isLowStock(item.quantity));
+        if (lowStockItems.length === 0) {
+            return res.status(404).json({ message: 'لا توجد عناصر ذات مخزون منخفض بناءً على المعايير المحددة' });
+        }
+        // Format response
+        const formattedItems = lowStockItems.map(item => {
+            const parsed = parseQuantity(item.quantity) || {value: item.quantity, unit: ''};
+            return {
+                name: item.name,
+                category: item.category ? item.category.name : 'غير مصنف',
+                remainingQuantity: item.quantity,
+                quantityValue: parsed.value,
+                quantityUnit: parsed.unit
+            };
+        });
+
+         res.status(200).json({
             success: true,
             count: formattedItems.length,
             items: formattedItems
         });
     } catch (error) {
-        console.error("Error fetching low stock items:", error);
-        res.status(500).json({ message: 'server error', error: error.message });
+        console.error("Error fetching low stock items by unit:", error);
+        res.status(500).json({
+            success: false,
+            message: 'خطأ في الخادم',
+            error: error.message
+        });
     }
 };
