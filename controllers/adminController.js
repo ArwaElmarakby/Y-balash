@@ -317,3 +317,28 @@ exports.approveSeller = async (req, res) => {
         });
     }
 };
+
+
+exports.getLowStockItems = async (req, res) => {
+    try {
+        const lowStockItems = await Image.find({
+            quantity: { $lt: 500 } // أقل من 500 جرام
+        }).populate('category', 'name'); // جلب اسم الفئة
+        if (lowStockItems.length === 0) {
+            return res.status(404).json({ message: 'لا توجد عناصر ذات مخزون منخفض' });
+        }
+        const formattedItems = lowStockItems.map(item => ({
+            name: item.name,
+            category: item.category ? item.category.name : 'not category',
+            remainingQuantity: item.quantity
+        }));
+        res.status(200).json({
+            success: true,
+            count: formattedItems.length,
+            items: formattedItems
+        });
+    } catch (error) {
+        console.error("Error fetching low stock items:", error);
+        res.status(500).json({ message: 'server error', error: error.message });
+    }
+};
