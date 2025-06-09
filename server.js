@@ -992,20 +992,39 @@ app.get("/auth/google", passport.authenticate("google", {scope: ["profile", "ema
 
 const jwt = require('jsonwebtoken');
 
-app.get("/auth/google/callback", passport.authenticate('google', { failureRedirect: "/" }), (req, res) => {
-    // Create a token using user information
-    const token = jwt.sign({
-        id: req.user.id, // This should be a unique identifier for the user
-        email: req.user.emails[0].value,
-        displayName: req.user.displayName
-    }, process.env.JWT_SECRET, { expiresIn: '1h' }); // Set your secret and expiration
+// app.get("/auth/google/callback", passport.authenticate('google', { failureRedirect: "/" }), (req, res) => {
+//     // Create a token using user information
+//     const token = jwt.sign({
+//         id: req.user.id, // This should be a unique identifier for the user
+//         email: req.user.emails[0].value,
+//         displayName: req.user.displayName
+//     }, process.env.JWT_SECRET, { expiresIn: '1h' }); // Set your secret and expiration
 
-    res.status(200).json({
-        token, // Return the generated token
-        email: req.user.emails[0].value,
-        displayName: req.user.displayName
-    });
-});
+//     res.status(200).json({
+//         token, // Return the generated token
+//         email: req.user.emails[0].value,
+//         displayName: req.user.displayName
+//     });
+// });
+
+
+app.get("/auth/google/callback", 
+  passport.authenticate('google', { failureRedirect: "/" }), 
+  (req, res) => {
+
+    const token = jwt.sign({
+      id: req.user.id,
+      email: req.user.emails[0].value,
+      displayName: req.user.displayName
+    }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+
+    const deepLink = `myapp://auth/callback?token=${encodeURIComponent(token)}&email=${encodeURIComponent(req.user.emails[0].value)}&displayName=${encodeURIComponent(req.user.displayName)}`;
+    
+
+    res.redirect(deepLink);
+  }
+);
 
 app.get("/profile", (req, res) => {
     if (!req.user) {
