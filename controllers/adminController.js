@@ -317,3 +317,47 @@ exports.approveSeller = async (req, res) => {
         });
     }
 };
+
+
+exports.getLowStockItems = async (req, res) => {
+    try {
+        // تحديد الحد الأدنى للكمية (15 في هذه الحالة)
+        const LOW_STOCK_THRESHOLD = 15;
+
+        // البحث عن المنتجات التي كميتها أقل من أو تساوي 15
+        const lowStockItems = await Image.find({ 
+            quantity: { $lte: LOW_STOCK_THRESHOLD }
+        }).populate('category', 'name');
+
+        if (!lowStockItems || lowStockItems.length === 0) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'No low stock items found'
+            });
+        }
+
+        // تنسيق البيانات للإرجاع
+        const formattedItems = lowStockItems.map(item => ({
+            id: item._id,
+            name: item.name,
+            remainingQuantity: item.quantity,
+            category: item.category ? item.category.name : 'Uncategorized',
+            imageUrl: item.imageUrl || null
+        }));
+
+        res.status(200).json({
+            success: true,
+            threshold: LOW_STOCK_THRESHOLD,
+            count: formattedItems.length,
+            items: formattedItems
+        });
+
+    } catch (error) {
+        console.error("Error in getLowStockItems:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch low stock items',
+            error: error.message
+        });
+    }
+};
