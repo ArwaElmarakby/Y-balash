@@ -317,3 +317,44 @@ exports.approveSeller = async (req, res) => {
         });
     }
 };
+
+
+exports.getLowStockItems = async (req, res) => {
+    try {
+        const LOW_STOCK_THRESHOLD = 15; 
+
+        const lowStockItems = await Image.find({ 
+            quantity: { $lte: LOW_STOCK_THRESHOLD }
+        }).populate('category', 'name')
+          .select('name quantity category');
+
+        if (!lowStockItems || lowStockItems.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: 'No low stock items found',
+                items: []
+            });
+        }
+
+        const formattedItems = lowStockItems.map(item => ({
+            id: item._id,
+            name: item.name,
+            remainingQuantity: item.quantity,
+            category: item.category ? item.category.name : 'Uncategorized'
+        }));
+
+        res.status(200).json({
+            success: true,
+            threshold: LOW_STOCK_THRESHOLD,
+            count: formattedItems.length,
+            items: formattedItems
+        });
+    } catch (error) {
+        console.error("Error in getLowStockItems:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch low stock items',
+            error: error.message
+        });
+    }
+};
