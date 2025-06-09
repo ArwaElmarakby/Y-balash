@@ -78,9 +78,51 @@ exports.getAdminAlerts = async (req, res) => {
 
 
 
+// exports.getTopCategories = async (req, res) => {
+//     try {
+//         const topCategories = await Category.aggregate([
+//             {
+//                 $lookup: {
+//                     from: "images",
+//                     localField: "items",
+//                     foreignField: "_id",
+//                     as: "products"
+//                 }
+//             },
+//             {
+//                 $project: {
+//                     name: 1,
+//                     productCount: { $size: "$products" }
+//                 }
+//             },
+//             { $sort: { productCount: -1 } },
+//             { $limit: 3 }
+//         ]);
+
+//         res.status(200).json({
+//             success: true,
+//             topCategories
+//         });
+//     } catch (error) {
+//         console.error("Error fetching top categories:", error);
+//         res.status(500).json({
+//             success: false,
+//             message: "Failed to fetch top categories",
+//             error: error.message
+//         });
+//     }
+// };
+
+
+
 exports.getTopCategories = async (req, res) => {
     try {
-        const topCategories = await Category.aggregate([
+        const now = new Date();
+        const lastMonth = new Date();
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+        // Get current month top categories
+        const currentMonthCategories = await Category.aggregate([
             {
                 $lookup: {
                     from: "images",
@@ -99,9 +141,53 @@ exports.getTopCategories = async (req, res) => {
             { $limit: 3 }
         ]);
 
+        // Get last month counts for comparison
+        const lastMonthCategories = await Category.aggregate([
+            {
+                $lookup: {
+                    from: "images",
+                    let: { categoryItems: "$items" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $in: ["$_id", "$$categoryItems"] },
+                                createdAt: { $lt: now, $gte: lastMonth }
+                            }
+                        }
+                    ],
+                    as: "lastMonthProducts"
+                }
+            },
+            {
+                $project: {
+                    name: 1,
+                    lastMonthCount: { $size: "$lastMonthProducts" }
+                }
+            }
+        ]);
+
+        // Combine data and calculate percentage change
+        const topCategoriesWithChange = currentMonthCategories.map(category => {
+            const lastMonthData = lastMonthCategories.find(c => c._id.toString() === category._id.toString());
+            const lastMonthCount = lastMonthData?.lastMonthCount || 0;
+            
+            let percentageChange = 0;
+            if (lastMonthCount > 0) {
+                percentageChange = ((category.productCount - lastMonthCount) / lastMonthCount) * 100;
+            } else if (category.productCount > 0) {
+                percentageChange = 100; // If no products last month, consider it 100% increase
+            }
+
+            return {
+                ...category,
+                percentageChange: percentageChange.toFixed(2) + '%',
+                changeDirection: percentageChange >= 0 ? 'increase' : 'decrease'
+            };
+        });
+
         res.status(200).json({
             success: true,
-            topCategories
+            topCategories: topCategoriesWithChange
         });
     } catch (error) {
         console.error("Error fetching top categories:", error);
