@@ -322,7 +322,7 @@ exports.approveSeller = async (req, res) => {
 exports.getLowStockItems = async (req, res) => {
     try {
         // يمكن جعل الـ threshold قابل للتعديل عبر query parameter
-        const threshold = parseInt(req.query.threshold) || 7; // Default: 7
+        const threshold = parseInt(req.query.threshold) || 2; // Default: 7
 
         // البحث عن المنتجات التي كميتها أقل من أو تساوي threshold
         const lowStockItems = await Image.find({ 
