@@ -41,30 +41,3 @@ exports.getUserPoints = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
-
-
-
-exports.usePoints = async (req, res) => {
-    const userId = req.user._id;
-    const { pointsToUse } = req.body;
-
-    try {
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        if (pointsToUse > user.points) {
-            return res.status(400).json({ message: 'Not enough points' });
-        }
-
-        // سيتم تأكيد استخدام النقاط عند نجاح الدفع
-        res.status(200).json({ 
-            message: 'Points will be applied to payment',
-            pointsToUse,
-            discountAmount: Math.floor(pointsToUse / 5)
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
-    }
-};

@@ -133,59 +133,13 @@ exports.removeCartItem = async (req, res) => {
 
 
 
-// exports.getCartSummary = async (req, res) => {
-//     const userId = req.user._id; 
-
-//     try {
-//         const cart = await Cart.findOne({ userId })
-//             .populate('items.itemId')
-//             .populate('offers.offerId');
-//         if (!cart) {
-//             return res.status(404).json({ message: 'Cart not found' });
-//         }
-
-//         let totalItemsPrice = 0;
-//         cart.items.forEach(item => {
-//             totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
-//         });
-
-//         let totalOffersPrice = 0;
-//         cart.offers.forEach(offer => {
-//             totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
-//         });
-
-//         const shippingCost = 50; 
-//         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; 
-
-//         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
-
-//         res.status(200).json({
-//             totalItems: cart.items.length, 
-//             totalOffers: cart.offers.length,
-//             totalItemsPrice: totalItemsPrice.toFixed(2), 
-//             totalOffersPrice: totalOffersPrice.toFixed(2), 
-//             shippingCost: shippingCost.toFixed(2), 
-//             importCharges: importCharges.toFixed(2), 
-//             totalPrice: totalPrice.toFixed(2), 
-//         });
-//     } catch (error) {
-//         res.status(500).json({ message: 'Server error', error });
-//     }
-// };
-
-
-
 exports.getCartSummary = async (req, res) => {
-    const userId = req.user._id;
+    const userId = req.user._id; 
 
     try {
-        const [cart, user] = await Promise.all([
-            Cart.findOne({ userId })
-                .populate('items.itemId')
-                .populate('offers.offerId'),
-            User.findById(userId)
-        ]);
-
+        const cart = await Cart.findOne({ userId })
+            .populate('items.itemId')
+            .populate('offers.offerId');
         if (!cart) {
             return res.status(404).json({ message: 'Cart not found' });
         }
@@ -200,31 +154,25 @@ exports.getCartSummary = async (req, res) => {
             totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
         });
 
-        const shippingCost = 50;
-        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
+        const shippingCost = 50; 
+        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; 
 
-        // حساب الخصم من النقاط (كل 5 نقاط = 1 جنيه)
-        const pointsDiscount = user.points ? Math.floor(user.points / 5) : 0;
-        
-        const subtotal = totalItemsPrice + totalOffersPrice;
-        const totalBeforeDiscount = subtotal + shippingCost + importCharges;
-        const totalPrice = Math.max(0, totalBeforeDiscount - pointsDiscount);
+        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
         res.status(200).json({
-            totalItems: cart.items.length,
+            totalItems: cart.items.length, 
             totalOffers: cart.offers.length,
-            subtotal: subtotal.toFixed(2),
-            shippingCost: shippingCost.toFixed(2),
-            importCharges: importCharges.toFixed(2),
-            pointsDiscount: pointsDiscount.toFixed(2),
-            pointsUsed: pointsDiscount * 5, // عدد النقاط المستخدمة
-            remainingPoints: user.points - (pointsDiscount * 5),
-            totalPrice: totalPrice.toFixed(2),
+            totalItemsPrice: totalItemsPrice.toFixed(2), 
+            totalOffersPrice: totalOffersPrice.toFixed(2), 
+            shippingCost: shippingCost.toFixed(2), 
+            importCharges: importCharges.toFixed(2), 
+            totalPrice: totalPrice.toFixed(2), 
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
 
 
 exports.applyCoupon = async (req, res) => {
