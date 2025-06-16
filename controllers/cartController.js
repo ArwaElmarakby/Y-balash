@@ -42,7 +42,26 @@ exports.addToCart = async (req, res) => {
 };
 
 // Get user's cart
-exports.getCart = async (req, res) => {
+// exports.getCart = async (req, res) => {
+//     const userId = req.user._id;
+
+//     try {
+//         const cart = await Cart.findOne({ userId })
+//             .populate('items.itemId')
+//             .populate('offers.offerId');
+//         if (!cart) {
+//             return res.status(404).json({ message: 'Cart not found' });
+//         }
+//         res.status(200).json(cart);
+//     } catch (error) {
+//         console.error("Error in getCart:", error); 
+//         res.status(500).json({ message: 'Server error', error });
+//     }
+// };
+
+
+
+exports.getCartSummary = async (req, res) => {
     const userId = req.user._id;
 
     try {
@@ -52,9 +71,43 @@ exports.getCart = async (req, res) => {
         if (!cart) {
             return res.status(404).json({ message: 'Cart not found' });
         }
-        res.status(200).json(cart);
+
+        let totalItemsPrice = 0;
+        cart.items.forEach(item => {
+            totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
+        });
+
+        let totalOffersPrice = 0;
+        cart.offers.forEach(offer => {
+            totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
+        });
+
+        const shippingCost = 50;
+        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
+
+        // احصل على نقاط المستخدم
+        const user = await User.findById(userId);
+        const availablePoints = user.points || 0;
+        
+        // حساب الخصم بناءً على النقاط (مثال: كل 100 نقطة = 5 جنيه خصم)
+        const pointsDiscount = Math.floor(availablePoints / 100) * 5;
+        
+        const subtotal = totalItemsPrice + totalOffersPrice;
+        const totalBeforeDiscount = subtotal + shippingCost + importCharges;
+        const totalPrice = Math.max(0, totalBeforeDiscount - pointsDiscount);
+
+        res.status(200).json({
+            totalItems: cart.items.length,
+            totalOffers: cart.offers.length,
+            subtotal: subtotal.toFixed(2),
+            shippingCost: shippingCost.toFixed(2),
+            importCharges: importCharges.toFixed(2),
+            pointsDiscount: pointsDiscount.toFixed(2),
+            availablePoints: availablePoints,
+            totalBeforeDiscount: totalBeforeDiscount.toFixed(2),
+            totalPrice: totalPrice.toFixed(2),
+        });
     } catch (error) {
-        console.error("Error in getCart:", error); 
         res.status(500).json({ message: 'Server error', error });
     }
 };
