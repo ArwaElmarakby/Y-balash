@@ -234,3 +234,78 @@ exports.applyCoupon = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+
+
+
+
+exports.applyPointsDiscount = async (req, res) => {
+    const userId = req.user._id;
+    const { usePoints } = req.body; // true/false
+
+    try {
+        // Get user and cart
+        const [user, cart] = await Promise.all([
+            User.findById(userId),
+            Cart.findOne({ userId })
+                .populate('items.itemId')
+                .populate('offers.offerId')
+        ]);
+
+        if (!cart) {
+            return res.status(404).json({ message: 'Cart not found' });
+        }
+
+        let totalItemsPrice = 0;
+        cart.items.forEach(item => {
+            totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
+        });
+
+        let totalOffersPrice = 0;
+        cart.offers.forEach(offer => {
+            totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
+        });
+
+        const shippingCost = 50;
+        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
+        let totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
+        let pointsDiscount = 0;
+        let pointsUsed = 0;
+
+        if (usePoints && user.points >= 10) {
+            // Calculate maximum possible discount (3 EGP per 10 points)
+            const maxDiscount = Math.floor(user.points / 10) * 3;
+            pointsUsed = Math.floor(maxDiscount / 3) * 10;
+            
+            // Apply discount (can't make total negative)
+            pointsDiscount = Math.min(maxDiscount, totalPrice);
+            
+            // Update user points (we'll save this after confirming the order)
+            cart.pointsDiscount = pointsDiscount;
+            cart.pointsUsed = pointsUsed;
+        } else {
+            cart.pointsDiscount = 0;
+            cart.pointsUsed = 0;
+        }
+
+        await cart.save();
+
+        const finalPrice = totalPrice - pointsDiscount;
+
+        res.status(200).json({
+            success: true,
+            pointsDiscount: pointsDiscount.toFixed(2),
+            pointsUsed: pointsUsed,
+            remainingPoints: user.points - pointsUsed,
+            totalPrice: totalPrice.toFixed(2),
+            finalPrice: finalPrice.toFixed(2),
+            currency: 'EGP'
+        });
+
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
+    }
+};
