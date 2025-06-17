@@ -334,7 +334,10 @@ exports.getItemDetails = async (req, res) => {
       }
 
      
-      res.status(200).json(item);
+      res.status(200).json({  
+        originalPrice: price, 
+        discountedPrice: discountedPrice 
+      });
   } catch (error) {
       res.status(500).json({ message: 'Server error', error });
   }
