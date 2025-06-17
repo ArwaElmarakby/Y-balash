@@ -2,6 +2,7 @@ const Cart = require('../models/cartModel');
 const Image = require('../models/imageModel');
 const Offer = require('../models/offerModel');
 const Coupon = require('../models/couponModel');
+const User = require('../models/userModel');
 
 // Add item to cart
 exports.addToCart = async (req, res) => {
@@ -133,6 +134,47 @@ exports.removeCartItem = async (req, res) => {
 
 
 
+// exports.getCartSummary = async (req, res) => {
+//     const userId = req.user._id; 
+
+//     try {
+//         const cart = await Cart.findOne({ userId })
+//             .populate('items.itemId')
+//             .populate('offers.offerId');
+//         if (!cart) {
+//             return res.status(404).json({ message: 'Cart not found' });
+//         }
+
+//         let totalItemsPrice = 0;
+//         cart.items.forEach(item => {
+//             totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
+//         });
+
+//         let totalOffersPrice = 0;
+//         cart.offers.forEach(offer => {
+//             totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
+//         });
+
+//         const shippingCost = 50; 
+//         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; 
+
+//         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
+
+//         res.status(200).json({
+//             totalItems: cart.items.length, 
+//             totalOffers: cart.offers.length,
+//             totalItemsPrice: totalItemsPrice.toFixed(2), 
+//             totalOffersPrice: totalOffersPrice.toFixed(2), 
+//             shippingCost: shippingCost.toFixed(2), 
+//             importCharges: importCharges.toFixed(2), 
+//             totalPrice: totalPrice.toFixed(2), 
+//         });
+//     } catch (error) {
+//         res.status(500).json({ message: 'Server error', error });
+//     }
+// };
+
+
 exports.getCartSummary = async (req, res) => {
     const userId = req.user._id; 
 
@@ -157,7 +199,22 @@ exports.getCartSummary = async (req, res) => {
         const shippingCost = 50; 
         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; 
 
-        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
+        // Get user points info
+        const user = await User.findById(userId);
+        const pointsValue = user.points * 0.3; // 10 points = 3 EGP
+
+        let totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
+        let pointsDiscount = 0;
+        let pointsUsed = 0;
+        let remainingPoints = user.points;
+
+        // Check if points should be applied
+        if (req.query.usePoints === 'true' && user.points >= 10) {
+            pointsDiscount = Math.min(pointsValue, totalPrice);
+            pointsUsed = Math.floor(pointsDiscount / 0.3);
+            remainingPoints = user.points - pointsUsed;
+            totalPrice -= pointsDiscount;
+        }
 
         res.status(200).json({
             totalItems: cart.items.length, 
@@ -165,11 +222,84 @@ exports.getCartSummary = async (req, res) => {
             totalItemsPrice: totalItemsPrice.toFixed(2), 
             totalOffersPrice: totalOffersPrice.toFixed(2), 
             shippingCost: shippingCost.toFixed(2), 
-            importCharges: importCharges.toFixed(2), 
+            importCharges: importCharges.toFixed(2),
+            pointsDiscount: pointsDiscount.toFixed(2),
+            pointsUsed: pointsUsed,
+            remainingPoints: remainingPoints,
             totalPrice: totalPrice.toFixed(2), 
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
+    }
+};
+
+
+
+exports.applyPoints = async (req, res) => {
+    const userId = req.user._id;
+    const { usePoints } = req.body; // true/false
+
+    try {
+        const cart = await Cart.findOne({ userId })
+            .populate('items.itemId')
+            .populate('offers.offerId');
+        if (!cart) {
+            return res.status(404).json({ message: 'Cart not found' });
+        }
+
+        // Calculate cart total
+        let totalItemsPrice = 0;
+        cart.items.forEach(item => {
+            totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
+        });
+
+        let totalOffersPrice = 0;
+        cart.offers.forEach(offer => {
+            totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
+        });
+
+        const shippingCost = 50;
+        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
+        let totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
+
+        // Get user points
+        const user = await User.findById(userId);
+        const pointsValue = user.points * 0.3; // 10 points = 3 EGP
+
+        let pointsDiscount = 0;
+        let pointsUsed = 0;
+        let remainingPoints = user.points;
+
+        if (usePoints && user.points >= 10) {
+            pointsDiscount = Math.min(pointsValue, totalPrice);
+            pointsUsed = Math.floor(pointsDiscount / 0.3);
+            remainingPoints = user.points - pointsUsed;
+            totalPrice -= pointsDiscount;
+
+            // Update user points
+            user.points = remainingPoints;
+            await user.save();
+        }
+
+        res.status(200).json({
+            success: true,
+            cartSummary: {
+                totalItemsPrice: totalItemsPrice.toFixed(2),
+                totalOffersPrice: totalOffersPrice.toFixed(2),
+                shippingCost: shippingCost.toFixed(2),
+                importCharges: importCharges.toFixed(2),
+                pointsDiscount: pointsDiscount.toFixed(2),
+                pointsUsed: pointsUsed,
+                remainingPoints: remainingPoints,
+                totalPrice: totalPrice.toFixed(2)
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            success: false,
+            message: 'Server error',
+            error: error.message 
+        });
     }
 };
 
