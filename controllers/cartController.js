@@ -234,3 +234,85 @@ exports.applyCoupon = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+
+exports.applyPointsDiscount = async (req, res) => {
+    const userId = req.user._id;
+    const { usePoints } = req.body; // هل المستخدم يريد استخدام النقاط؟ true/false
+
+    try {
+        // 1. الحصول على مستخدم ونقاطه
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // 2. الحصول على سلة التسوق
+        const cart = await Cart.findOne({ userId })
+            .populate('items.itemId')
+            .populate('offers.offerId');
+        
+        if (!cart) {
+            return res.status(404).json({ message: 'Cart not found' });
+        }
+
+        // 3. حساب المجموع الكلي
+        let totalItemsPrice = 0;
+        cart.items.forEach(item => {
+            totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
+        });
+
+        let totalOffersPrice = 0;
+        cart.offers.forEach(offer => {
+            totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
+        });
+
+        const shippingCost = 50;
+        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
+        let totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
+
+        // 4. تطبيق خصم النقاط إذا طلب المستخدم
+        let pointsDiscount = 0;
+        let pointsUsed = 0;
+        
+        if (usePoints && user.points >= 10) {
+            // كل 10 نقاط = 5 جنيه خصم
+            const discountUnits = Math.floor(user.points / 10);
+            pointsDiscount = discountUnits * 5;
+            pointsUsed = discountUnits * 10;
+            
+            // لا يتجاوز الخصم 20% من المجموع الكلي
+            const maxDiscount = totalPrice * 0.2;
+            if (pointsDiscount > maxDiscount) {
+                pointsDiscount = maxDiscount;
+                pointsUsed = Math.floor(maxDiscount / 5) * 10;
+            }
+            
+            totalPrice -= pointsDiscount;
+            
+            // تحديث نقاط المستخدم (سيتم حفظها بعد التأكد من الدفع)
+            user.points -= pointsUsed;
+        }
+
+        // 5. إرجاع التفاصيل
+        res.status(200).json({
+            success: true,
+            originalTotal: totalPrice + pointsDiscount,
+            totalPrice,
+            pointsDiscount,
+            pointsUsed,
+            remainingPoints: user.points - pointsUsed,
+            currency: "EGP",
+            message: usePoints ? 
+                `تم تطبيق خصم ${pointsDiscount} جنيه باستخدام ${pointsUsed} نقطة` :
+                'لم يتم استخدام النقاط'
+        });
+
+    } catch (error) {
+        res.status(500).json({ 
+            success: false,
+            message: 'Server error',
+            error: error.message 
+        });
+    }
+};
