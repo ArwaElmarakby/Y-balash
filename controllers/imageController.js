@@ -189,14 +189,56 @@ exports.addImage = async (req, res) => {
   });
 };
 
+// exports.getImages = async (req, res) => {
+//     try {
+//       const images = await Image.find();
+//       res.status(200).json(images);
+//     } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//     }
+//   };
+
+
+
+
 exports.getImages = async (req, res) => {
-    try {
-      const images = await Image.find();
-      res.status(200).json(images);
-    } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+  try {
+    const images = await Image.find();
+    
+    // إضافة الحقول المطلوبة لكل صورة
+    const imagesWithPrices = images.map(image => ({
+      ...image.toObject(),
+      originalPrice: image.price / (1 - (image.discount?.percentage || 0) / 100),
+      discountedPrice: image.price
+    }));
+    
+    res.status(200).json(imagesWithPrices);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+exports.getItemDetails = async (req, res) => {
+  const { id } = req.body; 
+
+  try {
+    const item = await Image.findById(id);
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
     }
-  };
+
+    // حساب السعر الأصلي بناءً على السعر المخفض ونسبة الخصم
+    const originalPrice = item.price / (1 - (item.discount?.percentage || 0) / 100);
+    
+    res.status(200).json({
+      ...item.toObject(),
+      originalPrice,
+      discountedPrice: item.price
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
 
   exports.deleteImage = async (req, res) => {
     const { id } = req.params;
@@ -323,22 +365,22 @@ exports.getBestSelling = async (req, res) => {
 
 
 
-exports.getItemDetails = async (req, res) => {
-  const { id } = req.body; 
+// exports.getItemDetails = async (req, res) => {
+//   const { id } = req.body; 
 
-  try {
+//   try {
       
-      const item = await Image.findById(id);
-      if (!item) {
-          return res.status(404).json({ message: 'Item not found' });
-      }
+//       const item = await Image.findById(id);
+//       if (!item) {
+//           return res.status(404).json({ message: 'Item not found' });
+//       }
 
      
-      res.status(200).json(item);
-  } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
-  }
-};
+//       res.status(200).json(item);
+//   } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//   }
+// };
 
 
 
