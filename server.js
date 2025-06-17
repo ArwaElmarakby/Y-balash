@@ -1169,7 +1169,6 @@ app.use('/api/admin', sellerRoutes);
 app.use('/api', sellerRoutes); 
 app.use('/api/addresses', clientAddressRoutes);
 app.use('/api/client-info', clientInfoRoutes);
-app.use('/api/points', pointsRoutes);
 
 
 
