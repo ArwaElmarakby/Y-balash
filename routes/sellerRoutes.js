@@ -9,6 +9,7 @@ const Image = require('../models/imageModel');
 const sellerController = require('../controllers/sellerController');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { confirmCashPayment } = require('../controllers/sellerController');
 
 
 
@@ -874,6 +875,10 @@ router.get('/my-restaurant',
       res.status(500).json({ error: error.message });
     }
 });
+
+
+router.post('/confirm-cash-payment/:orderId', authMiddleware, sellerMiddleware, confirmCashPayment);
+
 
   
 module.exports = router;

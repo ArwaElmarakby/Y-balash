@@ -1743,3 +1743,22 @@ exports.getCustomerAnalytics = async (req, res) => {
     });
   }
 };
+
+
+exports.confirmCashPayment = async (req, res) => {
+    const { orderId } = req.params;
+    const seller = req.user;
+    try {
+        const order = await Order.findOneAndUpdate(
+            { _id: orderId, restaurantId: seller.managedRestaurant },
+            { status: 'confirmed' }, // Update status to confirmed
+            { new: true }
+        );
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found or not under your management' });
+        }
+        res.status(200).json({ message: 'Cash payment confirmed successfully', order });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};

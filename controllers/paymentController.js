@@ -100,6 +100,7 @@
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Cart = require('../models/cartModel'); 
+const Order = require('../models/orderModel');
 
 exports.createPayment = async (req, res) => {
     const userId = req.user.id; 
@@ -148,4 +149,57 @@ exports.createPayment = async (req, res) => {
         res.status(500).json({ message: 'Payment failed', error: error.message });
     }
 };
+
+
+
+exports.cashPayment = async (req, res) => {
+    const userId = req.user.id; 
+
+    try {
+        const cart = await Cart.findOne({ userId })
+            .populate('items.itemId')
+            .populate('offers.offerId');
+        if (!cart) {
+            return res.status(404).json({ message: 'Cart not found' });
+        }
+
+        // Calculate total items price
+        let totalItemsPrice = 0;
+        cart.items.forEach(item => {
+            totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
+        });
+
+        // Calculate total offers price
+        let totalOffersPrice = 0;
+        cart.offers.forEach(offer => {
+            totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
+        });
+
+        // Additional costs
+        const shippingCost = 50; 
+        const importCharges = totalItemsPrice / 4; // Calculate import charges as 1/4 of total items price
+
+        // Total price calculation
+        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
+
+        // Create an order
+        const order = new Order({
+            userId: userId,
+            restaurantId: cart.restaurantId, // Assuming you have restaurantId in the cart
+            items: cart.items,
+            totalAmount: totalPrice,
+            status: 'pending', // Set initial status to pending
+        });
+
+        await order.save();
+
+        // Clear the cart after payment
+        await Cart.deleteOne({ userId });
+
+        res.status(200).json({ message: 'Cash payment initiated successfully', orderId: order._id });
+    } catch (error) {
+        res.status(500).json({ message: 'Cash payment failed', error: error.message });
+    }
+};
+
 
