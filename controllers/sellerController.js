@@ -1851,3 +1851,66 @@ exports.getOrdersStats = async (req, res) => {
 
 
 
+exports.getMonthlyEarningsSimple = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No restaurant assigned to this seller' 
+      });
+    }
+
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const [currentMonthEarnings, lastMonthEarnings] = await Promise.all([
+      Order.aggregate([
+        {
+          $match: {
+            restaurantId: seller.managedRestaurant,
+            createdAt: { $gte: currentMonthStart, $lte: currentMonthEnd },
+            status: 'delivered'
+          }
+        },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            restaurantId: seller.managedRestaurant,
+            createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd },
+            status: 'delivered'
+          }
+        },
+        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+      ])
+    ]);
+
+    const current = currentMonthEarnings[0]?.total || 0;
+    const last = lastMonthEarnings[0]?.total || 0;
+
+    let percentage = "0%";
+    if (last > 0) {
+      const change = ((current - last) / last) * 100;
+      percentage = `${Math.round(change)}%`;
+    } else if (current > 0) {
+      percentage = "100%";
+    }
+
+    res.status(200).json({
+      totalEarnings: current,
+      percentage
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      totalEarnings: 0,
+      percentage: "0%"
+    });
+  }
+};
