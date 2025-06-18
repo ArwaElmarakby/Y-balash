@@ -7,26 +7,9 @@ const orderSchema = new mongoose.Schema({
     items: [{ 
         itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' }, 
         quantity: Number,
-        price: Number ,
-        name: String
-    }],
-    offers: [{
-        offerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Offer' },
-        quantity: Number,
-        price: Number, // تأكد أن هذا رقم وليس نص
-        name: String // إضافة اسم العرض للتوثيق
+        price: Number 
     }],
     totalAmount: { type: Number, required: true },
-    paymentMethod: {
-        type: String,
-        enum: ['card', 'cash'],
-        required: true
-    },
-    paymentStatus: {
-        type: String,
-        enum: ['pending', 'paid', 'failed'],
-        default: 'pending'
-    },
     status: { 
         type: String, 
         enum: ['pending', 'preparing', 'ready', 'delivered', 'cancelled'],

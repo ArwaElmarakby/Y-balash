@@ -4,7 +4,7 @@ const imageSchema = new mongoose.Schema({
   name: { type: String, required: true },
   sku: { type: String, unique: true },
   description: { type: String },
-  price: { type: Number, required: true },
+  price: { type: String, required: true },
   productionDate: { type: String },
   expiryDate: { type: String },  
   quantity: { type: String, required: true },
