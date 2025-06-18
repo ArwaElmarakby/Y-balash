@@ -115,17 +115,22 @@ exports.addImage = async (req, res) => {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantId, productionDate, expiryDate } = req.body;
+    // const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantId, productionDate, expiryDate } = req.body;
+    const { name, quantity, price, categoryName, sku, description, restaurantName, productionDate, expiryDate } = req.body;
     const imageUrl = req.file ? req.file.path : null;
 
-    if (!name || !quantity || !price || !imageUrl || !categoryId || !productionDate || !expiryDate) {
+   if (!name || !quantity || !price || !imageUrl || !categoryName || !productionDate || !expiryDate) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     try {
-      const category = await Category.findById(categoryId);
+      const category = await Category.findOne({ name: categoryName });
       if (!category) {
         return res.status(404).json({ message: 'Category not found' });
+      }
+      const restaurant = await Restaurant.findOne({ name: restaurantName });
+      if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurant not found' });
       }
 
       
@@ -153,8 +158,10 @@ exports.addImage = async (req, res) => {
         quantity, 
         price: discountedPrice, 
         imageUrl, 
-        category: categoryId, 
-        restaurant: restaurantId, 
+        // category: categoryId, 
+        // restaurant: restaurantId, 
+        category: category._id, 
+        restaurant: restaurant._id, 
         discount,
         productionDate: productionDate ? productionDate.split('T')[0] : null, 
         expiryDate: expiryDate ? expiryDate.split('T')[0] : null 
@@ -267,7 +274,9 @@ exports.getItemDetails = async (req, res) => {
         quantity,
         discountPercentage,
         discountStartDate,
-        discountEndDate
+        discountEndDate, 
+        categoryName, 
+        restaurantName 
       } = req.body;
   
       const imageUrl = req.file?.path;
@@ -276,6 +285,19 @@ exports.getItemDetails = async (req, res) => {
         const updateData = { name, price, quantity };
         if (imageUrl) updateData.imageUrl = imageUrl;
   
+
+         if (categoryName) {
+        const category = await Category.findOne({ name: categoryName });
+        if (category) {
+          updateData.category = category._id;
+        }
+      }
+      if (restaurantName) {
+        const restaurant = await Restaurant.findOne({ name: restaurantName });
+        if (restaurant) {
+          updateData.restaurant = restaurant._id;
+        }
+      }
 
         // if (discountPercentage !== undefined) {
         //   updateData.discount = discountPercentage > 0 ? {
