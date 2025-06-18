@@ -1802,3 +1802,49 @@ exports.getLowStockItems = async (req, res) => {
     });
   }
 };
+
+
+exports.getOrdersStats = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned' });
+        }
+
+        // احصل على الإجمالي فقط بدون التقسيم
+        const stats = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant
+                }
+            },
+            {
+                $group: {
+                    _id: null, // تجميع كل شيء معًا
+                    totalOrders: { $sum: 1 },
+                    totalRevenue: { $sum: "$totalAmount" },
+                    avgOrderValue: { $avg: "$totalAmount" }
+                }
+            }
+        ]);
+
+        // إذا لم توجد طلبات
+        const result = stats[0] || { 
+            totalOrders: 0, 
+            totalRevenue: 0, 
+            avgOrderValue: 0 
+        };
+
+        res.status(200).json({
+            success: true,
+            stats: result
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching orders stats',
+            error: error.message
+        });
+    }
+};
