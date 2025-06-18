@@ -875,47 +875,5 @@ router.get('/my-restaurant',
     }
 });
 
-
-
-router.post('/confirm-cash-payment', authMiddleware, sellerMiddleware, async (req, res) => {
-    try {
-        const seller = req.user;
-        
-        // البحث عن أول طلب معلق لهذا البائع
-        const order = await Order.findOne({
-            restaurantId: seller.managedRestaurant,
-            paymentMethod: 'cash',
-            status: 'pending'
-        }).sort({ createdAt: 1 });
-
-        if (!order) {
-            return res.status(404).json({
-                success: false,
-                message: 'No pending cash orders found'
-            });
-        }
-
-        // تحديث حالة الطلب
-        order.status = 'preparing';
-        await order.save();
-
-        res.status(200).json({
-            success: true,
-            message: 'Cash payment confirmed and order is now being prepared',
-            order: {
-                id: order._id,
-                totalAmount: order.totalAmount,
-                paymentMethod: order.paymentMethod
-            }
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
-    }
-});
-
   
 module.exports = router;
