@@ -250,7 +250,7 @@ exports.addImage = async (req, res) => {
       category.items.push(newImage._id);
       await category.save();
 
-      restaurant.items.push(newImage._id);
+      restaurant.images.push(newImage._id);
       await restaurant.save();
 
 
