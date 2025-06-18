@@ -175,6 +175,7 @@ exports.getCartSummary = async (req, res) => {
 
 
 
+
 exports.applyCoupon = async (req, res) => {
     const { couponCode } = req.body; 
     const userId = req.user._id; 
