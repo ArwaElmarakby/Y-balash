@@ -1,7 +1,7 @@
 // routes/imageRoutes.js
 const express = require('express');
 const router = express.Router();
-const { addImage, getImages, deleteImage, updateImage, searchImage, incrementViews, getBestSelling, getItemDetails, getItemsSummary } = require('../controllers/imageController');
+const { addImage, getImages, deleteImage, updateImage, searchImage, incrementViews, getBestSelling, getItemDetails, getItemsSummary, getLowStockItems } = require('../controllers/imageController');
 const { authMiddleware } = require('./authRoutes');
 const adminMiddleware = require('../middleware/adminMiddleware');
 const sellerMiddleware = require('../middleware/sellerMiddleware');
@@ -15,6 +15,7 @@ router.put('/view/:id', incrementViews);
 router.get('/best-selling', getBestSelling);
 router.post('/item-details', getItemDetails);
 router.get('/summary', getItemsSummary);
+router.get('/low-stock', getLowStockItems);
 
 
 module.exports = router;
