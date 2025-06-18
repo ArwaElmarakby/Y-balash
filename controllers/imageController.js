@@ -297,16 +297,10 @@ exports.getItemDetails = async (req, res) => {
         }
 
        
-        // await logActivity('stock_updated', req.user._id, {
-        //   productName: updatedImage.name,
-        //   newQuantity: quantity
-        // });
-
-
-        await logActivity('product_added', req.user._id, {
-    productName: name,
-    productId: newImage._id
-});
+        await logActivity('stock_updated', req.user._id, {
+          productName: updatedImage.name,
+          newQuantity: quantity
+        });
       
 
   
