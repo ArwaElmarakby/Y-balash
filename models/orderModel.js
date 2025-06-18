@@ -15,6 +15,16 @@ const orderSchema = new mongoose.Schema({
         enum: ['pending', 'preparing', 'ready', 'delivered', 'cancelled'],
         default: 'pending'
     },
+    paymentMethod: {
+        type: String,
+        enum: ['card', 'cash'],
+        default: 'card'
+    },
+    isCashPaid: {
+        type: Boolean,
+        default: false
+    },
+    cashPaymentConfirmedAt: Date,
     notifications: [{
         type: {
             type: String,
