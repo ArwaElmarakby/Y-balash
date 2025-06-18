@@ -884,28 +884,38 @@ router.get('/low-stock-count',
             const seller = req.user;
             
             if (!seller.managedRestaurant) {
-                return res.status(400).json({ 
-                    success: false,
-                    message: 'No restaurant assigned to this seller' 
-                });
+                return res.status(400).json({ message: 'No restaurant assigned' });
             }
 
-            const LOW_STOCK_THRESHOLD = 12; // يمكنك تغيير هذا الرقم حسب الحاجة
+            const LOW_STOCK_THRESHOLD = 12;
             
-            const lowStockItemsCount = await Image.countDocuments({
+            // استعلام أكثر دقة مع تحقق من نوع البيانات
+            const lowStockItems = await Image.find({
                 restaurant: seller.managedRestaurant,
-                quantity: { $lte: LOW_STOCK_THRESHOLD }
+                quantity: { $exists: true, $lte: LOW_STOCK_THRESHOLD }
             });
 
+            // تحقق إضافي للتأكد من القيم الرقمية
+            const validLowStockItems = lowStockItems.filter(item => 
+                !isNaN(item.quantity) && item.quantity <= LOW_STOCK_THRESHOLD
+            );
+
             res.status(200).json({
-                success: true,
-                lowStockItemsCount,
-                threshold: LOW_STOCK_THRESHOLD
+                message: 'Low stock items count retrieved successfully',
+                lowStockItemsCount: validLowStockItems.length,
+                threshold: LOW_STOCK_THRESHOLD,
+                debug: {
+                    rawCount: lowStockItems.length,
+                    itemsSample: validLowStockItems.slice(0,3).map(i => ({
+                        name: i.name,
+                        quantity: i.quantity
+                    }))
+                }
             });
 
         } catch (error) {
+            console.error("Error in low-stock-count:", error);
             res.status(500).json({ 
-                success: false,
                 message: 'Server error',
                 error: error.message 
             });
