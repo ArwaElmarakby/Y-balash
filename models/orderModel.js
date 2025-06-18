@@ -15,6 +15,11 @@ const orderSchema = new mongoose.Schema({
         enum: ['cash', 'online'],
         default: 'cash'
     },
+    offers: [{
+        offerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Offer' },
+        quantity: Number,
+        price: Number
+    }],
     paymentStatus: {
         type: String,
         enum: ['pending', 'paid', 'failed'],
