@@ -1762,3 +1762,37 @@ exports.confirmCashPayment = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+
+exports.getLowStockItems = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No restaurant assigned to this seller' 
+      });
+    }
+
+    const LOW_STOCK_THRESHOLD = 7; // حد المخزون المنخفض
+
+    const lowStockItems = await Image.find({
+      restaurant: seller.managedRestaurant,
+      quantity: { $lte: LOW_STOCK_THRESHOLD }
+    }).select('name quantity price imageUrl category');
+
+    res.status(200).json({
+      success: true,
+      threshold: LOW_STOCK_THRESHOLD,
+      count: lowStockItems.length,
+      items: lowStockItems
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};

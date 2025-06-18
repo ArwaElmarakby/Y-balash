@@ -880,5 +880,11 @@ router.get('/my-restaurant',
 router.post('/confirm-cash-payment/:orderId', authMiddleware, sellerMiddleware, confirmCashPayment);
 
 
+router.get('/low-stock-items',
+  authMiddleware,
+  sellerMiddleware,
+  sellerController.getLowStockItems
+);
+
   
 module.exports = router;
