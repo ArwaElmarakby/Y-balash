@@ -32,6 +32,10 @@ const restaurantSchema = new mongoose.Schema({
   images: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Image' }],
   balance: { type: Number, default: 0 },
   pendingWithdrawal: { type: Number, default: 0 },
+  items: [{
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Image'
+}],
   payouts: [{
     date: { type: Date, default: Date.now },
     amount: { type: Number, required: true },

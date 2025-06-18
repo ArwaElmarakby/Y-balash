@@ -250,6 +250,10 @@ exports.addImage = async (req, res) => {
       category.items.push(newImage._id);
       await category.save();
 
+      restaurant.items.push(newImage._id);
+      await restaurant.save();
+
+
       await logActivity('product_added', req.user._id, {
         productName: name,
         productId: newImage._id
