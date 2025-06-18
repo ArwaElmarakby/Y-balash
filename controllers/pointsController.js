@@ -89,9 +89,9 @@ exports.usePointsForDiscount = async (req, res) => {
         });
 
         const shippingCost = 50;
-        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
+        // const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
         
-        let totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges - discountFromPoints;
+        let totalPrice = totalItemsPrice + totalOffersPrice + shippingCost - discountFromPoints;
 
         res.status(200).json({
             success: true,
@@ -104,7 +104,7 @@ exports.usePointsForDiscount = async (req, res) => {
                 totalItemsPrice: totalItemsPrice.toFixed(2),
                 totalOffersPrice: totalOffersPrice.toFixed(2),
                 shippingCost: shippingCost.toFixed(2),
-                importCharges: importCharges.toFixed(2),
+                // importCharges: importCharges.toFixed(2),
                 discountFromPoints: discountFromPoints.toFixed(2),
                 totalPrice: totalPrice.toFixed(2)
             }
