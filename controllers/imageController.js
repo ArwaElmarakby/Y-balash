@@ -7,6 +7,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const axios = require('axios');
 const cron = require('node-cron');
 const { logActivity } = require('./activityController');
+const Restaurant = require('../models/restaurantModel');
 
 // Cloudinary Configuration
 cloudinary.config({
@@ -109,26 +110,114 @@ function calculateDiscountPercentage(originalPrice, discountedPrice) {
 }
 
 
+// exports.addImage = async (req, res) => {
+//   upload(req, res, async (err) => {
+//     if (err) {
+//       return res.status(500).json({ message: "Image upload failed", error: err });
+//     }
+
+//     const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantId, productionDate, expiryDate } = req.body;
+//     const imageUrl = req.file ? req.file.path : null;
+
+//     if (!name || !quantity || !price || !imageUrl || !categoryId || !productionDate || !expiryDate) {
+//       return res.status(400).json({ message: "All fields are required" });
+//     }
+
+//     try {
+//       const category = await Category.findById(categoryId);
+//       if (!category) {
+//         return res.status(404).json({ message: 'Category not found' });
+//       }
+
+      
+//       const discountedPrice = await exports.calculateDiscountedPrice(
+//         productionDate,
+//         expiryDate,
+//         price
+//       );
+
+//       const discount = {
+//         percentage: calculateDiscountPercentage(price, discountedPrice),
+//         startDate: discountStartDate || new Date(),
+//         endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+//         stock: quantity
+//       };
+
+//       if (!restaurantId) {
+//         return res.status(400).json({ message: "Restaurant ID is required" });
+//       }
+
+//       const newImage = new Image({ 
+//         name, 
+//         sku, 
+//         description, 
+//         quantity, 
+//         price: discountedPrice, 
+//         imageUrl, 
+//         category: categoryId, 
+//         restaurant: restaurantId, 
+//         discount,
+//         productionDate: productionDate ? productionDate.split('T')[0] : null, 
+//         expiryDate: expiryDate ? expiryDate.split('T')[0] : null 
+//       });
+
+//       await newImage.save();
+
+//       category.items.push(newImage._id);
+//       await category.save();
+
+//       await logActivity('product_added', req.user._id, {
+//     productName: name,
+//     productId: newImage._id
+// });
+
+
+//       res.status(201).json({ 
+//         message: 'Item added successfully', 
+//         image: newImage,
+//         originalPrice: price, 
+//         discountedPrice: discountedPrice 
+//       });
+//     } catch (error) {
+//       if (error.code === 11000 && error.keyPattern.sku) {
+//         return res.status(400).json({ 
+//           message: 'SKU must be unique', 
+//           error: 'Duplicate SKU' 
+//         });
+//       }
+//       res.status(500).json({ message: 'Server error', error });
+//     }
+//   });
+// };
+
+
+
 exports.addImage = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantId, productionDate, expiryDate } = req.body;
+    const { name, quantity, price, categoryName, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantName, productionDate, expiryDate } = req.body;
     const imageUrl = req.file ? req.file.path : null;
 
-    if (!name || !quantity || !price || !imageUrl || !categoryId || !productionDate || !expiryDate) {
+    if (!name || !quantity || !price || !imageUrl || !categoryName || !productionDate || !expiryDate || !restaurantName) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     try {
-      const category = await Category.findById(categoryId);
+      // البحث عن الفئة بالاسم بدلاً من ID
+      const category = await Category.findOne({ name: categoryName });
       if (!category) {
         return res.status(404).json({ message: 'Category not found' });
       }
 
-      
+      // البحث عن المطعم بالاسم بدلاً من ID
+      const restaurant = await Restaurant.findOne({ name: restaurantName });
+      if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurant not found' });
+      }
+
       const discountedPrice = await exports.calculateDiscountedPrice(
         productionDate,
         expiryDate,
@@ -142,10 +231,6 @@ exports.addImage = async (req, res) => {
         stock: quantity
       };
 
-      if (!restaurantId) {
-        return res.status(400).json({ message: "Restaurant ID is required" });
-      }
-
       const newImage = new Image({ 
         name, 
         sku, 
@@ -153,8 +238,8 @@ exports.addImage = async (req, res) => {
         quantity, 
         price: discountedPrice, 
         imageUrl, 
-        category: categoryId, 
-        restaurant: restaurantId, 
+        category: category._id, 
+        restaurant: restaurant._id, 
         discount,
         productionDate: productionDate ? productionDate.split('T')[0] : null, 
         expiryDate: expiryDate ? expiryDate.split('T')[0] : null 
@@ -166,10 +251,9 @@ exports.addImage = async (req, res) => {
       await category.save();
 
       await logActivity('product_added', req.user._id, {
-    productName: name,
-    productId: newImage._id
-});
-
+        productName: name,
+        productId: newImage._id
+      });
 
       res.status(201).json({ 
         message: 'Item added successfully', 
@@ -254,65 +338,133 @@ exports.getItemDetails = async (req, res) => {
     }
   };
 
-  exports.updateImage = async (req, res) => {
-    upload(req, res, async (err) => {
-      if (err) {
-        return res.status(500).json({ message: "Image upload failed" });
-      }
+  // exports.updateImage = async (req, res) => {
+  //   upload(req, res, async (err) => {
+  //     if (err) {
+  //       return res.status(500).json({ message: "Image upload failed" });
+  //     }
   
-      const { id } = req.params;
-      const { 
-        name, 
-        price, 
-        quantity,
-        discountPercentage,
-        discountStartDate,
-        discountEndDate
-      } = req.body;
+  //     const { id } = req.params;
+  //     const { 
+  //       name, 
+  //       price, 
+  //       quantity,
+  //       discountPercentage,
+  //       discountStartDate,
+  //       discountEndDate
+  //     } = req.body;
   
-      const imageUrl = req.file?.path;
+  //     const imageUrl = req.file?.path;
   
-      try {
-        const updateData = { name, price, quantity };
-        if (imageUrl) updateData.imageUrl = imageUrl;
+  //     try {
+  //       const updateData = { name, price, quantity };
+  //       if (imageUrl) updateData.imageUrl = imageUrl;
   
 
-        // if (discountPercentage !== undefined) {
-        //   updateData.discount = discountPercentage > 0 ? {
-        //     percentage: discountPercentage,
-        //     startDate: discountStartDate || new Date(),
-        //     endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        //   } : null;
-        // }
+  //       // if (discountPercentage !== undefined) {
+  //       //   updateData.discount = discountPercentage > 0 ? {
+  //       //     percentage: discountPercentage,
+  //       //     startDate: discountStartDate || new Date(),
+  //       //     endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  //       //   } : null;
+  //       // }
   
-        const updatedImage = await Image.findByIdAndUpdate(
-          id,
-          updateData,
-          { new: true }
-        );
+  //       const updatedImage = await Image.findByIdAndUpdate(
+  //         id,
+  //         updateData,
+  //         { new: true }
+  //       );
        
   
-        if (!updatedImage) {
-          return res.status(404).json({ message: 'Item not found' });
-        }
+  //       if (!updatedImage) {
+  //         return res.status(404).json({ message: 'Item not found' });
+  //       }
 
        
-        await logActivity('stock_updated', req.user._id, {
-          productName: updatedImage.name,
-          newQuantity: quantity
-        });
+  //       await logActivity('stock_updated', req.user._id, {
+  //         productName: updatedImage.name,
+  //         newQuantity: quantity
+  //       });
       
 
   
-        res.status(200).json({
-          message: 'Item updated successfully',
-          item: updatedImage
-        });
-      } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+  //       res.status(200).json({
+  //         message: 'Item updated successfully',
+  //         item: updatedImage
+  //       });
+  //     } catch (error) {
+  //       res.status(500).json({ message: 'Server error' });
+  //     }
+  //   });
+  // };
+
+
+  exports.updateImage = async (req, res) => {
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(500).json({ message: "Image upload failed" });
+    }
+
+    const { id } = req.params;
+    const { 
+      name, 
+      price, 
+      quantity,
+      discountPercentage,
+      discountStartDate,
+      discountEndDate,
+      categoryName,
+      restaurantName
+    } = req.body;
+
+    const imageUrl = req.file?.path;
+
+    try {
+      const updateData = { name, price, quantity };
+      if (imageUrl) updateData.imageUrl = imageUrl;
+
+      // تحديث الفئة إذا تم تقديم اسم جديد
+      if (categoryName) {
+        const category = await Category.findOne({ name: categoryName });
+        if (!category) {
+          return res.status(404).json({ message: 'Category not found' });
+        }
+        updateData.category = category._id;
       }
-    });
-  };
+
+      // تحديث المطعم إذا تم تقديم اسم جديد
+      if (restaurantName) {
+        const restaurant = await Restaurant.findOne({ name: restaurantName });
+        if (!restaurant) {
+          return res.status(404).json({ message: 'Restaurant not found' });
+        }
+        updateData.restaurant = restaurant._id;
+      }
+
+      const updatedImage = await Image.findByIdAndUpdate(
+        id,
+        updateData,
+        { new: true }
+      );
+     
+      if (!updatedImage) {
+        return res.status(404).json({ message: 'Item not found' });
+      }
+
+      await logActivity('stock_updated', req.user._id, {
+        productName: updatedImage.name,
+        newQuantity: quantity
+      });
+
+      res.status(200).json({
+        message: 'Item updated successfully',
+        item: updatedImage
+      });
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  });
+};
 
 
   exports.searchImage = async (req, res) => {
