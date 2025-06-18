@@ -1757,19 +1757,26 @@ exports.getLowStockCount = async (req, res) => {
             });
         }
 
-        const LOW_STOCK_THRESHOLD = 12; // يمكن تغيير الرقم حسب الحاجة
+        const LOW_STOCK_THRESHOLD = 12;
 
-        const lowStockItemsCount = await Image.countDocuments({
-            restaurant: seller.managedRestaurant,
-            quantity: { $lt: LOW_STOCK_THRESHOLD }
-        });
+        // جلب جميع المنتجات ثم الفلترة يدوياً
+        const allItems = await Image.find({
+            restaurant: seller.managedRestaurant
+        }).select('quantity');
+
+        const lowStockItemsCount = allItems.filter(item => {
+            const qty = parseInt(item.quantity);
+            return qty < LOW_STOCK_THRESHOLD && qty >= 0;
+        }).length;
 
         res.status(200).json({
             success: true,
+            message: 'Low stock items count retrieved successfully',
             lowStockItemsCount,
             threshold: LOW_STOCK_THRESHOLD
         });
     } catch (error) {
+        console.error("Error in getLowStockCount:", error);
         res.status(500).json({ 
             success: false,
             message: 'Server error',
