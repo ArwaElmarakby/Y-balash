@@ -162,34 +162,13 @@ exports.addImage = async (req, res) => {
 
       await newImage.save();
 
-//       category.items.push(newImage._id);
-//       await category.save();
+      category.items.push(newImage._id);
+      await category.save();
 
-//       await logActivity('product_added', req.user._id, {
-//     productName: name,
-//     productId: newImage._id
-// });
-
-if (newImage.quantity <= 12) {
-        await logActivity('product_added_low_stock', req.user._id, {
-          productName: newImage.name,
-          productId: newImage._id,
-          quantity: newImage.quantity
-        });
-
-        // إرسال إشعار للمتجر إذا كان البائع
-        if (req.user.isSeller && req.user.managedRestaurant) {
-          await createNotification(
-            req.user._id,
-            req.user.managedRestaurant,
-            'stock',
-            'New Low Stock Item Added',
-            `${newImage.name} was added with low quantity (${newImage.quantity})`,
-            newImage._id
-          );
-        }
-      }
-
+      await logActivity('product_added', req.user._id, {
+    productName: name,
+    productId: newImage._id
+});
 
 
       res.status(201).json({ 
@@ -317,31 +296,11 @@ exports.getItemDetails = async (req, res) => {
           return res.status(404).json({ message: 'Item not found' });
         }
 
-
-         if (updatedImage.quantity <= 12) {
-            await logActivity('stock_updated', req.user._id, {
-                productName: updatedImage.name,
-                newQuantity: updatedImage.quantity
-            });
-
-            // إرسال إشعار للمتجر إذا كان البائع
-            if (req.user.isSeller && req.user.managedRestaurant) {
-                await createNotification(
-                    req.user._id,
-                    req.user.managedRestaurant,
-                    'stock',
-                    'Low Stock Alert',
-                    `${updatedImage.name} quantity is low (${updatedImage.quantity} remaining)`,
-                    updatedImage._id
-                );
-            }
-        }
-
        
-        // await logActivity('stock_updated', req.user._id, {
-        //   productName: updatedImage.name,
-        //   newQuantity: quantity
-        // });
+        await logActivity('stock_updated', req.user._id, {
+          productName: updatedImage.name,
+          newQuantity: quantity
+        });
       
 
   

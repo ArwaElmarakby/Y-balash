@@ -777,230 +777,83 @@ exports.updatePaymentSettings = async (req, res) => {
 
 
 
-// exports.getLowStockItems = async (req, res) => {
-//   try {
-//     const seller = req.user;
-    
-//     if (!seller.managedRestaurant) {
-//       return res.status(400).json({ 
-//         success: false,
-//         message: 'No restaurant assigned to this seller' 
-//       });
-//     }
-
-//     const LOW_STOCK_THRESHOLD = 4;
-//     const CRITICAL_STOCK_THRESHOLD = 2; 
-
-//     const lowStockItems = await Image.find({
-//       restaurant: seller.managedRestaurant,
-//       quantity: { $lte: LOW_STOCK_THRESHOLD }
-//     }).select('name quantity price imageUrl');
-
-//     const formattedItems = lowStockItems.map(item => ({
-//       id: item._id,
-//       name: item.name,
-//       remaining: item.quantity,
-//       imageUrl: item.imageUrl,
-//       status: item.quantity <= CRITICAL_STOCK_THRESHOLD ? 'CRITICAL' : 'LOW',
-//       price: item.price
-//     }));
-
-//     res.status(200).json({
-//       success: true,
-//       count: lowStockItems.length,
-//       items: formattedItems
-//     });
-//   } catch (error) {
-//     res.status(500).json({ 
-//       success: false,
-//       message: 'Server error'
-//     });
-//   }
-// };
-
-
-
-// exports.getLowStockItems = async (req, res) => {
-//     try {
-//         const seller = req.user;
-        
-//         if (!seller.managedRestaurant) {
-//             return res.status(400).json({ 
-//                 success: false,
-//                 message: 'No restaurant assigned to this seller' 
-//             });
-//         }
-
-//         const LOW_STOCK_THRESHOLD = 12; // تم تغيير العتبة إلى 12
-//         const CRITICAL_STOCK_THRESHOLD = 5;
-
-//         const lowStockItems = await Image.find({
-//             restaurant: seller.managedRestaurant,
-//             quantity: { $lte: LOW_STOCK_THRESHOLD }
-//         }).select('name quantity price imageUrl');
-
-//         const formattedItems = lowStockItems.map(item => ({
-//             id: item._id,
-//             name: item.name,
-//             remaining: item.quantity,
-//             imageUrl: item.imageUrl,
-//             status: item.quantity <= CRITICAL_STOCK_THRESHOLD ? 'CRITICAL' : 'LOW',
-//             price: item.price
-//         }));
-
-//         res.status(200).json({
-//             success: true,
-//             count: lowStockItems.length,
-//             items: formattedItems,
-//             threshold: LOW_STOCK_THRESHOLD // إرجاع العتبة للواجهة الأمامية
-//         });
-//     } catch (error) {
-//         res.status(500).json({ 
-//             success: false,
-//             message: 'Server error'
-//         });
-//     }
-// };
-
-
-
-exports.getLowStockCount = async (req, res) => {
+exports.getLowStockItems = async (req, res) => {
   try {
     const seller = req.user;
     
     if (!seller.managedRestaurant) {
       return res.status(400).json({ 
+        success: false,
         message: 'No restaurant assigned to this seller' 
       });
     }
 
-    const LOW_STOCK_THRESHOLD = 12;
-    const lowStockItemsCount = await Image.countDocuments({
-      restaurant: seller.managedRestaurant,
-      quantity: { $gt: 0, $lte: LOW_STOCK_THRESHOLD }
-    });
+    const LOW_STOCK_THRESHOLD = 4;
+    const CRITICAL_STOCK_THRESHOLD = 2; 
 
-    res.status(200).json({
-      message: 'Low stock items count retrieved successfully',
-      lowStockItemsCount,
-      threshold: LOW_STOCK_THRESHOLD
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'Server error',
-      error: error.message 
-    });
-  }
-};
-
-
-
-exports.getLowStockItemsDetails = async (req, res) => {
-  try {
-    const seller = req.user;
-    
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ 
-        message: 'No restaurant assigned to this seller' 
-      });
-    }
-
-    const LOW_STOCK_THRESHOLD = 12;
     const lowStockItems = await Image.find({
       restaurant: seller.managedRestaurant,
-      quantity: { $gt: 0, $lte: LOW_STOCK_THRESHOLD }
+      quantity: { $lte: LOW_STOCK_THRESHOLD }
     }).select('name quantity price imageUrl');
 
+    const formattedItems = lowStockItems.map(item => ({
+      id: item._id,
+      name: item.name,
+      remaining: item.quantity,
+      imageUrl: item.imageUrl,
+      status: item.quantity <= CRITICAL_STOCK_THRESHOLD ? 'CRITICAL' : 'LOW',
+      price: item.price
+    }));
+
     res.status(200).json({
-      message: 'Low stock items retrieved successfully',
+      success: true,
       count: lowStockItems.length,
-      items: lowStockItems,
-      threshold: LOW_STOCK_THRESHOLD
+      items: formattedItems
     });
   } catch (error) {
     res.status(500).json({ 
-      message: 'Server error',
-      error: error.message 
+      success: false,
+      message: 'Server error'
     });
   }
 };
-
-
-
-// exports.getStockStats = async (req, res) => {
-//   try {
-//     const seller = req.user;
-    
-//     if (!seller.managedRestaurant) {
-//       return res.status(400).json({ 
-//         outOfStock: 0,
-//         lowStock: 0
-//       });
-//     }
-
-//     const LOW_STOCK_THRESHOLD = 10;
-    
-//     const [outOfStockCount, lowStockCount] = await Promise.all([
-//       Image.countDocuments({
-//         restaurant: seller.managedRestaurant,
-//         quantity: { $lte: 0 }
-//       }),
-//       Image.countDocuments({
-//         restaurant: seller.managedRestaurant,
-//         quantity: { $gt: 0, $lte: LOW_STOCK_THRESHOLD }
-//       })
-//     ]);
-
-//     res.status(200).json({
-//       outOfStock: outOfStockCount,
-//       lowStock: lowStockCount
-//     });
-//   } catch (error) {
-//     res.status(500).json({ 
-//       outOfStock: 0,
-//       lowStock: 0
-//     });
-//   }
-// };
-
 
 
 
 exports.getStockStats = async (req, res) => {
-    try {
-        const seller = req.user;
-        
-        if (!seller.managedRestaurant) {
-            return res.status(200).json({ 
-                outOfStock: 0,
-                lowStock: 0
-            });
-        }
-
-        const LOW_STOCK_THRESHOLD = 12; // تم تغيير العتبة إلى 12
-        
-        const [outOfStockCount, lowStockCount] = await Promise.all([
-            Image.countDocuments({
-                restaurant: seller.managedRestaurant,
-                quantity: { $lte: 0 }
-            }),
-            Image.countDocuments({
-                restaurant: seller.managedRestaurant,
-                quantity: { $gt: 0, $lte: LOW_STOCK_THRESHOLD }
-            })
-        ]);
-
-        res.status(200).json({
-            outOfStock: outOfStockCount,
-            lowStock: lowStockCount,
-            threshold: LOW_STOCK_THRESHOLD // إرجاع العتبة للواجهة الأمامية
-        });
-    } catch (error) {
-        res.status(200).json({ 
-            outOfStock: 0,
-            lowStock: 0
-        });
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ 
+        outOfStock: 0,
+        lowStock: 0
+      });
     }
+
+    const LOW_STOCK_THRESHOLD = 10;
+    
+    const [outOfStockCount, lowStockCount] = await Promise.all([
+      Image.countDocuments({
+        restaurant: seller.managedRestaurant,
+        quantity: { $lte: 0 }
+      }),
+      Image.countDocuments({
+        restaurant: seller.managedRestaurant,
+        quantity: { $gt: 0, $lte: LOW_STOCK_THRESHOLD }
+      })
+    ]);
+
+    res.status(200).json({
+      outOfStock: outOfStockCount,
+      lowStock: lowStockCount
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      outOfStock: 0,
+      lowStock: 0
+    });
+  }
 };
 
 
