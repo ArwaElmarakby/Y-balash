@@ -654,11 +654,17 @@ router.get('/my-restaurant',
 
 
 
-  router.get('/low-stock-items',
-    authMiddleware,
-    sellerMiddleware,
-    sellerController.getLowStockItems
-  );
+  router.get('/low-stock-count', 
+  authMiddleware,
+  sellerMiddleware,
+  sellerController.getLowStockCount
+);
+
+router.get('/low-stock-items', 
+  authMiddleware,
+  sellerMiddleware,
+  sellerController.getLowStockItemsDetails
+);
 
 
   router.get('/stock-stats',

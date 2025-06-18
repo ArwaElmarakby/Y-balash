@@ -170,6 +170,27 @@ exports.addImage = async (req, res) => {
     productId: newImage._id
 });
 
+if (newImage.quantity <= 12) {
+        await logActivity('product_added_low_stock', req.user._id, {
+          productName: newImage.name,
+          productId: newImage._id,
+          quantity: newImage.quantity
+        });
+
+        // إرسال إشعار للمتجر إذا كان البائع
+        if (req.user.isSeller && req.user.managedRestaurant) {
+          await createNotification(
+            req.user._id,
+            req.user.managedRestaurant,
+            'stock',
+            'New Low Stock Item Added',
+            `${newImage.name} was added with low quantity (${newImage.quantity})`,
+            newImage._id
+          );
+        }
+      }
+
+
 
       res.status(201).json({ 
         message: 'Item added successfully', 
