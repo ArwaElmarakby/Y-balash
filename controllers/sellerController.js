@@ -776,80 +776,47 @@ exports.updatePaymentSettings = async (req, res) => {
 
 
 
-exports.getLowStockItemsCount = async (req, res) => {
-    try {
-        const seller = req.user;
-        
-        if (!seller.managedRestaurant) {
-            return res.status(400).json({ 
-                success: false,
-                message: 'No restaurant assigned to this seller' 
-            });
-        }
 
-        const LOW_STOCK_THRESHOLD = 7; // يمكن تغيير الرقم حسب الحاجة
-        
-        const lowStockItemsCount = await Image.countDocuments({
-            restaurant: seller.managedRestaurant,
-            quantity: { $lte: LOW_STOCK_THRESHOLD }
-        });
-
-        res.status(200).json({
-            success: true,
-            lowStockItemsCount,
-            threshold: LOW_STOCK_THRESHOLD
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
-    }
-};
-
-
-
-exports.getLowStockItems = async (req, res) => {
-  try {
-    const seller = req.user;
+// exports.getLowStockItems = async (req, res) => {
+//   try {
+//     const seller = req.user;
     
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'No restaurant assigned to this seller' 
-      });
-    }
+//     if (!seller.managedRestaurant) {
+//       return res.status(400).json({ 
+//         success: false,
+//         message: 'No restaurant assigned to this seller' 
+//       });
+//     }
 
-    const LOW_STOCK_THRESHOLD = 4;
-    const CRITICAL_STOCK_THRESHOLD = 2; 
+//     const LOW_STOCK_THRESHOLD = 4;
+//     const CRITICAL_STOCK_THRESHOLD = 2; 
 
-    const lowStockItems = await Image.find({
-      restaurant: seller.managedRestaurant,
-      quantity: { $lte: LOW_STOCK_THRESHOLD }
-    }).select('name quantity price imageUrl');
+//     const lowStockItems = await Image.find({
+//       restaurant: seller.managedRestaurant,
+//       quantity: { $lte: LOW_STOCK_THRESHOLD }
+//     }).select('name quantity price imageUrl');
 
-    const formattedItems = lowStockItems.map(item => ({
-      id: item._id,
-      name: item.name,
-      remaining: item.quantity,
-      imageUrl: item.imageUrl,
-      status: item.quantity <= CRITICAL_STOCK_THRESHOLD ? 'CRITICAL' : 'LOW',
-      price: item.price
-    }));
+//     const formattedItems = lowStockItems.map(item => ({
+//       id: item._id,
+//       name: item.name,
+//       remaining: item.quantity,
+//       imageUrl: item.imageUrl,
+//       status: item.quantity <= CRITICAL_STOCK_THRESHOLD ? 'CRITICAL' : 'LOW',
+//       price: item.price
+//     }));
 
-    res.status(200).json({
-      success: true,
-      count: lowStockItems.length,
-      items: formattedItems
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error'
-    });
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       count: lowStockItems.length,
+//       items: formattedItems
+//     });
+//   } catch (error) {
+//     res.status(500).json({ 
+//       success: false,
+//       message: 'Server error'
+//     });
+//   }
+// };
 
 
 
