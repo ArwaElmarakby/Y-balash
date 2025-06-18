@@ -10,48 +10,57 @@ exports.createCashOrder = async (req, res) => {
     const userId = req.user._id;
     
     try {
-        // 1. الحصول على عربة التسوق الخاصة بالمستخدم
+        // 1. الحصول على عربة التسوق مع تفاصيل المنتجات
         const cart = await Cart.findOne({ userId })
-            .populate('items.itemId')
-            .populate('offers.offerId');
+            .populate('items.itemId', 'price name')
+            .populate('offers.offerId', 'price name');
         
         if (!cart || (cart.items.length === 0 && cart.offers.length === 0)) {
             return res.status(400).json({ message: 'Cart is empty' });
         }
 
-        // 2. حساب المبلغ الإجمالي
-        let totalAmount = 0;
-        
-        // حساب سعر العناصر
-        cart.items.forEach(item => {
-            totalAmount += item.quantity * item.itemId.price;
+        // 2. تحضير العناصر والعروض للطلب
+        const orderItems = cart.items.map(item => {
+            // تحويل السعر من "150 EGP" إلى 150
+            const price = parseFloat(item.itemId.price.toString().replace(/[^\d.]/g, ''));
+            return {
+                itemId: item.itemId._id,
+                name: item.itemId.name,
+                quantity: item.quantity,
+                price: price
+            };
         });
-        
-        // حساب سعر العروض
-        cart.offers.forEach(offer => {
-            totalAmount += offer.quantity * offer.offerId.price;
+
+        const orderOffers = cart.offers.map(offer => {
+            // تحويل السعر من "150 EGP" إلى 150
+            const price = parseFloat(offer.offerId.price.toString().replace(/[^\d.]/g, ''));
+            return {
+                offerId: offer.offerId._id,
+                name: offer.offerId.name,
+                quantity: offer.quantity,
+                price: price
+            };
         });
+
+        // 3. حساب المبلغ الإجمالي
+        let itemsTotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        let offersTotal = orderOffers.reduce((sum, offer) => sum + (offer.price * offer.quantity), 0);
+        let subtotal = itemsTotal + offersTotal;
         
         // إضافة تكاليف الشحن (50 جنيه)
-        totalAmount += 50;
+        const shippingCost = 50;
         
         // إضافة رسوم الاستيراد (10% من إجمالي السلع والعروض)
-        totalAmount += totalAmount * 0.1;
+        const importCharges = subtotal * 0.1;
+        
+        const totalAmount = subtotal + shippingCost + importCharges;
 
-        // 3. إنشاء الطلب
+        // 4. إنشاء الطلب
         const order = new Order({
             userId,
             restaurantId: cart.items[0]?.itemId?.restaurant || cart.offers[0]?.offerId?.restaurant,
-            items: cart.items.map(item => ({
-                itemId: item.itemId._id,
-                quantity: item.quantity,
-                price: item.itemId.price
-            })),
-            offers: cart.offers.map(offer => ({
-                offerId: offer.offerId._id,
-                quantity: offer.quantity,
-                price: offer.offerId.price
-            })),
+            items: orderItems,
+            offers: orderOffers,
             totalAmount,
             paymentMethod: 'cash',
             paymentStatus: 'pending',
@@ -60,25 +69,34 @@ exports.createCashOrder = async (req, res) => {
 
         await order.save();
 
-        // 4. تفريغ عربة التسوق
+        // 5. تفريغ عربة التسوق
         cart.items = [];
         cart.offers = [];
         await cart.save();
 
-        // 5. تسجيل النشاط
-        await logActivity('order_placed', userId, {
-            orderId: order._id,
-            amount: totalAmount,
-            paymentMethod: 'cash'
-        });
-
         res.status(201).json({
             success: true,
             message: 'Order created successfully (Cash on Delivery)',
-            order
+            order: {
+                _id: order._id,
+                totalAmount: order.totalAmount,
+                items: order.items.map(item => ({
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price
+                })),
+                offers: order.offers.map(offer => ({
+                    name: offer.name,
+                    quantity: offer.quantity,
+                    price: offer.price
+                })),
+                paymentMethod: order.paymentMethod,
+                status: order.status
+            }
         });
 
     } catch (error) {
+        console.error('Error creating cash order:', error);
         res.status(500).json({
             success: false,
             message: 'Error creating cash order',

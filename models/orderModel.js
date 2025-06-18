@@ -7,7 +7,14 @@ const orderSchema = new mongoose.Schema({
     items: [{ 
         itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' }, 
         quantity: Number,
-        price: Number 
+        price: Number ,
+        name: String
+    }],
+    offers: [{
+        offerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Offer' },
+        quantity: Number,
+        price: Number, // تأكد أن هذا رقم وليس نص
+        name: String // إضافة اسم العرض للتوثيق
     }],
     totalAmount: { type: Number, required: true },
     paymentMethod: {
