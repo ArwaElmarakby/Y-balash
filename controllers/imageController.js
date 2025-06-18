@@ -296,11 +296,31 @@ exports.getItemDetails = async (req, res) => {
           return res.status(404).json({ message: 'Item not found' });
         }
 
+
+         if (updatedImage.quantity <= 12) {
+            await logActivity('stock_updated', req.user._id, {
+                productName: updatedImage.name,
+                newQuantity: updatedImage.quantity
+            });
+
+            // إرسال إشعار للمتجر إذا كان البائع
+            if (req.user.isSeller && req.user.managedRestaurant) {
+                await createNotification(
+                    req.user._id,
+                    req.user.managedRestaurant,
+                    'stock',
+                    'Low Stock Alert',
+                    `${updatedImage.name} quantity is low (${updatedImage.quantity} remaining)`,
+                    updatedImage._id
+                );
+            }
+        }
+
        
-        await logActivity('stock_updated', req.user._id, {
-          productName: updatedImage.name,
-          newQuantity: quantity
-        });
+        // await logActivity('stock_updated', req.user._id, {
+        //   productName: updatedImage.name,
+        //   newQuantity: quantity
+        // });
       
 
   
