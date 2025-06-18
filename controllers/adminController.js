@@ -48,42 +48,13 @@ exports.getAllSellers = async (req, res) => {
 };
 
 
-// exports.getAdminAlerts = async (req, res) => {
-//     try {
-
-//         const [flaggedProductsCount, pendingSellerApprovals, lowStockItemsCount] = await Promise.all([
-//             Image.countDocuments({ flagged: true }),
-//             User.countDocuments({ isSellerRequested: true, isSeller: false }),
-//             Image.countDocuments({ quantity: { $lte: 10 } })
-//         ]);
-
-//         res.status(200).json({
-//             success: true,
-//             alerts: {
-//                 flaggedProducts: flaggedProductsCount,
-//                 pendingSellerApprovals: pendingSellerApprovals,
-//                 lowStockItems: lowStockItemsCount,
-//                 lastUpdated: new Date()
-//             }
-//         });
-//     } catch (error) {
-//         console.error("Error in getAdminAlerts:", error);
-//         res.status(500).json({
-//             success: false,
-//             message: 'Failed to fetch admin alerts',
-//             error: error.message
-//         });
-//     }
-// };
-
-
-
 exports.getAdminAlerts = async (req, res) => {
     try {
+
         const [flaggedProductsCount, pendingSellerApprovals, lowStockItemsCount] = await Promise.all([
             Image.countDocuments({ flagged: true }),
             User.countDocuments({ isSellerRequested: true, isSeller: false }),
-            Image.countDocuments({ quantity: { $lte: 10 } }) // يمكن تغيير 10 إلى 12 إذا أردت
+            Image.countDocuments({ quantity: { $lte: 10 } })
         ]);
 
         res.status(200).json({
@@ -96,6 +67,7 @@ exports.getAdminAlerts = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error("Error in getAdminAlerts:", error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch admin alerts',
