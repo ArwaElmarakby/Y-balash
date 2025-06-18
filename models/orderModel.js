@@ -15,11 +15,6 @@ const orderSchema = new mongoose.Schema({
         enum: ['pending', 'preparing', 'ready', 'delivered', 'cancelled'],
         default: 'pending'
     },
-    paymentMethod: {
-        type: String,
-        enum: ['cash', 'card'],
-        required: true
-    },
     notifications: [{
         type: {
             type: String,
