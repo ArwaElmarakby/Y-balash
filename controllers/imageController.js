@@ -169,6 +169,17 @@ exports.addImage = async (req, res) => {
     productName: name,
     productId: newImage._id
 });
+ // Check if quantity is less than or equal to 12
+            if (newImage.quantity <= 12) {
+                await createNotification(
+                    req.user._id, // Assuming req.user contains the seller's ID
+                    restaurantId,
+                    'stock',
+                    'Low Stock Alert',
+                    `${newImage.name} is now low in stock (${newImage.quantity} available)`,
+                    newImage._id
+                );
+            }
 
 
       res.status(201).json({ 
