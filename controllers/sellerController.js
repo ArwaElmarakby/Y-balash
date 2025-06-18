@@ -775,34 +775,7 @@ exports.updatePaymentSettings = async (req, res) => {
 };
 
 
-exports.getLowStockCount = async (req, res) => {
-    try {
-        const seller = req.user;
-        const LOW_STOCK_THRESHOLD = 12;
 
-        if (!seller.managedRestaurant) {
-            return res.status(400).json({ 
-                message: 'No restaurant assigned to you' 
-            });
-        }
-
-        const lowStockItemsCount = await Image.countDocuments({
-            restaurant: seller.managedRestaurant,
-            quantity: { $lte: LOW_STOCK_THRESHOLD }
-        });
-
-        res.status(200).json({
-            message: 'Low stock items count retrieved successfully',
-            lowStockItemsCount,
-            threshold: LOW_STOCK_THRESHOLD
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            message: 'Server error',
-            error: error.message 
-        });
-    }
-};
 
 exports.getLowStockItems = async (req, res) => {
   try {
