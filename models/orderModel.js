@@ -9,7 +9,7 @@ const orderSchema = new mongoose.Schema({
         quantity: Number,
         price: Number 
     }],
-    totalAmount: { type: Number, required: true },ئ
+    totalAmount: { type: Number, required: true },
     status: { 
         type: String, 
         enum: ['pending', 'preparing', 'ready', 'delivered', 'cancelled'],
