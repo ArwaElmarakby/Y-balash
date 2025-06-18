@@ -668,6 +668,12 @@ router.get('/my-restaurant',
     sellerController.getStockStats
   );
 
+  router.get('/low-stock-count', 
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getLowStockItemsCount
+);
+
 
   router.get('/inventory',
     authMiddleware,
