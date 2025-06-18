@@ -162,6 +162,23 @@ exports.addImage = async (req, res) => {
 
       await newImage.save();
 
+      if (quantity < 12) {
+        await logActivity('stock_updated', req.user._id, {
+          productName: name,
+          newQuantity: quantity
+        });
+
+
+        await createNotification(
+          req.user._id,
+          restaurantId,
+          'stock',
+          'Low Stock Alert',
+          `${name} has low stock (${quantity} remaining)`,
+          newImage._id
+        );
+      }
+
       category.items.push(newImage._id);
       await category.save();
 

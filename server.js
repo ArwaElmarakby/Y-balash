@@ -872,6 +872,8 @@ const sellerRoutes = require('./routes/sellerRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const clientAddressRoutes = require('./routes/clientAddressRoutes');
 const clientInfoRoutes = require('./routes/clientInfoRoutes');
+const cron = require('node-cron');
+const { checkStockChanges } = require('./services/notificationService');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -936,6 +938,19 @@ app.use(passport.session());
 //     pass: process.env.EMAIL_PASSWORD,
 //   },
 // });
+
+
+cron.schedule('0 * * * *', async () => {
+  try {
+    const sellers = await User.find({ isSeller: true, managedRestaurant: { $exists: true } });
+    
+    for (const seller of sellers) {
+      await checkStockChanges(seller._id, seller.managedRestaurant);
+    }
+  } catch (error) {
+    console.error('Error in stock check cron job:', error);
+  }
+});
 
 
 const transporter = nodemailer.createTransport({
