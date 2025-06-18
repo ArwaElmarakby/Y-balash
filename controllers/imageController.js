@@ -115,17 +115,32 @@ exports.addImage = async (req, res) => {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantId, productionDate, expiryDate } = req.body;
+    // const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantId, productionDate, expiryDate } = req.body;
+    const { name, quantity, price, categoryName, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantName, productionDate, expiryDate } = req.body;
     const imageUrl = req.file ? req.file.path : null;
 
-    if (!name || !quantity || !price || !imageUrl || !categoryId || !productionDate || !expiryDate) {
+    // if (!name || !quantity || !price || !imageUrl || !categoryId || !productionDate || !expiryDate) {
+    //   return res.status(400).json({ message: "All fields are required" });
+    // }
+
+     if (!name || !quantity || !price || !imageUrl || !categoryName || !productionDate || !expiryDate || !restaurantName) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     try {
-      const category = await Category.findById(categoryId);
+      // const category = await Category.findById(categoryId);
+      // if (!category) {
+      //   return res.status(404).json({ message: 'Category not found' });
+      // }
+      const category = await Category.findOne({ name: categoryName });
       if (!category) {
         return res.status(404).json({ message: 'Category not found' });
+      }
+
+
+      const restaurant = await Restaurant.findOne({ name: restaurantName });
+      if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurant not found' });
       }
 
       
@@ -153,8 +168,8 @@ exports.addImage = async (req, res) => {
         quantity, 
         price: discountedPrice, 
         imageUrl, 
-        category: categoryId, 
-        restaurant: restaurantId, 
+        category: category._id, 
+        restaurant: restaurant._id, 
         discount,
         productionDate: productionDate ? productionDate.split('T')[0] : null, 
         expiryDate: expiryDate ? expiryDate.split('T')[0] : null 
@@ -173,7 +188,11 @@ exports.addImage = async (req, res) => {
 
       res.status(201).json({ 
         message: 'Item added successfully', 
-        image: newImage,
+        image: {
+          ...newImage.toObject(),
+          categoryName: category.name,
+          restaurantName: restaurant.name
+        },
         originalPrice: price, 
         discountedPrice: discountedPrice 
       });
@@ -263,11 +282,13 @@ exports.getItemDetails = async (req, res) => {
       const { id } = req.params;
       const { 
         name, 
-        price, 
-        quantity,
-        discountPercentage,
-        discountStartDate,
-        discountEndDate
+      price, 
+      quantity,
+      discountPercentage,
+      discountStartDate,
+      discountEndDate,
+      categoryName,
+      restaurantName
       } = req.body;
   
       const imageUrl = req.file?.path;
@@ -285,11 +306,28 @@ exports.getItemDetails = async (req, res) => {
         //   } : null;
         // }
   
+
+        if (categoryName) {
+        const category = await Category.findOne({ name: categoryName });
+        if (!category) {
+          return res.status(404).json({ message: 'Category not found' });
+        }
+        updateData.category = category._id;
+      }
+
+      if (restaurantName) {
+        const restaurant = await Restaurant.findOne({ name: restaurantName });
+        if (!restaurant) {
+          return res.status(404).json({ message: 'Restaurant not found' });
+        }
+        updateData.restaurant = restaurant._id;
+      }
+
         const updatedImage = await Image.findByIdAndUpdate(
           id,
           updateData,
           { new: true }
-        );
+        ).populate('category restaurant');
        
   
         if (!updatedImage) {
@@ -302,6 +340,13 @@ exports.getItemDetails = async (req, res) => {
           newQuantity: quantity
         });
       
+
+        const responseImage = {
+        ...updatedImage.toObject(),
+        categoryName: updatedImage.category?.name,
+        restaurantName: updatedImage.restaurant?.name
+      };
+
 
   
         res.status(200).json({
