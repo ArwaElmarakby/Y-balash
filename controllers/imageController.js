@@ -192,6 +192,101 @@ function calculateDiscountPercentage(originalPrice, discountedPrice) {
 
 
 
+// exports.addImage = async (req, res) => {
+//   upload(req, res, async (err) => {
+//     if (err) {
+//       return res.status(500).json({ message: "Image upload failed", error: err });
+//     }
+
+//     const { name, quantity, price, categoryName, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantName, productionDate, expiryDate } = req.body;
+//     const imageUrl = req.file ? req.file.path : null;
+
+//     if (!name || !quantity || !price || !imageUrl || !categoryName || !productionDate || !expiryDate || !restaurantName) {
+//       return res.status(400).json({ message: "All fields are required" });
+//     }
+
+//     try {
+//       // البحث عن الفئة بالاسم بدلاً من ID
+//       const category = await Category.findOne({ name: categoryName });
+//       if (!category) {
+//         return res.status(404).json({ message: 'Category not found' });
+//       }
+
+//       // البحث عن المطعم بالاسم بدلاً من ID
+//       const restaurant = await Restaurant.findOne({ name: restaurantName });
+//       if (!restaurant) {
+//         return res.status(404).json({ message: 'Restaurant not found' });
+//       }
+
+//       const discountedPrice = await exports.calculateDiscountedPrice(
+//         productionDate,
+//         expiryDate,
+//         price
+//       );
+
+//       const discount = {
+//         percentage: calculateDiscountPercentage(price, discountedPrice),
+//         startDate: discountStartDate || new Date(),
+//         endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+//         stock: quantity
+//       };
+
+//       const newImage = new Image({ 
+//         name, 
+//         sku, 
+//         description, 
+//         quantity, 
+//         price: discountedPrice, 
+//         imageUrl, 
+//         category: category._id, 
+//         restaurant: restaurant._id, 
+//         discount,
+//         productionDate: productionDate ? productionDate.split('T')[0] : null, 
+//         expiryDate: expiryDate ? expiryDate.split('T')[0] : null 
+//       });
+
+//       await newImage.save();
+
+//       category.items.push(newImage._id);
+//       await category.save();
+
+//       await logActivity('product_added', req.user._id, {
+//         productName: name,
+//         productId: newImage._id
+//       });
+
+//       res.status(201).json({ 
+//         message: 'Item added successfully', 
+//         image: newImage,
+//         originalPrice: price, 
+//         discountedPrice: discountedPrice 
+//       });
+//     } catch (error) {
+//       if (error.code === 11000 && error.keyPattern.sku) {
+//         return res.status(400).json({ 
+//           message: 'SKU must be unique', 
+//           error: 'Duplicate SKU' 
+//         });
+//       }
+//       res.status(500).json({ message: 'Server error', error });
+//     }
+//   });
+// };
+
+
+
+
+
+
+// exports.getImages = async (req, res) => {
+//     try {
+//       const images = await Image.find();
+//       res.status(200).json(images);
+//     } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//     }
+//   };
+
 exports.addImage = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
@@ -206,18 +301,31 @@ exports.addImage = async (req, res) => {
     }
 
     try {
-      // البحث عن الفئة بالاسم بدلاً من ID
-      const category = await Category.findOne({ name: categoryName });
+      // البحث عن الفئة بالاسم مع عدم التحسس لحالة الأحرف (Case Insensitive)
+      const category = await Category.findOne({ 
+        name: { $regex: new RegExp(`^${categoryName}$`, 'i') } 
+      });
+      
       if (!category) {
-        return res.status(404).json({ message: 'Category not found' });
+        return res.status(404).json({ 
+          message: 'Category not found',
+          suggestion: 'Please use an existing category or create a new one first'
+        });
       }
 
-      // البحث عن المطعم بالاسم بدلاً من ID
-      const restaurant = await Restaurant.findOne({ name: restaurantName });
+      // البحث عن المطعم بالاسم مع عدم التحسس لحالة الأحرف
+      const restaurant = await Restaurant.findOne({ 
+        name: { $regex: new RegExp(`^${restaurantName}$`, 'i') } 
+      });
+      
       if (!restaurant) {
-        return res.status(404).json({ message: 'Restaurant not found' });
+        return res.status(404).json({ 
+          message: 'Restaurant not found',
+          suggestion: 'Please use an existing restaurant or create a new one first'
+        });
       }
 
+      // حساب السعر بعد الخصم
       const discountedPrice = await exports.calculateDiscountedPrice(
         productionDate,
         expiryDate,
@@ -247,8 +355,11 @@ exports.addImage = async (req, res) => {
 
       await newImage.save();
 
-      category.items.push(newImage._id);
-      await category.save();
+      // إضافة المنتج إلى الفئة
+      if (!category.items.includes(newImage._id)) {
+        category.items.push(newImage._id);
+        await category.save();
+      }
 
       await logActivity('product_added', req.user._id, {
         productName: name,
@@ -257,7 +368,11 @@ exports.addImage = async (req, res) => {
 
       res.status(201).json({ 
         message: 'Item added successfully', 
-        image: newImage,
+        image: {
+          ...newImage.toObject(),
+          categoryName: category.name,
+          restaurantName: restaurant.name
+        },
         originalPrice: price, 
         discountedPrice: discountedPrice 
       });
@@ -268,21 +383,14 @@ exports.addImage = async (req, res) => {
           error: 'Duplicate SKU' 
         });
       }
-      res.status(500).json({ message: 'Server error', error });
+      res.status(500).json({ 
+        message: 'Server error', 
+        error: error.message,
+        details: error 
+      });
     }
   });
 };
-
-// exports.getImages = async (req, res) => {
-//     try {
-//       const images = await Image.find();
-//       res.status(200).json(images);
-//     } catch (error) {
-//       res.status(500).json({ message: 'Server error', error });
-//     }
-//   };
-
-
 
 
 exports.getImages = async (req, res) => {
