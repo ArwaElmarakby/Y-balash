@@ -76,34 +76,3 @@ exports.checkAnalyticsChanges = async (sellerId, restaurantId, currentStats, pre
     console.error('Error checking analytics changes:', error);
   }
 };
-
-
-
-exports.checkStockChanges = async (sellerId, restaurantId) => {
-  try {
-    const LOW_STOCK_THRESHOLD = 12;
-    
-    // الحصول على جميع المنتجات ذات الكمية أقل من الحد الأدنى
-    const lowStockItems = await Image.find({
-      restaurant: restaurantId,
-      quantity: { $lt: LOW_STOCK_THRESHOLD }
-    });
-
-    for (const item of lowStockItems) {
-      // إرسال إشعار لكل منتج منخفض الكمية
-      await createNotification(
-        sellerId,
-        restaurantId,
-        'stock',
-        'Low Stock Alert',
-        `${item.name} is low on stock (${item.quantity} remaining)`,
-        item._id
-      );
-    }
-
-    return lowStockItems.length;
-  } catch (error) {
-    console.error('Error checking stock changes:', error);
-    return 0;
-  }
-};
