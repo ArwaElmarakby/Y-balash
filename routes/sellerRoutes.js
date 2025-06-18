@@ -877,8 +877,8 @@ router.get('/my-restaurant',
 });
 
 
-router.post('/confirm-cash-payment/:orderId', authMiddleware, sellerMiddleware, confirmCashPayment);
+// router.post('/confirm-cash-payment/:orderId', authMiddleware, sellerMiddleware, confirmCashPayment);
 
-
+router.post('/confirm-cash-payment', authMiddleware, sellerMiddleware, sellerController.confirmCashPayment);
   
 module.exports = router;
