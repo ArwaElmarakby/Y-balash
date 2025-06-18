@@ -889,27 +889,37 @@ router.get('/low-stock-count',
 
             const LOW_STOCK_THRESHOLD = 12;
             
-            // استعلام أكثر دقة مع تحقق من نوع البيانات
-            const lowStockItems = await Image.find({
-                restaurant: seller.managedRestaurant,
-                quantity: { $exists: true, $lte: LOW_STOCK_THRESHOLD }
+            // الحل الشامل لجميع أنواع البيانات
+            const allItems = await Image.find({
+                restaurant: seller.managedRestaurant
+            }).select('name quantity');
+            
+            const lowStockItems = allItems.filter(item => {
+                // تحويل الكمية إلى رقم بجميع الطرق الممكنة
+                const qty = typeof item.quantity === 'number' ? item.quantity :
+                            typeof item.quantity === 'string' ? parseFloat(item.quantity) :
+                            item.quantity?.valueOf() || 0;
+                
+                return !isNaN(qty) && qty <= LOW_STOCK_THRESHOLD;
             });
 
-            // تحقق إضافي للتأكد من القيم الرقمية
-            const validLowStockItems = lowStockItems.filter(item => 
-                !isNaN(item.quantity) && item.quantity <= LOW_STOCK_THRESHOLD
-            );
+            // Debugging info
+            const sampleItems = lowStockItems.slice(0, 5).map(item => ({
+                id: item._id,
+                name: item.name,
+                quantity: item.quantity,
+                quantityType: typeof item.quantity
+            }));
 
             res.status(200).json({
                 message: 'Low stock items count retrieved successfully',
-                lowStockItemsCount: validLowStockItems.length,
+                lowStockItemsCount: lowStockItems.length,
                 threshold: LOW_STOCK_THRESHOLD,
                 debug: {
-                    rawCount: lowStockItems.length,
-                    itemsSample: validLowStockItems.slice(0,3).map(i => ({
-                        name: i.name,
-                        quantity: i.quantity
-                    }))
+                    totalItemsInRestaurant: allItems.length,
+                    sampleLowStockItems: sampleItems,
+                    warning: allItems.some(i => typeof i.quantity !== 'number') ? 
+                        'WARNING: Some quantities are not stored as numbers' : null
                 }
             });
 
@@ -917,11 +927,11 @@ router.get('/low-stock-count',
             console.error("Error in low-stock-count:", error);
             res.status(500).json({ 
                 message: 'Server error',
-                error: error.message 
+                error: error.message,
+                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
             });
         }
     }
 );
-
   
 module.exports = router;
