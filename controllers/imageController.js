@@ -280,87 +280,81 @@ exports.addImage = async (req, res) => {
     if (err) {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
-
     const { name, quantity, price, categoryName, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantName, productionDate, expiryDate } = req.body;
     const imageUrl = req.file ? req.file.path : null;
-
     if (!name || !quantity || !price || !imageUrl || !categoryName || !productionDate || !expiryDate || !restaurantName) {
       return res.status(400).json({ message: "All fields are required" });
     }
-
     try {
       // Find category by name
       const category = await Category.findOne({ name: categoryName });
       if (!category) {
         return res.status(404).json({ message: 'Category not found' });
       }
-
       // Find restaurant by name
       const restaurant = await Restaurant.findOne({ name: restaurantName });
       if (!restaurant) {
         return res.status(404).json({ message: 'Restaurant not found' });
       }
-
       const discountedPrice = await exports.calculateDiscountedPrice(
         productionDate,
         expiryDate,
         price
       );
-
       const discount = {
         percentage: calculateDiscountPercentage(price, discountedPrice),
-        startDate: discountStartDate || new Date(),
-        endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        startDate: discountStartDate ? new Date(discountStartDate) : new Date(),
+        endDate: discountEndDate ? new Date(discountEndDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         stock: quantity
       };
-
-      const newImage = new Image({ 
-        name, 
-        sku, 
-        description, 
-        quantity, 
-        price: discountedPrice, 
-        imageUrl, 
-        category: category._id, 
-        restaurant: restaurant._id, 
+      const newImage = new Image({
+        name,
+        sku,
+        description,
+        quantity,
+        price: discountedPrice,
+        imageUrl,
+        category: category._id,
+        restaurant: restaurant._id,
         discount,
-        productionDate: productionDate ? productionDate.split('T')[0] : null, 
-        expiryDate: expiryDate ? expiryDate.split('T')[0] : null 
+        productionDate: productionDate ? productionDate.split('T')[0] : null,
+        expiryDate: expiryDate ? expiryDate.split('T')[0] : null
       });
-
       await newImage.save();
-
-      // Update category
+       // Update category - push image id to items array and save
+      if (!Array.isArray(category.items)) {
+        category.items = [];
+      }
       category.items.push(newImage._id);
       await category.save();
-
-      // Update restaurant
-      restaurant.items.push(newImage._id); // Assuming 'items' is the field in Restaurant model
+      // Update restaurant - push image id to items array and save
+      if (!Array.isArray(restaurant.items)) {
+        restaurant.items = [];
+      }
+      restaurant.items.push(newImage._id);
       await restaurant.save();
-
       await logActivity('product_added', req.user._id, {
         productName: name,
         productId: newImage._id
       });
-
-      res.status(201).json({ 
-        message: 'Item added successfully', 
+      res.status(201).json({
+        message: 'Item added successfully',
         image: newImage,
-        originalPrice: price, 
-        discountedPrice: discountedPrice 
+        originalPrice: price,
+        discountedPrice: discountedPrice
       });
-    } catch (error) {
-      if (error.code === 11000 && error.keyPattern.sku) {
-        return res.status(400).json({ 
-          message: 'SKU must be unique', 
-          error: 'Duplicate SKU' 
+      } catch (error) {
+      console.error('Error in addImage:', error);
+      if (error.code === 11000 && error.keyPattern && error.keyPattern.sku) {
+        return res.status(400).json({
+          message: 'SKU must be unique',
+          error: 'Duplicate SKU'
         });
       }
       res.status(500).json({ message: 'Server error', error });
     }
   });
 };
-
 
 // exports.getImages = async (req, res) => {
 //     try {
