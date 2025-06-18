@@ -215,3 +215,32 @@ exports.cashPayment = async (req, res) => {
     }
 };
 
+
+
+exports.confirmCashPayment = async (req, res) => {
+    const { orderId } = req.params;
+    const seller = req.user;
+
+    try {
+        console.log('Seller managedRestaurant:', seller.managedRestaurant);
+        const order = await Order.findById(orderId);
+        console.log('Order restaurantId:', order ? order.restaurantId : null);
+
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        if (!order.restaurantId.equals(seller.managedRestaurant)) {
+            return res.status(403).json({ message: 'Order not under your management' });
+        }
+
+        order.status = 'confirmed';
+        await order.save();
+
+        res.status(200).json({ message: 'Cash payment confirmed successfully', order });
+    } catch (error) {
+        console.error('Error in confirmCashPayment:', error);
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
