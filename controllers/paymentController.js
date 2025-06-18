@@ -134,7 +134,7 @@ exports.createPayment = async (req, res) => {
         // Create payment intent with the total price
         const paymentIntent = await stripe.paymentIntents.create({
             amount: totalPrice * 100, // Convert to cents
-            currency: 'usd', 
+            currency: 'egp', 
             payment_method_types: ['card'], 
             metadata: {
                 userId: userId, 
