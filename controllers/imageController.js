@@ -392,18 +392,3 @@ exports.getItemsSummary = async (req, res) => {
       res.status(500).json({ message: 'Server error', error });
   }
 };
-
-
-exports.getLowStockItems = async (req, res) => {
-  try {
-    const lowStockItems = await Image.find({ quantity: { $lt: 7 } });
-    
-    if (lowStockItems.length === 0) {
-      return res.status(404).json({ message: 'No low stock items found' });
-    }
-
-    res.status(200).json(lowStockItems);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
-  }
-};
