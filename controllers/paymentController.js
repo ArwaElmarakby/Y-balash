@@ -101,7 +101,6 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Cart = require('../models/cartModel'); 
 const Order = require('../models/orderModel');
-const Restaurant = require('../models/restaurantModel');
 
 exports.createPayment = async (req, res) => {
     const userId = req.user.id; 
@@ -144,11 +143,6 @@ exports.createPayment = async (req, res) => {
                 userId: userId, 
             },
         });
-
-         await Restaurant.findByIdAndUpdate(
-            cart.items[0].itemId.restaurant || cart.offers[0].offerId.restaurant,
-            { $inc: { totalOrders: 1, totalRevenue: totalPrice } }
-        );
 
         res.status(200).json({ clientSecret: paymentIntent.client_secret });
     } catch (error) {
@@ -214,11 +208,6 @@ exports.cashPayment = async (req, res) => {
 
         // Clear the cart after payment
         await Cart.deleteOne({ userId });
-
-        await Restaurant.findByIdAndUpdate(
-            restaurantId,
-            { $inc: { totalOrders: 1, totalRevenue: totalPrice } }
-        );
 
         res.status(200).json({ message: 'Cash payment initiated successfully', orderId: order._id });
     } catch (error) {
