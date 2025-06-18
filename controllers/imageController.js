@@ -274,58 +274,27 @@ function calculateDiscountPercentage(originalPrice, discountedPrice) {
 // };
 
 
-
-
-
-
-// exports.getImages = async (req, res) => {
-//     try {
-//       const images = await Image.find();
-//       res.status(200).json(images);
-//     } catch (error) {
-//       res.status(500).json({ message: 'Server error', error });
-//     }
-//   };
-
 exports.addImage = async (req, res) => {
   upload(req, res, async (err) => {
-    if (err) {
-      return res.status(500).json({ message: "Image upload failed", error: err });
-    }
-
-    const { name, quantity, price, categoryName, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantName, productionDate, expiryDate } = req.body;
-    const imageUrl = req.file ? req.file.path : null;
-
-    if (!name || !quantity || !price || !imageUrl || !categoryName || !productionDate || !expiryDate || !restaurantName) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
     try {
-      // البحث عن الفئة بالاسم مع عدم التحسس لحالة الأحرف (Case Insensitive)
-      const category = await Category.findOne({ 
-        name: { $regex: new RegExp(`^${categoryName}$`, 'i') } 
-      });
-      
-      if (!category) {
-        return res.status(404).json({ 
-          message: 'Category not found',
-          suggestion: 'Please use an existing category or create a new one first'
-        });
+      if (err) {
+        throw { status: 500, message: "Image upload failed", error: err };
       }
 
-      // البحث عن المطعم بالاسم مع عدم التحسس لحالة الأحرف
-      const restaurant = await Restaurant.findOne({ 
-        name: { $regex: new RegExp(`^${restaurantName}$`, 'i') } 
-      });
-      
-      if (!restaurant) {
-        return res.status(404).json({ 
-          message: 'Restaurant not found',
-          suggestion: 'Please use an existing restaurant or create a new one first'
-        });
+      const { name, quantity, price, categoryName, discountPercentage, 
+              discountStartDate, discountEndDate, sku, description, 
+              restaurantName, productionDate, expiryDate } = req.body;
+      const imageUrl = req.file ? req.file.path : null;
+
+      if (!name || !quantity || !price || !imageUrl || !categoryName || 
+          !productionDate || !expiryDate || !restaurantName) {
+        throw { status: 400, message: "All fields are required" };
       }
 
-      // حساب السعر بعد الخصم
+      // Find category and restaurant by name
+      const category = await findEntityByName(Category, categoryName, 'Category');
+      const restaurant = await findEntityByName(Restaurant, restaurantName, 'Restaurant');
+
       const discountedPrice = await exports.calculateDiscountedPrice(
         productionDate,
         expiryDate,
@@ -355,7 +324,6 @@ exports.addImage = async (req, res) => {
 
       await newImage.save();
 
-      // إضافة المنتج إلى الفئة
       if (!category.items.includes(newImage._id)) {
         category.items.push(newImage._id);
         await category.save();
@@ -376,21 +344,38 @@ exports.addImage = async (req, res) => {
         originalPrice: price, 
         discountedPrice: discountedPrice 
       });
+
     } catch (error) {
-      if (error.code === 11000 && error.keyPattern.sku) {
+      console.error('Error in addImage:', error);
+      if (error.code === 11000 && error.keyPattern?.sku) {
         return res.status(400).json({ 
           message: 'SKU must be unique', 
           error: 'Duplicate SKU' 
         });
       }
-      res.status(500).json({ 
-        message: 'Server error', 
-        error: error.message,
-        details: error 
+      const status = error.status || 500;
+      res.status(status).json({
+        message: error.message || 'Server error',
+        ...(error.suggestion && { suggestion: error.suggestion }),
+        ...(error.available && { available: error.available }),
+        error: error.error || error.toString()
       });
     }
   });
 };
+
+
+
+// exports.getImages = async (req, res) => {
+//     try {
+//       const images = await Image.find();
+//       res.status(200).json(images);
+//     } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//     }
+//   };
+
+
 
 
 exports.getImages = async (req, res) => {
