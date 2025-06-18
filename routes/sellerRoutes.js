@@ -886,5 +886,57 @@ router.get('/low-stock-items',
   sellerController.getLowStockItems
 );
 
+
+router.get('/orders/stats', authMiddleware, sellerMiddleware, async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned' });
+        }
+
+        const stats = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalOrders: { $sum: 1 },
+                    cashOrders: {
+                        $sum: {
+                            $cond: [{ $eq: ["$paymentMethod", "cash"] }, 1, 0]
+                        }
+                    },
+                    cardOrders: {
+                        $sum: {
+                            $cond: [{ $eq: ["$paymentMethod", "card"] }, 1, 0]
+                        }
+                    }
+                }
+            }
+        ]);
+
+        const result = stats[0] || {
+            totalOrders: 0,
+            cashOrders: 0,
+            cardOrders: 0
+        };
+
+        res.status(200).json({
+            success: true,
+            stats: result
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching order stats',
+            error: error.message
+        });
+    }
+});
+
   
 module.exports = router;

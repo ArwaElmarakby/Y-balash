@@ -202,9 +202,18 @@ exports.cashPayment = async (req, res) => {
             items: cart.items,
             totalAmount: totalPrice,
             status: 'pending', // Set initial status to pending
+            paymentMethod: 'cash' 
         });
 
         await order.save();
+          await createNotification(
+            req.user._id,
+            restaurantId,
+            'new_order',
+            'New Order Received',
+            `New cash order #${order._id} for ${totalPrice} EGP`,
+            order._id
+        );
 
         // Clear the cart after payment
         await Cart.deleteOne({ userId });
