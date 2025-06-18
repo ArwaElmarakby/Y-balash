@@ -2,14 +2,26 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/orderModel');
 const Cart = require('../models/cartModel');
+const User = require('../models/userModel');
 const { authMiddleware } = require('./authRoutes');
+
+
+
+function parsePrice(priceStr) {
+    if (typeof priceStr === 'number') return priceStr;
+    if (typeof priceStr !== 'string') return 0;
+    
+    // إزالة أي أحرف غير رقمية باستثناء النقطة للكسور العشرية
+    const numericValue = parseFloat(priceStr.replace(/[^\d.]/g, ''));
+    return isNaN(numericValue) ? 0 : numericValue;
+}
+
 
 // إنشاء طلب دفع كاش
 router.post('/create-cash-order', authMiddleware, async (req, res) => {
     try {
         const userId = req.user._id;
         
-        // جلب عربة التسوق
         const cart = await Cart.findOne({ userId })
             .populate('items.itemId')
             .populate('offers.offerId');
@@ -18,22 +30,28 @@ router.post('/create-cash-order', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Cart is empty' });
         }
 
-        // حساب المبلغ الإجمالي
         let totalAmount = 0;
         
-        if (cart.items.length > 0) {
-            totalAmount += cart.items.reduce((sum, item) => {
-                return sum + (item.quantity * item.itemId.price);
-            }, 0);
-        }
+        // معالجة العناصر
+        const orderItems = cart.items.map(item => {
+            const price = parsePrice(item.itemId.price);
+            totalAmount += item.quantity * price;
+            return {
+                itemId: item.itemId._id,
+                quantity: item.quantity,
+                price: price
+            };
+        });
         
-        if (cart.offers.length > 0) {
-            totalAmount += cart.offers.reduce((sum, offer) => {
-                return sum + (offer.quantity * offer.offerId.price);
-            }, 0);
+        // معالجة العروض (إذا كانت موجودة)
+        if (cart.offers && cart.offers.length > 0) {
+            cart.offers.forEach(offer => {
+                const price = parsePrice(offer.offerId.price);
+                totalAmount += offer.quantity * price;
+            });
         }
 
-        // إضافة مصاريف الشحن والضرائب (إذا لزم الأمر)
+        // إضافة مصاريف إضافية
         totalAmount += 50; // مصاريف شحن
         totalAmount += totalAmount * 0.1; // ضريبة 10%
 
@@ -41,14 +59,11 @@ router.post('/create-cash-order', authMiddleware, async (req, res) => {
         const order = new Order({
             userId,
             restaurantId: cart.items[0]?.itemId?.restaurant || cart.offers[0]?.offerId?.restaurant,
-            items: cart.items.map(item => ({
-                itemId: item.itemId._id,
-                quantity: item.quantity,
-                price: item.itemId.price
-            })),
+            items: orderItems,
             totalAmount,
             paymentMethod: 'cash',
-            status: 'waiting_payment' // في انتظار الدفع
+            status: 'waiting_payment',
+            paymentStatus: 'pending'
         });
 
         await order.save();
@@ -64,6 +79,7 @@ router.post('/create-cash-order', authMiddleware, async (req, res) => {
         });
 
     } catch (error) {
+        console.error('Error in create-cash-order:', error);
         res.status(500).json({ 
             message: 'Error creating cash order',
             error: error.message 
