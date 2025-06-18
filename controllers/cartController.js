@@ -155,9 +155,9 @@ exports.getCartSummary = async (req, res) => {
         });
 
         const shippingCost = 50; 
-        // const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; 
+        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; 
 
-        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost;
+        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
         res.status(200).json({
             totalItems: cart.items.length, 
@@ -165,7 +165,7 @@ exports.getCartSummary = async (req, res) => {
             totalItemsPrice: totalItemsPrice.toFixed(2), 
             totalOffersPrice: totalOffersPrice.toFixed(2), 
             shippingCost: shippingCost.toFixed(2), 
-            // importCharges: importCharges.toFixed(2), 
+            importCharges: importCharges.toFixed(2), 
             totalPrice: totalPrice.toFixed(2), 
         });
     } catch (error) {
@@ -207,9 +207,9 @@ exports.applyCoupon = async (req, res) => {
         });
 
         const shippingCost = 50; 
-        // const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
+        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
 
-        let totalPrice = totalItemsPrice + totalOffersPrice + shippingCost;
+        let totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
         let discount = 0;
         if (coupon.discountType === 'percentage') {
@@ -226,7 +226,7 @@ exports.applyCoupon = async (req, res) => {
             totalItemsPrice: totalItemsPrice.toFixed(2), 
             totalOffersPrice: totalOffersPrice.toFixed(2), 
             shippingCost: shippingCost.toFixed(2), 
-            // importCharges: importCharges.toFixed(2),
+            importCharges: importCharges.toFixed(2),
             discount: discount.toFixed(2), 
             totalPrice: totalPrice.toFixed(2), 
         });

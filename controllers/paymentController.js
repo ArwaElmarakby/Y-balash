@@ -127,10 +127,10 @@ exports.createPayment = async (req, res) => {
 
         // Additional costs
         const shippingCost = 50; 
-        // const importCharges = totalItemsPrice / 4; // Calculate import charges as 1/4 of total items price
+        const importCharges = totalItemsPrice / 4; // Calculate import charges as 1/4 of total items price
 
         // Total price calculation
-        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost ;
+        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
         // Create payment intent with the total price
         const amount = Math.round(totalPrice * 100);
@@ -190,10 +190,10 @@ exports.cashPayment = async (req, res) => {
 
         // Additional costs
         const shippingCost = 50; 
-        // const importCharges = totalItemsPrice / 4; // Calculate import charges as 1/4 of total items price
+        const importCharges = totalItemsPrice / 4; // Calculate import charges as 1/4 of total items price
 
         // Total price calculation
-        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost ;
+        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
         // Create an order
         const order = new Order({
