@@ -132,9 +132,10 @@ exports.createPayment = async (req, res) => {
         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
         // Create payment intent with the total price
+        const amount = Math.round(totalPrice * 100);
         const paymentIntent = await stripe.paymentIntents.create({
             // amount: totalPrice * 100, // Convert to cents
-            amount: Math.round(price * 100),
+            amount: amount,
             currency: 'egp', 
             payment_method_types: ['card'], 
             metadata: {
