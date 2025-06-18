@@ -198,14 +198,18 @@ exports.addImage = async (req, res) => {
         discountedPrice: discountedPrice 
       });
     } catch (error) {
-      if (error.code === 11000 && error.keyPattern.sku) {
-        return res.status(400).json({ 
-          message: 'SKU must be unique', 
-          error: 'Duplicate SKU' 
-        });
-      }
-      res.status(500).json({ message: 'Server error', error });
-    }
+  console.error("Full error details:", error); // إضافة هذه السطر
+  if (error.code === 11000 && error.keyPattern.sku) {
+    return res.status(400).json({ 
+      message: 'SKU must be unique', 
+      error: error.message // إضافة رسالة الخطأ
+    });
+  }
+  res.status(500).json({ 
+    message: 'Server error', 
+    error: error.message // إضافة رسالة الخطأ للاستجابة
+  });
+}
   });
 };
 
