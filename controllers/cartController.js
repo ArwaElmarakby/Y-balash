@@ -157,7 +157,7 @@ exports.getCartSummary = async (req, res) => {
         const shippingCost = 50; 
         // const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; 
 
-        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
+        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost;
 
         res.status(200).json({
             totalItems: cart.items.length, 
