@@ -76,31 +76,3 @@ exports.checkAnalyticsChanges = async (sellerId, restaurantId, currentStats, pre
     console.error('Error checking analytics changes:', error);
   }
 };
-
-
-exports.monitorStockLevels = async () => {
-    try {
-        const sellers = await User.find({ isSeller: true, managedRestaurant: { $exists: true } });
-        
-        for (const seller of sellers) {
-            const lowStockItems = await Image.find({
-                restaurant: seller.managedRestaurant,
-                quantity: { $lte: 12 } // عتبة 12
-            });
-
-            if (lowStockItems.length > 0) {
-                await createNotification(
-                    seller._id,
-                    seller.managedRestaurant,
-                    'stock',
-                    'Low Stock Items',
-                    `You have ${lowStockItems.length} items with low stock`,
-                    null,
-                    { count: lowStockItems.length }
-                );
-            }
-        }
-    } catch (error) {
-        console.error('Error monitoring stock levels:', error);
-    }
-};
