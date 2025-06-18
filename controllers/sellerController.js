@@ -1743,3 +1743,37 @@ exports.getCustomerAnalytics = async (req, res) => {
     });
   }
 };
+
+
+
+exports.getLowStockItemsCount = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        const LOW_STOCK_THRESHOLD = 12; // يمكنك تعديل هذا الرقم حسب الحاجة
+
+        const lowStockItemsCount = await Image.countDocuments({
+            restaurant: seller.managedRestaurant,
+            quantity: { $lte: LOW_STOCK_THRESHOLD }
+        });
+
+        res.status(200).json({
+            success: true,
+            lowStockItemsCount
+        });
+
+    } catch (error) {
+        res.status(500).json({ 
+            success: false,
+            message: 'Server error',
+            error: error.message 
+        });
+    }
+};
