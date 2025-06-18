@@ -152,8 +152,9 @@ exports.createPayment = async (req, res) => {
 
 
 
+
 exports.cashPayment = async (req, res) => {
-    const userId = req.user.id; 
+    const userId = req.user.id;
 
     try {
         const cart = await Cart.findOne({ userId })
@@ -161,6 +162,18 @@ exports.cashPayment = async (req, res) => {
             .populate('offers.offerId');
         if (!cart) {
             return res.status(404).json({ message: 'Cart not found' });
+        }
+
+        // Retrieve restaurantId from items or offers
+        let restaurantId = null;
+        if (cart.items.length > 0) {
+            restaurantId = cart.items[0].itemId.restaurant || null;
+        } 
+        if (!restaurantId && cart.offers.length > 0) {
+            restaurantId = cart.offers[0].offerId.restaurant || null;
+        }
+        if (!restaurantId) {
+            return res.status(400).json({ message: 'Unable to determine restaurant from cart items/offers' });
         }
 
         // Calculate total items price
@@ -185,7 +198,7 @@ exports.cashPayment = async (req, res) => {
         // Create an order
         const order = new Order({
             userId: userId,
-            restaurantId: cart.restaurantId, // Assuming you have restaurantId in the cart
+            restaurantId: restaurantId,
             items: cart.items,
             totalAmount: totalPrice,
             status: 'pending', // Set initial status to pending
@@ -201,5 +214,4 @@ exports.cashPayment = async (req, res) => {
         res.status(500).json({ message: 'Cash payment failed', error: error.message });
     }
 };
-
 
