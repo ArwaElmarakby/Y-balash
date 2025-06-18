@@ -162,13 +162,13 @@ exports.addImage = async (req, res) => {
 
       await newImage.save();
 
-      category.items.push(newImage._id);
-      await category.save();
+//       category.items.push(newImage._id);
+//       await category.save();
 
-      await logActivity('product_added', req.user._id, {
-    productName: name,
-    productId: newImage._id
-});
+//       await logActivity('product_added', req.user._id, {
+//     productName: name,
+//     productId: newImage._id
+// });
 
 if (newImage.quantity <= 12) {
         await logActivity('product_added_low_stock', req.user._id, {
