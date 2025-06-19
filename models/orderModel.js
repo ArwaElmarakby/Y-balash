@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
     restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant', required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User ', required: true },
+    // userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User ', required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     items: [{ 
         itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' }, 
         quantity: Number,
