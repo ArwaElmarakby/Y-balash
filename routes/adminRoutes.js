@@ -12,7 +12,7 @@ const { getTopCategories } = require('../controllers/adminController');
 const nodemailer = require('nodemailer'); 
 const RejectedSeller = require('../models/rejectedSellerModel');
 const { getApprovedSellers, approveSeller } = require('../controllers/adminController');
-const { getLowStockItems , getTotalSellersEarnings} = require('../controllers/adminController');
+const { getLowStockItems } = require('../controllers/adminController');
 const { getRecentActivities } = require('../controllers/activityController');
 
 
@@ -841,5 +841,6 @@ router.get('/low-stock-items', authMiddleware, adminMiddleware, getLowStockItems
 
 router.get('/recent-activities', authMiddleware, adminMiddleware, getRecentActivities);
 
-router.get('/sellers-total-earnings', authMiddleware, adminMiddleware, getTotalSellersEarnings);
+router.get('/sellers-earnings', authMiddleware, adminMiddleware, getSellersEarnings);
+
 module.exports = router;

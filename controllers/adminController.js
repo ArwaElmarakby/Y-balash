@@ -367,47 +367,46 @@ exports.getLowStockItems = async (req, res) => {
 };
 
 
-exports.getTotalSellersEarnings = async (req, res) => {
+exports.getSellersEarnings = async (req, res) => {
     try {
-        // الحصول على جميع البائعين
-        const sellers = await User.find({ isSeller: true }).select('_id managedRestaurant');
-        
-        // حساب إجمالي الأرباح لكل البائعين
-        const earningsPromises = sellers.map(async (seller) => {
-            if (seller.managedRestaurant) {
-                const result = await Order.aggregate([
-                    { 
-                        $match: { 
-                            restaurantId: seller.managedRestaurant,
-                            status: { $ne: 'cancelled' }
-                        } 
-                    },
-                    { 
-                        $group: { 
-                            _id: null,
-                            total: { $sum: "$totalAmount" } 
-                        } 
-                    }
-                ]);
-                return result[0]?.total || 0;
-            }
-            return 0;
-        });
+        // الحصول على جميع البائعين مع مطاعمهم
+        const sellers = await User.find({ isSeller: true })
+            .populate('managedRestaurant', 'name balance');
 
-        const earnings = await Promise.all(earningsPromises);
-        const totalEarnings = earnings.reduce((sum, amount) => sum + amount, 0);
+        if (!sellers || sellers.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No sellers found'
+            });
+        }
+
+        // حساب إجمالي الأرباح
+        const totalEarnings = sellers.reduce((sum, seller) => {
+            return sum + (seller.managedRestaurant?.balance || 0);
+        }, 0);
+
+        // تنسيق البيانات للإرجاع
+        const sellersEarnings = sellers.map(seller => ({
+            sellerId: seller._id,
+            sellerEmail: seller.email,
+            restaurantName: seller.managedRestaurant?.name || 'Not assigned',
+            earnings: seller.managedRestaurant?.balance || 0,
+            currency: 'EGP'
+        }));
 
         res.status(200).json({
             success: true,
+            totalSellers: sellers.length,
             totalEarnings,
-            currency: "EGP",
-            message: "Total earnings for all sellers retrieved successfully"
+            currency: 'EGP',
+            sellers: sellersEarnings
         });
+
     } catch (error) {
-        console.error("Error in getTotalSellersEarnings:", error);
+        console.error("Error in getSellersEarnings:", error);
         res.status(500).json({
             success: false,
-            message: "Failed to fetch total sellers earnings",
+            message: 'Failed to fetch sellers earnings',
             error: error.message
         });
     }
