@@ -76,23 +76,3 @@ exports.checkAnalyticsChanges = async (sellerId, restaurantId, currentStats, pre
     console.error('Error checking analytics changes:', error);
   }
 };
-
-
-exports.createNotification = async (userId, restaurantId, type, title, message, relatedItem = null, metadata = {}) => {
-  try {
-    const notification = new Notification({
-      userId,
-      restaurantId,
-      type,
-      title,
-      message,
-      relatedItem,
-      metadata
-    });
-    await notification.save();
-    return notification;
-  } catch (error) {
-    console.error('Error creating notification:', error);
-    return null;
-  }
-};

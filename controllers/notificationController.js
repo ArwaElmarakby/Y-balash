@@ -75,11 +75,3 @@ exports.deleteNotification = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
-
-// في notificationController.js
-module.exports = {
-  createNotification,
-  getSellerNotifications,
-  markAsRead,
-  deleteNotification
-};
