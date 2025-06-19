@@ -1172,6 +1172,8 @@ app.use('/api/addresses', clientAddressRoutes);
 app.use('/api/client-info', clientInfoRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/seller', sellerOrderRoutes);
+app.use('/api/seller', sellerRoutes);
+
 
 
 

@@ -10,7 +10,7 @@ const sellerController = require('../controllers/sellerController');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { confirmCashPayment } = require('../controllers/sellerController');
-
+const { getOrderDetails } = require('../controllers/orderController');
 
 
 router.post('/promote-to-seller', authMiddleware, sellerMiddleware, async (req, res) => {
@@ -945,5 +945,8 @@ router.get('/orders/stats',
     sellerMiddleware,
     sellerController.getOrdersStats
 );
+
+
+router.get('/orders-details', getOrderDetails);
   
 module.exports = router;
