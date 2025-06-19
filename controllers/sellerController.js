@@ -2256,7 +2256,7 @@ exports.getMonthlyRefunds = async (req, res) => {
 exports.getMonthlyItemRefunds = async (req, res) => {
     try {
         const seller = req.user;
-        const { image } = req.body; // سيتم استقبال اسم الصورة من body الطلب
+        const { image } = req.body;
 
         if (!seller.managedRestaurant) {
             return res.status(400).json({ 
@@ -2276,42 +2276,45 @@ exports.getMonthlyItemRefunds = async (req, res) => {
         currentMonthStart.setDate(1);
         currentMonthStart.setHours(0, 0, 0, 0);
 
-        const refundsStats = await Order.aggregate([
+        const result = await Order.aggregate([
             {
                 $match: {
                     restaurantId: seller.managedRestaurant,
                     createdAt: { $gte: currentMonthStart },
                     status: 'refunded',
-                    "items.image": image // فلترة حسب اسم الصورة
+                    "items.image": image
                 }
             },
             {
-                $unwind: "$items" // تفكيك مصفوفة الأصناف
+                $unwind: "$items"
             },
             {
                 $match: {
-                    "items.image": image // تأكيد المطابقة بعد التفكيك
+                    "items.image": image
                 }
             },
             {
                 $group: {
                     _id: null,
-                    totalRefundedAmount: { $sum: "$items.price" }, // مجموع أسعار المرتجعات
-                    totalRefundedItems: { $sum: "$items.quantity" } // عدد القطع المرتجعة
+                    totalRefundedAmount: { 
+                        $sum: { 
+                            $multiply: ["$items.price", "$items.quantity"] 
+                        } 
+                    },
+                    totalRefundedItems: { $sum: "$items.quantity" }
                 }
             }
         ]);
 
-        const result = refundsStats[0] || { 
+        const stats = result[0] || { 
             totalRefundedAmount: 0, 
             totalRefundedItems: 0 
         };
 
         res.status(200).json({
             success: true,
-            itemImage: image,
-            totalRefundedAmount: result.totalRefundedAmount,
-            totalRefundedItems: result.totalRefundedItems,
+            totalRefundedAmount: stats.totalRefundedAmount,
+            totalRefundedItems: stats.totalRefundedItems,
             message: 'Monthly item refund stats retrieved successfully'
         });
 
