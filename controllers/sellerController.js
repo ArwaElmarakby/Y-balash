@@ -1851,3 +1851,83 @@ exports.getOrdersStats = async (req, res) => {
 
 
 
+exports.getMonthlyRevenueComparison = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                message: 'No restaurant assigned to you' 
+            });
+        }
+
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+
+        // Calculate start and end of current month
+        const startOfCurrentMonth = new Date(currentYear, currentMonth, 1);
+        const endOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0);
+
+        // Calculate start and end of previous month
+        const startOfLastMonth = new Date(currentYear, currentMonth - 1, 1);
+        const endOfLastMonth = new Date(currentYear, currentMonth, 0);
+
+        // Aggregate orders for current month (both cash and credit)
+        const [currentMonthEarnings, lastMonthEarnings] = await Promise.all([
+            Order.aggregate([
+                { 
+                    $match: { 
+                        restaurantId: seller.managedRestaurant,
+                        createdAt: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth },
+                        status: 'delivered',
+                        $or: [
+                            { paymentMethod: 'cash' },
+                            { paymentMethod: 'credit' }
+                        ]
+                    }
+                },
+                { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            ]),
+            Order.aggregate([
+                { 
+                    $match: { 
+                        restaurantId: seller.managedRestaurant,
+                        createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
+                        status: 'delivered',
+                        $or: [
+                            { paymentMethod: 'cash' },
+                            { paymentMethod: 'credit' }
+                        ]
+                    }
+                },
+                { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            ])
+        ]);
+
+        // Extract totals
+        const currentEarnings = currentMonthEarnings[0]?.total || 0;
+        const lastEarnings = lastMonthEarnings[0]?.total || 0;
+
+        // Calculate percentage change
+        let percentageChange = 0;
+        if (lastEarnings > 0) {
+            percentageChange = ((currentEarnings - lastEarnings) / lastEarnings) * 100;
+        } else if (currentEarnings > 0) {
+            percentageChange = 100;
+        }
+
+        res.status(200).json({
+            currentMonthEarnings: currentEarnings,
+            lastMonthEarnings: lastEarnings,
+            percentageChange: percentageChange.toFixed(2) + '%',
+            currency: 'EGP'
+        });
+
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
+    }
+};
