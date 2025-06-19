@@ -1053,54 +1053,45 @@ router.get('/orders/details',
 
 
 
-// router.get('/current-balance', 
-//     authMiddleware,
-//     sellerMiddleware,
-//     async (req, res) => {
-//         try {
-//             const seller = req.user;
-            
-//             if (!seller.managedRestaurant) {
-//                 return res.status(400).json({ 
-//                     success: false,
-//                     message: 'No restaurant assigned to this seller' 
-//                 });
-//             }
-
-//             const restaurant = await Restaurant.findById(seller.managedRestaurant)
-//                 .select('balance');
-
-//             if (!restaurant) {
-//                 return res.status(404).json({ 
-//                     success: false,
-//                     message: 'Restaurant not found' 
-//                 });
-//             }
-
-//             res.status(200).json({
-//                 success: true,
-//                 balance: restaurant.balance,
-//                 currency: 'EGP'
-//             });
-
-//         } catch (error) {
-//             res.status(500).json({ 
-//                 success: false,
-//                 message: 'Server error',
-//                 error: error.message 
-//             });
-//         }
-//     }
-// );
-
-
-
 router.get('/current-balance', 
-    authMiddleware, 
-    sellerMiddleware, 
-    sellerController.getCurrentAccountBalance
-);
+    authMiddleware,
+    sellerMiddleware,
+    async (req, res) => {
+        try {
+            const seller = req.user;
+            
+            if (!seller.managedRestaurant) {
+                return res.status(400).json({ 
+                    success: false,
+                    message: 'No restaurant assigned to this seller' 
+                });
+            }
 
+            const restaurant = await Restaurant.findById(seller.managedRestaurant)
+                .select('balance');
+
+            if (!restaurant) {
+                return res.status(404).json({ 
+                    success: false,
+                    message: 'Restaurant not found' 
+                });
+            }
+
+            res.status(200).json({
+                success: true,
+                balance: restaurant.balance,
+                currency: 'EGP'
+            });
+
+        } catch (error) {
+            res.status(500).json({ 
+                success: false,
+                message: 'Server error',
+                error: error.message 
+            });
+        }
+    }
+);
 
 
 
