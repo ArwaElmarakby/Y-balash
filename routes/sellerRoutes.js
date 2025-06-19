@@ -1096,54 +1096,14 @@ router.get('/orders/details',
 
 
 router.get('/current-balance', 
-    authMiddleware,
-    sellerMiddleware,
-    async (req, res) => {
-        try {
-            const seller = req.user;
-            
-            if (!seller.managedRestaurant) {
-                return res.status(400).json({ 
-                    success: false,
-                    message: 'No restaurant assigned to this seller' 
-                });
-            }
-
-            // حساب إجمالي المبيعات من الطلبات
-            const ordersTotal = await Order.aggregate([
-                {
-                    $match: {
-                        restaurantId: seller.managedRestaurant,
-                        status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة
-                    }
-                },
-                {
-                    $group: {
-                        _id: null,
-                        total: { $sum: "$totalAmount" }
-                    }
-                }
-            ]);
-
-            // حساب الرصيد الحالي (يمكن إضافة عمولات أو خصومات هنا إذا لزم الأمر)
-            const currentBalance = ordersTotal[0]?.total || 0;
-
-            res.status(200).json({
-                success: true,
-                balance: currentBalance,
-                currency: 'EGP',
-                total_orders: ordersTotal[0]?.count || 0
-            });
-
-        } catch (error) {
-            res.status(500).json({ 
-                success: false,
-                message: 'Server error',
-                error: error.message 
-            });
-        }
-    }
+    authMiddleware, 
+    sellerMiddleware, 
+    sellerController.getCurrentAccountBalance
 );
+
+
+
+
 
   
 module.exports = router;

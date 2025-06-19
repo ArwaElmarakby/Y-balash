@@ -1250,32 +1250,32 @@ exports.getTopSellingProducts = async (req, res) => {
 
 
 
-exports.getBalance = async (req, res) => {
-  try {
-    const seller = req.user;
+// exports.getBalance = async (req, res) => {
+//   try {
+//     const seller = req.user;
     
-    if (!seller.managedRestaurant) {
-      return res.status(200).json({
-        availableBalance: 0,
-        pendingBalance: 0
-      });
-    }
+//     if (!seller.managedRestaurant) {
+//       return res.status(200).json({
+//         availableBalance: 0,
+//         pendingBalance: 0
+//       });
+//     }
 
-    const restaurant = await Restaurant.findById(seller.managedRestaurant)
-      .select('balance pendingWithdrawals');
+//     const restaurant = await Restaurant.findById(seller.managedRestaurant)
+//       .select('balance pendingWithdrawals');
 
-    res.status(200).json({
-      availableBalance: restaurant.balance || 0,
-      pendingBalance: restaurant.pendingWithdrawals || 0
-    });
+//     res.status(200).json({
+//       availableBalance: restaurant.balance || 0,
+//       pendingBalance: restaurant.pendingWithdrawals || 0
+//     });
 
-  } catch (error) {
-    res.status(200).json({
-      availableBalance: 0,
-      pendingBalance: 0
-    });
-  }
-};
+//   } catch (error) {
+//     res.status(200).json({
+//       availableBalance: 0,
+//       pendingBalance: 0
+//     });
+//   }
+// };
 
 
 
@@ -2105,5 +2105,32 @@ exports.getOrderDetails = async (req, res) => {
             message: 'Failed to fetch order details',
             error: error.message
         });
+    }
+};
+
+
+
+exports.getCurrentAccountBalance = async (req, res) => {
+    try {
+        const seller = req.user;
+
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned to you' });
+        }
+
+        const restaurant = await Restaurant.findById(seller.managedRestaurant);
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant not found' });
+        }
+
+        const totalBalance = restaurant.balance + restaurant.pendingWithdrawal; // اجمع الرصيد الحالي
+
+        res.status(200).json({
+            success: true,
+            balance: totalBalance.toFixed(2), // عرض الرصيد بدقة نقطتين
+            currency: 'EGP'
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
