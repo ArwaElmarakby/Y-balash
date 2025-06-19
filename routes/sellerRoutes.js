@@ -969,65 +969,31 @@ router.get('/orders/details',
     sellerController.getOrderDetails
 );
 
-router.get('/balance-stats', authMiddleware, sellerMiddleware, async (req, res) => {
+router.get('/balance-summary', authMiddleware, sellerMiddleware, async (req, res) => {
     try {
         const seller = req.user;
         
         if (!seller.managedRestaurant) {
-            return res.status(400).json({ message: 'No restaurant assigned' });
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned' 
+            });
         }
 
-        // إحصائيات الدفع نقدًا
-        const cashStats = await Order.aggregate([
-            { 
-                $match: { 
-                    restaurantId: seller.managedRestaurant,
-                    paymentMethod: 'cash',
-                    status: 'delivered'
-                }
-            },
-            { 
-                $group: {
-                    _id: null,
-                    totalAmount: { $sum: "$totalAmount" },
-                    orderCount: { $sum: 1 }
-                }
-            }
-        ]);
-
-        // إحصائيات الدفع بالبطاقة
-        const cardStats = await Order.aggregate([
-            { 
-                $match: { 
-                    restaurantId: seller.managedRestaurant,
-                    paymentMethod: 'card',
-                    status: 'delivered'
-                }
-            },
-            { 
-                $group: {
-                    _id: null,
-                    totalAmount: { $sum: "$totalAmount" },
-                    orderCount: { $sum: 1 }
-                }
-            }
-        ]);
-
-        // الرصيد الحالي من المطعم
+        // الحصول على الرصيد الحالي من المطعم
         const restaurant = await Restaurant.findById(seller.managedRestaurant)
             .select('balance pendingWithdrawal');
 
+        if (!restaurant) {
+            return res.status(404).json({
+                success: false,
+                message: 'Restaurant not found'
+            });
+        }
+
         res.status(200).json({
             success: true,
-            stats: {
-                cash: {
-                    totalAmount: cashStats[0]?.totalAmount || 0,
-                    orderCount: cashStats[0]?.orderCount || 0
-                },
-                card: {
-                    totalAmount: cardStats[0]?.totalAmount || 0,
-                    orderCount: cardStats[0]?.orderCount || 0
-                },
+            balanceSummary: {
                 currentBalance: restaurant.balance || 0,
                 pendingWithdrawal: restaurant.pendingWithdrawal || 0,
                 availableBalance: (restaurant.balance || 0) - (restaurant.pendingWithdrawal || 0),
@@ -1037,7 +1003,7 @@ router.get('/balance-stats', authMiddleware, sellerMiddleware, async (req, res) 
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: 'Error fetching balance stats',
+            message: 'Error fetching balance summary',
             error: error.message
         });
     }
