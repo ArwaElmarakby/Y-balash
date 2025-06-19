@@ -14,6 +14,7 @@ const RejectedSeller = require('../models/rejectedSellerModel');
 const { getApprovedSellers, approveSeller } = require('../controllers/adminController');
 const { getLowStockItems } = require('../controllers/adminController');
 const { getRecentActivities } = require('../controllers/activityController');
+const { getTotalEarningsForAllSellers } = require('../controllers/adminController');
 
 
 router.get('/welcome', authMiddleware, adminMiddleware, (req, res) => {
@@ -840,5 +841,6 @@ router.post('/approve-seller', authMiddleware, adminMiddleware, approveSeller);
 router.get('/low-stock-items', authMiddleware, adminMiddleware, getLowStockItems);
 
 router.get('/recent-activities', authMiddleware, adminMiddleware, getRecentActivities);
+router.get('/total-earnings', authMiddleware, adminMiddleware, getTotalEarningsForAllSellers);
 
 module.exports = router;
