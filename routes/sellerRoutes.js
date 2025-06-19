@@ -293,31 +293,31 @@ router.get('/stats', authMiddleware, sellerMiddleware, async (req, res) => {
 // });
 
 
-router.get('/low-stock-count', authMiddleware, sellerMiddleware, async (req, res) => {
-    try {
-        const seller = req.user;
+// router.get('/low-stock-count', authMiddleware, sellerMiddleware, async (req, res) => {
+//     try {
+//         const seller = req.user;
         
-        if (!seller.managedRestaurant) {
-            return res.status(400).json({ message: 'No restaurant assigned to you' });
-        }
+//         if (!seller.managedRestaurant) {
+//             return res.status(400).json({ message: 'No restaurant assigned to you' });
+//         }
 
-        const LOW_STOCK_THRESHOLD = 12; 
+//         const LOW_STOCK_THRESHOLD = 12; 
 
-        const lowStockItemsCount = await Image.countDocuments({
-            restaurant: seller.managedRestaurant,
-            quantity: { $lte: LOW_STOCK_THRESHOLD }
-        });
+//         const lowStockItemsCount = await Image.countDocuments({
+//             restaurant: seller.managedRestaurant,
+//             quantity: { $lte: LOW_STOCK_THRESHOLD }
+//         });
 
-        res.status(200).json({
-            message: 'Low stock items count retrieved successfully',
-            lowStockItemsCount,
-            threshold: LOW_STOCK_THRESHOLD
-        });
+//         res.status(200).json({
+//             message: 'Low stock items count retrieved successfully',
+//             lowStockItemsCount,
+//             threshold: LOW_STOCK_THRESHOLD
+//         });
 
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-});
+//     } catch (error) {
+//         res.status(500).json({ message: 'Server error', error: error.message });
+//     }
+// });
 
 
 
@@ -882,11 +882,11 @@ router.get('/my-restaurant',
 router.post('/confirm-cash-payment/:orderId', authMiddleware, sellerMiddleware, confirmCashPayment);
 
 
-router.get('/low-stock-items',
-  authMiddleware,
-  sellerMiddleware,
-  sellerController.getLowStockItems
-);
+// router.get('/low-stock-items',
+//   authMiddleware,
+//   sellerMiddleware,
+//   sellerController.getLowStockItems
+// );
 
 
 // router.get('/orders/stats', authMiddleware, sellerMiddleware, async (req, res) => {
@@ -1101,6 +1101,7 @@ router.get('/top-selling-with-payments',
 );
 
 
+router.get('/low-stock-count', authMiddleware, sellerMiddleware, sellerController.getLowStockCount);
 
   
 module.exports = router;
