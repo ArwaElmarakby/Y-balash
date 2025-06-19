@@ -969,44 +969,87 @@ router.get('/orders/details',
     sellerController.getOrderDetails
 );
 
-router.get('/balance-summary', authMiddleware, sellerMiddleware, async (req, res) => {
-    try {
-        const seller = req.user;
-        
-        if (!seller.managedRestaurant) {
-            return res.status(400).json({ 
-                success: false,
-                message: 'No restaurant assigned' 
-            });
-        }
-
-        // الحصول على الرصيد الحالي من المطعم
-        const restaurant = await Restaurant.findById(seller.managedRestaurant)
-            .select('balance pendingWithdrawal');
-
-        if (!restaurant) {
-            return res.status(404).json({
-                success: false,
-                message: 'Restaurant not found'
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            balanceSummary: {
-                currentBalance: restaurant.balance || 0,
-                pendingWithdrawal: restaurant.pendingWithdrawal || 0,
-                availableBalance: (restaurant.balance || 0) - (restaurant.pendingWithdrawal || 0),
-                currency: "EGP"
+router.get('/payment-balance', 
+    authMiddleware,
+    sellerMiddleware,
+    async (req, res) => {
+        try {
+            const seller = req.user;
+            
+            if (!seller.managedRestaurant) {
+                return res.status(400).json({ 
+                    success: false,
+                    message: 'No restaurant assigned to you' 
+                });
             }
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching balance summary',
-            error: error.message
-        });
+
+            // حساب إجمالي الطلبات بالكاش
+            const cashOrders = await Order.aggregate([
+                { 
+                    $match: { 
+                        restaurantId: seller.managedRestaurant,
+                        paymentMethod: 'cash',
+                        status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة
+                    } 
+                },
+                { 
+                    $group: { 
+                        _id: null,
+                        totalAmount: { $sum: "$totalAmount" },
+                        orderCount: { $sum: 1 }
+                    } 
+                }
+            ]);
+
+            // حساب إجمالي الطلبات بالبطاقة
+            const cardOrders = await Order.aggregate([
+                { 
+                    $match: { 
+                        restaurantId: seller.managedRestaurant,
+                        paymentMethod: 'card',
+                        status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة
+                    } 
+                },
+                { 
+                    $group: { 
+                        _id: null,
+                        totalAmount: { $sum: "$totalAmount" },
+                        orderCount: { $sum: 1 }
+                    } 
+                }
+            ]);
+
+            // الحصول على الرصيد الحالي من المطعم
+            const restaurant = await Restaurant.findById(seller.managedRestaurant)
+                .select('balance pendingWithdrawal');
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    cash: {
+                        totalAmount: cashOrders[0]?.totalAmount || 0,
+                        orderCount: cashOrders[0]?.orderCount || 0
+                    },
+                    card: {
+                        totalAmount: cardOrders[0]?.totalAmount || 0,
+                        orderCount: cardOrders[0]?.orderCount || 0
+                    },
+                    currentBalance: restaurant.balance || 0,
+                    pendingWithdrawal: restaurant.pendingWithdrawal || 0,
+                    currency: "EGP"
+                }
+            });
+
+        } catch (error) {
+            console.error("Error in payment-balance:", error);
+            res.status(500).json({ 
+                success: false,
+                message: 'Server error',
+                error: error.message 
+            });
+        }
     }
-});
+);
+
   
 module.exports = router;
