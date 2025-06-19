@@ -2,7 +2,6 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/userModel');
-const { getTotalEarnings } = require('../controllers/statsController');
 
 router.get('/users/stats', async (req, res) => {
     try {
@@ -34,7 +33,5 @@ router.get('/users/stats', async (req, res) => {
         });
     }
 });
-
-router.get('/total-earnings', authMiddleware, adminMiddleware, getTotalEarnings);
 
 module.exports = router;
