@@ -1850,4 +1850,81 @@ exports.getOrdersStats = async (req, res) => {
 };
 
 
+exports.getMonthlyEarningsComparison = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
 
+        const now = new Date();
+        const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+        // Get current month earnings
+        const currentMonthEarnings = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    createdAt: { $gte: currentMonth },
+                    status: 'delivered'
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        // Get last month earnings
+        const lastMonthEarnings = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    createdAt: { 
+                        $gte: lastMonth,
+                        $lt: currentMonth
+                    },
+                    status: 'delivered'
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        const current = currentMonthEarnings[0]?.total || 0;
+        const last = lastMonthEarnings[0]?.total || 0;
+
+        let percentage = "0%";
+        if (last > 0) {
+            const change = ((current - last) / last) * 100;
+            percentage = (change >= 0 ? "+" : "") + Math.round(change) + "%";
+        } else if (current > 0) {
+            percentage = "+100%";
+        }
+
+        res.status(200).json({
+            success: true,
+            earnings: current,
+            percentage
+        });
+
+    } catch (error) {
+        console.error("Error in getMonthlyEarningsComparison:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch monthly earnings comparison',
+            error: error.message
+        });
+    }
+};

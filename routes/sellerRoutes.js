@@ -945,5 +945,12 @@ router.get('/orders/stats',
     sellerMiddleware,
     sellerController.getOrdersStats
 );
+
+
+router.get('/monthly-earnings-comparison',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getMonthlyEarningsComparison
+);
   
 module.exports = router;
