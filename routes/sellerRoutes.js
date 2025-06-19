@@ -1053,7 +1053,7 @@ router.get('/orders/details',
 
 
 
-router.get('/payment-balance', 
+router.get('/current-balance', 
     authMiddleware,
     sellerMiddleware,
     async (req, res) => {
@@ -1063,41 +1063,27 @@ router.get('/payment-balance',
             if (!seller.managedRestaurant) {
                 return res.status(400).json({ 
                     success: false,
-                    message: 'No restaurant assigned to you' 
+                    message: 'No restaurant assigned to this seller' 
                 });
             }
 
-            // حساب إجمالي المبيعات من الطلبات المكتملة
-            const totalSales = await Order.aggregate([
-                { 
-                    $match: { 
-                        restaurantId: seller.managedRestaurant,
-                        status: 'delivered' // فقط الطلبات المكتملة
-                    } 
-                },
-                { 
-                    $group: { 
-                        _id: null,
-                        totalAmount: { $sum: "$totalAmount" }
-                    } 
-                }
-            ]);
-
-            // الحصول على المبالغ المعلقة للسحب (إن وجدت)
             const restaurant = await Restaurant.findById(seller.managedRestaurant)
-                .select('pendingWithdrawal');
+                .select('balance');
+
+            if (!restaurant) {
+                return res.status(404).json({ 
+                    success: false,
+                    message: 'Restaurant not found' 
+                });
+            }
 
             res.status(200).json({
                 success: true,
-                data: {
-                    currentBalance: totalSales[0]?.totalAmount || 0, // إجمالي المبيعات
-                    pendingWithdrawal: restaurant.pendingWithdrawal || 0,
-                    currency: "EGP"
-                }
+                balance: restaurant.balance,
+                currency: 'EGP'
             });
 
         } catch (error) {
-            console.error("Error in payment-balance:", error);
             res.status(500).json({ 
                 success: false,
                 message: 'Server error',
