@@ -2292,3 +2292,83 @@ exports.getCurrentMonthOrdersCount = async (req, res) => {
     }
 };
 
+
+exports.getRevenueComparison = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        const now = new Date();
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+        // Get current month revenue
+        const currentMonthRevenue = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    createdAt: { $gte: currentMonthStart },
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        // Get last month revenue
+        const lastMonthRevenue = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd },
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        const current = currentMonthRevenue[0]?.total || 0;
+        const last = lastMonthRevenue[0]?.total || 0;
+
+        let percentageChange = 0;
+        if (last > 0) {
+            percentageChange = ((current - last) / last) * 100;
+        } else if (current > 0) {
+            percentageChange = 100;
+        }
+
+        res.status(200).json({
+            success: true,
+            currentMonthRevenue: current,
+            lastMonthRevenue: last,
+            percentageChange: percentageChange.toFixed(2),
+            currency: "EGP",
+            currentMonth: currentMonthStart.toLocaleString('default', { month: 'long', year: 'numeric' }),
+            lastMonth: lastMonthStart.toLocaleString('default', { month: 'long', year: 'numeric' })
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch revenue comparison',
+            error: error.message
+        });
+    }
+};
+

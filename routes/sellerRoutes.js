@@ -1079,5 +1079,11 @@ router.get('/orders/current-month-count',
     getCurrentMonthOrdersCount
 );
 
+router.get('/revenue-comparison',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getRevenueComparison
+);
+
   
 module.exports = router;
