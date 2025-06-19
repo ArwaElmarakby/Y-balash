@@ -2517,3 +2517,85 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
     });
   }
 };
+
+
+exports.getUserStatistics = async (req, res) => {
+  try {
+    const seller = req.user;
+    const restaurantId = seller.managedRestaurant;
+
+    if (!restaurantId) {
+      return res.status(400).json({ success: false, message: 'No restaurant assigned' });
+    }
+
+    // حساب New Users (زوار جدد في آخر 7 أيام)
+    const newUsers = await Order.aggregate([
+      { 
+        $match: { 
+          restaurantId,
+          status: { $ne: 'cancelled' },
+          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // آخر 7 أيام
+        }
+      },
+      { $group: { _id: '$userId' } },
+      { $count: 'newUsers' }
+    ]);
+
+    // حساب Returning Users (زائرين عادوا بعد غياب 30 يومًا)
+    const returningUsers = await Order.aggregate([
+      {
+        $match: {
+          restaurantId,
+          status: { $ne: 'cancelled' },
+          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // زاروا في آخر 7 أيام
+        }
+      },
+      {
+        $lookup: {
+          from: 'orders',
+          let: { userId: '$userId' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$$userId', '$userId'] },
+                    { $lt: ['$createdAt', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)] } // زاروا قبل 30 يومًا
+                  ]
+                }
+              }
+            }
+          ],
+          as: 'previousOrders'
+        }
+      },
+      { $match: { previousOrders: { $ne: [] } } }, // فقط المستخدمين الذين زاروا سابقًا
+      { $group: { _id: '$userId' } },
+      { $count: 'returningUsers' }
+    ]);
+
+    // حساب Regular Users (زائرين أكثر من 3 مرات)
+    const regularUsers = await Order.aggregate([
+      { 
+        $match: { 
+          restaurantId,
+          status: { $ne: 'cancelled' }
+        }
+      },
+      { $group: { _id: '$userId', count: { $sum: 1 } } },
+      { $match: { count: { $gt: 3 } } }, // أكثر من 3 زيارات
+      { $count: 'regularUsers' }
+    ]);
+
+    const stats = {
+      newUsers: newUsers[0]?.newUsers || 0,
+      returningUsers: returningUsers[0]?.returningUsers || 0,
+      regularUsers: regularUsers[0]?.regularUsers || 0
+    };
+
+    res.status(200).json({ success: true, stats });
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch user stats' });
+  }
+};
