@@ -208,6 +208,11 @@ exports.cashPayment = async (req, res) => {
         });
 
         await order.save();
+        for (const item of cart.items) {
+            await Image.findByIdAndUpdate(item.itemId._id, {
+                $inc: { quantity: -item.quantity } // Decrease quantity
+            });
+        }
           await createNotification(
             req.user._id,
             restaurantId,
