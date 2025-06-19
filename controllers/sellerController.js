@@ -1823,7 +1823,7 @@ exports.getLowStockItems = async (req, res) => {
       });
     }
 
-    const LOW_STOCK_THRESHOLD = 7;
+    const LOW_STOCK_THRESHOLD = 5;
     
     const lowStockItems = await Image.find({
       restaurant: seller.managedRestaurant,
