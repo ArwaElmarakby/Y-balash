@@ -10,6 +10,7 @@ const sellerController = require('../controllers/sellerController');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { confirmCashPayment } = require('../controllers/sellerController');
+const { addReturn, getReturnsSummary } = require('../controllers/returnController');
 
 
 
@@ -1049,6 +1050,8 @@ router.get('/last-7-days-orders',
 );
 
 
+
+
 router.get('/monthly-refunds',
     authMiddleware,
     sellerMiddleware,
@@ -1056,10 +1059,18 @@ router.get('/monthly-refunds',
 );
 
 
-router.post('/monthly-item-refunds',
-    authMiddleware,
-    sellerMiddleware,
-    sellerController.getMonthlyItemRefunds
+router.post('/returns', 
+  authMiddleware,
+  sellerMiddleware,
+  addReturn
 );
+
+// Get returns summary
+router.get('/returns/summary', 
+  authMiddleware,
+  sellerMiddleware,
+  getReturnsSummary
+);
+
   
 module.exports = router;
