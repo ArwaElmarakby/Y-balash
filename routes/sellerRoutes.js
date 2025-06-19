@@ -968,5 +968,55 @@ router.get('/orders/details',
     sellerMiddleware,
     sellerController.getOrderDetails
 );
+
+router.get('/payment-balance', authMiddleware, sellerMiddleware, async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned' });
+        }
+
+        // حساب إجمالي الطلبات بالكاش
+        const cashOrders = await Order.aggregate([
+            { 
+                $match: { 
+                    restaurantId: seller.managedRestaurant,
+                    paymentMethod: 'cash',
+                    status: 'delivered' // فقط الطلبات المكتملة
+                }
+            },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+        ]);
+
+        // حساب إجمالي الطلبات بالبطاقة
+        const cardOrders = await Order.aggregate([
+            { 
+                $match: { 
+                    restaurantId: seller.managedRestaurant,
+                    paymentMethod: 'card',
+                    status: 'delivered' // فقط الطلبات المكتملة
+                }
+            },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            balance: {
+                cash: cashOrders[0]?.total || 0,
+                card: cardOrders[0]?.total || 0,
+                total: (cashOrders[0]?.total || 0) + (cardOrders[0]?.total || 0),
+                currency: "EGP"
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching payment balance',
+            error: error.message
+        });
+    }
+});
   
 module.exports = router;
