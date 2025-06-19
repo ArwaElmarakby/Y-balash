@@ -1850,74 +1850,67 @@ exports.getOrdersStats = async (req, res) => {
 };
 
 
-
 exports.getMonthlyEarningsSimple = async (req, res) => {
-  try {
-    const seller = req.user;
-    
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'No restaurant assigned to this seller' 
-      });
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        const now = new Date();
+        const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+        const [currentMonthEarnings, lastMonthEarnings] = await Promise.all([
+            Order.aggregate([
+                { 
+                    $match: { 
+                        restaurantId: seller.managedRestaurant,
+                        createdAt: { $gte: currentMonth },
+                        status: 'delivered'
+                    }
+                },
+                { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            ]),
+            Order.aggregate([
+                { 
+                    $match: { 
+                        restaurantId: seller.managedRestaurant,
+                        createdAt: { $gte: lastMonth, $lt: currentMonth },
+                        status: 'delivered'
+                    }
+                },
+                { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            ])
+        ]);
+
+        const current = currentMonthEarnings[0]?.total || 0;
+        const last = lastMonthEarnings[0]?.total || 0;
+
+        let percentageChange = "0%";
+        if (last > 0) {
+            const change = ((current - last) / last) * 100;
+            percentageChange = change >= 0 ? `+${Math.round(change)}%` : `${Math.round(change)}%`;
+        } else if (current > 0) {
+            percentageChange = "+100%";
+        }
+
+        res.status(200).json({
+            success: true,
+            value: current,
+            percentage: percentageChange
+        });
+
+    } catch (error) {
+        console.error("Error in getMonthlyEarningsSimple:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch monthly earnings',
+            error: error.message
+        });
     }
-
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthFormatted = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
-
-    const [currentMonthEarnings, lastMonthEarnings] = await Promise.all([
-      Order.aggregate([
-        {
-          $match: {
-            restaurantId: seller.managedRestaurant,
-            status: 'delivered',
-            createdAt: {
-              $gte: new Date(`${currentMonth}-01`),
-              $lte: new Date(now)
-            }
-          }
-        },
-        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            restaurantId: seller.managedRestaurant,
-            status: 'delivered',
-            createdAt: {
-              $gte: new Date(`${lastMonthFormatted}-01`),
-              $lte: new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0)
-            }
-          }
-        },
-        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
-      ])
-    ]);
-
-    const current = currentMonthEarnings[0]?.total || 0;
-    const last = lastMonthEarnings[0]?.total || 0;
-
-    let percentage = "0%";
-    if (last > 0) {
-      const change = ((current - last) / last) * 100;
-      percentage = `${Math.round(change)}%`;
-    } else if (current > 0) {
-      percentage = "100%";
-    }
-
-    res.status(200).json({
-      totalEarnings: current,
-      percentage
-    });
-
-  } catch (error) {
-    console.error("Error in monthly earnings:", error);
-    res.status(500).json({
-      totalEarnings: 0,
-      percentage: "0%",
-      error: error.message
-    });
-  }
 };
