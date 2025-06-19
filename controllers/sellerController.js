@@ -1859,7 +1859,124 @@ exports.getOrdersStats = async (req, res) => {
 
 
 
-exports.getMonthlyEarningsWithPaymentMethods = async (req, res) => {
+// exports.getMonthlyEarningsWithPaymentMethods = async (req, res) => {
+//     try {
+//         const seller = req.user;
+        
+//         if (!seller.managedRestaurant) {
+//             return res.status(400).json({ 
+//                 success: false,
+//                 message: 'No restaurant assigned to this seller' 
+//             });
+//         }
+
+//         const now = new Date();
+//         const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+//         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+//         // Get current month earnings and payment methods
+//         const currentMonthStats = await Order.aggregate([
+//             {
+//                 $match: {
+//                     restaurantId: seller.managedRestaurant,
+//                     createdAt: { $gte: currentMonthStart },
+//                     status: { $ne: 'cancelled' }
+//                 }
+//             },
+//             {
+//                 $group: {
+//                     _id: null,
+//                     totalEarnings: { $sum: "$totalAmount" },
+//                     cashOrders: {
+//                         $sum: {
+//                             $cond: [{ $eq: ["$paymentMethod", "cash"] }, "$totalAmount", 0]
+//                         }
+//                     },
+//                     cardOrders: {
+//                         $sum: {
+//                             $cond: [{ $eq: ["$paymentMethod", "card"] }, "$totalAmount", 0]
+//                         }
+//                     },
+//                     cashCount: {
+//                         $sum: {
+//                             $cond: [{ $eq: ["$paymentMethod", "cash"] }, 1, 0]
+//                         }
+//                     },
+//                     cardCount: {
+//                         $sum: {
+//                             $cond: [{ $eq: ["$paymentMethod", "card"] }, 1, 0]
+//                         }
+//                     }
+//                 }
+//             }
+//         ]);
+
+//         // Get last month earnings for comparison
+//         const lastMonthStats = await Order.aggregate([
+//             {
+//                 $match: {
+//                     restaurantId: seller.managedRestaurant,
+//                     createdAt: { $gte: lastMonthStart, $lt: currentMonthStart },
+//                     status: { $ne: 'cancelled' }
+//                 }
+//             },
+//             {
+//                 $group: {
+//                     _id: null,
+//                     totalEarnings: { $sum: "$totalAmount" }
+//                 }
+//             }
+//         ]);
+
+//         // Format the response
+//         const current = currentMonthStats[0] || {
+//             totalEarnings: 0,
+//             cashOrders: 0,
+//             cardOrders: 0,
+//             cashCount: 0,
+//             cardCount: 0
+//         };
+
+//         const last = lastMonthStats[0] || { totalEarnings: 0 };
+
+//         // Calculate percentage change
+//         let percentageChange = 0;
+//         if (last.totalEarnings > 0) {
+//             percentageChange = ((current.totalEarnings - last.totalEarnings) / last.totalEarnings) * 100;
+//         } else if (current.totalEarnings > 0) {
+//             percentageChange = 100;
+//         }
+
+//         res.status(200).json({
+//             success: true,
+//             data: {
+//                 currentMonth: {
+//                     totalEarnings: current.totalEarnings,
+//                     cashEarnings: current.cashOrders,
+//                     cardEarnings: current.cardOrders,
+//                     cashOrdersCount: current.cashCount,
+//                     cardOrdersCount: current.cardCount,
+//                     currency: "EGP"
+//                 },
+//                 comparison: {
+//                     percentageChange: percentageChange.toFixed(2) + '%',
+//                     changeDirection: percentageChange >= 0 ? 'increase' : 'decrease'
+//                 }
+//             }
+//         });
+
+//     } catch (error) {
+//         console.error("Error in getMonthlyEarningsWithPaymentMethods:", error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Failed to fetch monthly earnings',
+//             error: error.message
+//         });
+//     }
+// };
+
+
+exports.getSimplifiedMonthlyEarnings = async (req, res) => {
     try {
         const seller = req.user;
         
@@ -1874,7 +1991,7 @@ exports.getMonthlyEarningsWithPaymentMethods = async (req, res) => {
         const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-        // Get current month earnings and payment methods
+        // Get current month earnings
         const currentMonthStats = await Order.aggregate([
             {
                 $match: {
@@ -1886,27 +2003,7 @@ exports.getMonthlyEarningsWithPaymentMethods = async (req, res) => {
             {
                 $group: {
                     _id: null,
-                    totalEarnings: { $sum: "$totalAmount" },
-                    cashOrders: {
-                        $sum: {
-                            $cond: [{ $eq: ["$paymentMethod", "cash"] }, "$totalAmount", 0]
-                        }
-                    },
-                    cardOrders: {
-                        $sum: {
-                            $cond: [{ $eq: ["$paymentMethod", "card"] }, "$totalAmount", 0]
-                        }
-                    },
-                    cashCount: {
-                        $sum: {
-                            $cond: [{ $eq: ["$paymentMethod", "cash"] }, 1, 0]
-                        }
-                    },
-                    cardCount: {
-                        $sum: {
-                            $cond: [{ $eq: ["$paymentMethod", "card"] }, 1, 0]
-                        }
-                    }
+                    totalEarnings: { $sum: "$totalAmount" }
                 }
             }
         ]);
@@ -1928,45 +2025,25 @@ exports.getMonthlyEarningsWithPaymentMethods = async (req, res) => {
             }
         ]);
 
-        // Format the response
-        const current = currentMonthStats[0] || {
-            totalEarnings: 0,
-            cashOrders: 0,
-            cardOrders: 0,
-            cashCount: 0,
-            cardCount: 0
-        };
-
+        const current = currentMonthStats[0] || { totalEarnings: 0 };
         const last = lastMonthStats[0] || { totalEarnings: 0 };
 
         // Calculate percentage change
-        let percentageChange = 0;
+        let percentageChange = "0.00%";
         if (last.totalEarnings > 0) {
-            percentageChange = ((current.totalEarnings - last.totalEarnings) / last.totalEarnings) * 100;
+            percentageChange = ((current.totalEarnings - last.totalEarnings) / last.totalEarnings * 100).toFixed(2) + "%";
         } else if (current.totalEarnings > 0) {
-            percentageChange = 100;
+            percentageChange = "100.00%";
         }
 
         res.status(200).json({
             success: true,
-            data: {
-                currentMonth: {
-                    totalEarnings: current.totalEarnings,
-                    cashEarnings: current.cashOrders,
-                    cardEarnings: current.cardOrders,
-                    cashOrdersCount: current.cashCount,
-                    cardOrdersCount: current.cardCount,
-                    currency: "EGP"
-                },
-                comparison: {
-                    percentageChange: percentageChange.toFixed(2) + '%',
-                    changeDirection: percentageChange >= 0 ? 'increase' : 'decrease'
-                }
-            }
+            totalEarnings: current.totalEarnings,
+            percentageChange: percentageChange
         });
 
     } catch (error) {
-        console.error("Error in getMonthlyEarningsWithPaymentMethods:", error);
+        console.error("Error in getSimplifiedMonthlyEarnings:", error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch monthly earnings',
@@ -1974,4 +2051,3 @@ exports.getMonthlyEarningsWithPaymentMethods = async (req, res) => {
         });
     }
 };
-
