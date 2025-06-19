@@ -1033,5 +1033,12 @@ router.get('/total-earnings-since-start',
     sellerMiddleware,
     sellerController.getTotalEarningsSinceStart
 );
+
+
+router.get('/total-cash-earnings',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getTotalCashEarnings
+);
   
 module.exports = router;

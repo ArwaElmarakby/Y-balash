@@ -2098,3 +2098,50 @@ exports.getTotalEarningsSinceStart = async (req, res) => {
         });
     }
 };
+
+
+exports.getTotalCashEarnings = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        // Aggregate to sum only cash payments
+        const cashEarnings = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    status: { $ne: 'cancelled' },
+                    paymentMethod: 'cash' // شرط لفلترة المدفوعات النقدية فقط
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalCash: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        const total = cashEarnings[0] || { totalCash: 0 };
+
+        res.status(200).json({
+            success: true,
+            totalCashEarnings: total.totalCash,
+            message: 'Total cash earnings retrieved successfully'
+        });
+
+    } catch (error) {
+        console.error("Error in getTotalCashEarnings:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch cash earnings',
+            error: error.message
+        });
+    }
+};
