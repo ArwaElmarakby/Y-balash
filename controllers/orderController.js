@@ -1,6 +1,6 @@
 const Order = require('../models/orderModel');
 const { logActivity } = require('./activityController');
-
+const User = require('../models/userModel');
 
 await logActivity('order_placed', order.userId, {
     orderId: order._id,

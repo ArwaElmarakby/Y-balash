@@ -55,6 +55,10 @@ const userSchema = new mongoose.Schema({
     lastActive: { type: Date, default: Date.now },
     managedRestaurant: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
     language: { type: String, default: null },
+    displayName: {
+           type: String,
+           required: true,
+       },
     plan: {
       type: String,
       enum: ['basic', 'premium'],
