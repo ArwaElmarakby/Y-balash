@@ -1102,5 +1102,12 @@ router.get('/top-selling-with-payments',
 
 
 
+router.get('/out-of-stock-products',
+  authMiddleware,
+  sellerMiddleware,
+  sellerController.getOutOfStockProducts
+);
+
+
   
 module.exports = router;
