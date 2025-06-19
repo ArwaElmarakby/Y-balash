@@ -983,57 +983,13 @@ router.get('/payment-balance',
                 });
             }
 
-            // حساب إجمالي الطلبات بالكاش
-            const cashOrders = await Order.aggregate([
-                { 
-                    $match: { 
-                        restaurantId: seller.managedRestaurant,
-                        paymentMethod: 'cash',
-                        status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة
-                    } 
-                },
-                { 
-                    $group: { 
-                        _id: null,
-                        totalAmount: { $sum: "$totalAmount" },
-                        orderCount: { $sum: 1 }
-                    } 
-                }
-            ]);
-
-            // حساب إجمالي الطلبات بالبطاقة
-            const cardOrders = await Order.aggregate([
-                { 
-                    $match: { 
-                        restaurantId: seller.managedRestaurant,
-                        paymentMethod: 'card',
-                        status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة
-                    } 
-                },
-                { 
-                    $group: { 
-                        _id: null,
-                        totalAmount: { $sum: "$totalAmount" },
-                        orderCount: { $sum: 1 }
-                    } 
-                }
-            ]);
-
-            // الحصول على الرصيد الحالي من المطعم
+            // الحصول على الرصيد الحالي والمعلقة من المطعم
             const restaurant = await Restaurant.findById(seller.managedRestaurant)
                 .select('balance pendingWithdrawal');
 
             res.status(200).json({
                 success: true,
                 data: {
-                    cash: {
-                        totalAmount: cashOrders[0]?.totalAmount || 0,
-                        orderCount: cashOrders[0]?.orderCount || 0
-                    },
-                    card: {
-                        totalAmount: cardOrders[0]?.totalAmount || 0,
-                        orderCount: cardOrders[0]?.orderCount || 0
-                    },
                     currentBalance: restaurant.balance || 0,
                     pendingWithdrawal: restaurant.pendingWithdrawal || 0,
                     currency: "EGP"
