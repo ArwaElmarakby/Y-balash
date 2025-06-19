@@ -947,10 +947,10 @@ router.get('/orders/stats',
 );
 
 
-router.get('/monthly-earnings-summary',
+router.get('/monthly-earnings-details',
     authMiddleware,
     sellerMiddleware,
-    sellerController.getMonthlyEarningsSummary
+    sellerController.getMonthlyEarningsWithPaymentMethods
 );
   
 module.exports = router;

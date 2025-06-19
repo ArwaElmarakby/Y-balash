@@ -1858,7 +1858,8 @@ exports.getOrdersStats = async (req, res) => {
 };
 
 
-exports.getMonthlyEarningsSummary = async (req, res) => {
+
+exports.getMonthlyEarningsWithPaymentMethods = async (req, res) => {
     try {
         const seller = req.user;
         
@@ -1872,60 +1873,105 @@ exports.getMonthlyEarningsSummary = async (req, res) => {
         const now = new Date();
         const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-        // Get current month earnings
-        const currentMonthEarnings = await Order.aggregate([
-            { 
-                $match: { 
+        // Get current month earnings and payment methods
+        const currentMonthStats = await Order.aggregate([
+            {
+                $match: {
                     restaurantId: seller.managedRestaurant,
-                    status: 'delivered',
-                    createdAt: { $gte: currentMonthStart }
+                    createdAt: { $gte: currentMonthStart },
+                    status: { $ne: 'cancelled' }
                 }
             },
-            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: "$totalAmount" },
+                    cashOrders: {
+                        $sum: {
+                            $cond: [{ $eq: ["$paymentMethod", "cash"] }, "$totalAmount", 0]
+                        }
+                    },
+                    cardOrders: {
+                        $sum: {
+                            $cond: [{ $eq: ["$paymentMethod", "card"] }, "$totalAmount", 0]
+                        }
+                    },
+                    cashCount: {
+                        $sum: {
+                            $cond: [{ $eq: ["$paymentMethod", "cash"] }, 1, 0]
+                        }
+                    },
+                    cardCount: {
+                        $sum: {
+                            $cond: [{ $eq: ["$paymentMethod", "card"] }, 1, 0]
+                        }
+                    }
+                }
+            }
         ]);
 
-        // Get last month earnings
-        const lastMonthEarnings = await Order.aggregate([
-            { 
-                $match: { 
+        // Get last month earnings for comparison
+        const lastMonthStats = await Order.aggregate([
+            {
+                $match: {
                     restaurantId: seller.managedRestaurant,
-                    status: 'delivered',
-                    createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd }
+                    createdAt: { $gte: lastMonthStart, $lt: currentMonthStart },
+                    status: { $ne: 'cancelled' }
                 }
             },
-            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: "$totalAmount" }
+                }
+            }
         ]);
 
-        const current = currentMonthEarnings[0]?.total || 0;
-        const last = lastMonthEarnings[0]?.total || 0;
+        // Format the response
+        const current = currentMonthStats[0] || {
+            totalEarnings: 0,
+            cashOrders: 0,
+            cardOrders: 0,
+            cashCount: 0,
+            cardCount: 0
+        };
 
+        const last = lastMonthStats[0] || { totalEarnings: 0 };
+
+        // Calculate percentage change
         let percentageChange = 0;
-        if (last > 0) {
-            percentageChange = ((current - last) / last) * 100;
-        } else if (current > 0) {
+        if (last.totalEarnings > 0) {
+            percentageChange = ((current.totalEarnings - last.totalEarnings) / last.totalEarnings) * 100;
+        } else if (current.totalEarnings > 0) {
             percentageChange = 100;
         }
 
         res.status(200).json({
             success: true,
             data: {
-                currentMonthEarnings: current,
-                percentageChange: percentageChange.toFixed(2),
-                trend: percentageChange >= 0 ? 'up' : 'down',
-                currency: 'EGP'
+                currentMonth: {
+                    totalEarnings: current.totalEarnings,
+                    cashEarnings: current.cashOrders,
+                    cardEarnings: current.cardOrders,
+                    cashOrdersCount: current.cashCount,
+                    cardOrdersCount: current.cardCount,
+                    currency: "EGP"
+                },
+                comparison: {
+                    percentageChange: percentageChange.toFixed(2) + '%',
+                    changeDirection: percentageChange >= 0 ? 'increase' : 'decrease'
+                }
             }
         });
 
     } catch (error) {
-        console.error("Error in getMonthlyEarningsSummary:", error);
+        console.error("Error in getMonthlyEarningsWithPaymentMethods:", error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch monthly earnings summary',
+            message: 'Failed to fetch monthly earnings',
             error: error.message
         });
     }
 };
-
 
