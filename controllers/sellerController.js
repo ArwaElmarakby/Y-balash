@@ -2381,32 +2381,50 @@ exports.getBuyerEmailsCount = async (req, res) => {
             });
         }
 
-        // الحصول على جميع الطلبات للمطعم التابع لهذا البائع
-        const orders = await Order.find({ 
+        // التواريخ المطلوبة
+        const now = new Date();
+        const startOfCurrentWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        const startOfLastWeek = new Date(new Date(startOfCurrentWeek).setDate(startOfCurrentWeek.getDate() - 7));
+
+        // الحصول على الطلبات للأسبوع الحالي
+        const currentWeekOrders = await Order.find({ 
             restaurantId: seller.managedRestaurant,
-            status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة
+            createdAt: { $gte: startOfCurrentWeek },
+            status: { $ne: 'cancelled' }
         }).select('userId');
 
-        if (!orders || orders.length === 0) {
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                message: 'No buyers found for this seller'
-            });
-        }
+        // الحصول على الطلبات للأسبوع الماضي
+        const lastWeekOrders = await Order.find({ 
+            restaurantId: seller.managedRestaurant,
+            createdAt: { $gte: startOfLastWeek, $lt: startOfCurrentWeek },
+            status: { $ne: 'cancelled' }
+        }).select('userId');
 
-        // استخراج جميع userIds الفريدة
-        const uniqueUserIds = [...new Set(orders.map(order => order.userId.toString()))];
+        // حساب المشترين الفريدين للأسبوع الحالي
+        const currentWeekBuyers = [...new Set(currentWeekOrders.map(order => order.userId.toString()))];
+        
+        // حساب المشترين الفريدين للأسبوع الماضي
+        const lastWeekBuyers = [...new Set(lastWeekOrders.map(order => order.userId.toString()))];
 
-        // الحصول على الإيميلات لهؤلاء المستخدمين
-        const users = await User.find({ 
-            _id: { $in: uniqueUserIds }
+        // الحصول على إيميلات المشترين الحاليين
+        const currentWeekUsers = await User.find({ 
+            _id: { $in: currentWeekBuyers }
         }).select('email');
+
+        // حساب نسبة التغير
+        let percentageChange = 0;
+        if (lastWeekBuyers.length > 0) {
+            percentageChange = ((currentWeekBuyers.length - lastWeekBuyers.length) / lastWeekBuyers.length) * 100;
+        } else if (currentWeekBuyers.length > 0) {
+            percentageChange = 100; // إذا لم يكن هناك مشترين الأسبوع الماضي ولكن هناك مشترين هذا الأسبوع
+        }
 
         res.status(200).json({
             success: true,
-            count: users.length,
-            buyers: users.map(user => user.email)
+            count: currentWeekUsers.length,
+            buyers: currentWeekUsers.map(user => user.email),
+            percentageChange: percentageChange.toFixed(2) + '%',
+            changeDirection: percentageChange >= 0 ? 'increase' : 'decrease'
         });
 
     } catch (error) {
