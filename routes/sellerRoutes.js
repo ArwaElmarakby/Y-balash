@@ -12,6 +12,7 @@ const jwt = require('jsonwebtoken');
 const { confirmCashPayment } = require('../controllers/sellerController');
 
 
+
 router.post('/promote-to-seller', authMiddleware, sellerMiddleware, async (req, res) => {
     const { userId } = req.body;
 
@@ -34,6 +35,7 @@ router.post('/add-product', authMiddleware, sellerMiddleware, (req, res) => {
 
     res.status(200).json({ message: 'Product added successfully (seller only)' });
 });
+
 
 router.post('/become-seller', authMiddleware, async (req, res) => {
     try {
@@ -60,6 +62,7 @@ router.post('/become-seller', authMiddleware, async (req, res) => {
 });
 
 
+
 router.get('/orders', authMiddleware, sellerMiddleware, async (req, res) => {
     try {
         const seller = req.user;
@@ -82,6 +85,7 @@ router.get('/orders', authMiddleware, sellerMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 });
+
 
 router.put('/orders/:orderId/status', authMiddleware, sellerMiddleware, async (req, res) => {
     const { orderId } = req.params;
@@ -121,6 +125,7 @@ router.put('/orders/:orderId/status', authMiddleware, sellerMiddleware, async (r
     }
 });
 
+
 router.post('/products', authMiddleware, sellerMiddleware, async (req, res) => {
     const { name, price, quantity, description } = req.body;
     const seller = req.user;
@@ -157,6 +162,7 @@ router.post('/products', authMiddleware, sellerMiddleware, async (req, res) => {
     }
 });
 
+
 router.get('/stats', authMiddleware, sellerMiddleware, async (req, res) => {
     try {
         const seller = req.user;
@@ -166,6 +172,7 @@ router.get('/stats', authMiddleware, sellerMiddleware, async (req, res) => {
                 message: 'No restaurant assigned to you yet' 
             });
         }
+
 
         const totalOrders = await Order.countDocuments({ 
             restaurantId: seller.managedRestaurant 
@@ -180,6 +187,7 @@ router.get('/stats', authMiddleware, sellerMiddleware, async (req, res) => {
             restaurantId: seller.managedRestaurant,
             status: 'delivered'
         });
+
 
         const totalProducts = await Image.countDocuments({
             restaurant: seller.managedRestaurant
@@ -205,6 +213,7 @@ router.get('/stats', authMiddleware, sellerMiddleware, async (req, res) => {
 
 
 
+
 // router.get('/monthly-earnings', authMiddleware, sellerMiddleware, async (req, res) => {
 //     try {
 //         const seller = req.user;
@@ -221,8 +230,10 @@ router.get('/stats', authMiddleware, sellerMiddleware, async (req, res) => {
 //         const startOfCurrentMonth = new Date(currentYear, currentMonth, 1);
 //         const endOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0);
 
+
 //         const startOfLastMonth = new Date(currentYear, currentMonth - 1, 1);
 //         const endOfLastMonth = new Date(currentYear, currentMonth, 0);
+
 
 //         const [currentMonthEarnings, lastMonthEarnings] = await Promise.all([
 //             Order.aggregate([
@@ -247,8 +258,10 @@ router.get('/stats', authMiddleware, sellerMiddleware, async (req, res) => {
 //             ])
 //         ]);
 
+
 //         const currentEarnings = currentMonthEarnings[0]?.total || 0;
 //         const lastEarnings = lastMonthEarnings[0]?.total || 0;
+
 
 //         let percentageChange = 0;
 //         if (lastEarnings > 0) {
@@ -277,6 +290,7 @@ router.get('/stats', authMiddleware, sellerMiddleware, async (req, res) => {
 //     }
 // });
 
+
 router.get('/low-stock-count', authMiddleware, sellerMiddleware, async (req, res) => {
     try {
         const seller = req.user;
@@ -304,6 +318,7 @@ router.get('/low-stock-count', authMiddleware, sellerMiddleware, async (req, res
 });
 
 
+
 router.get('/products-stats', authMiddleware, sellerMiddleware, async (req, res) => {
     try {
         const seller = req.user;
@@ -316,14 +331,17 @@ router.get('/products-stats', authMiddleware, sellerMiddleware, async (req, res)
         const startOfCurrentWeek = new Date(now.setDate(now.getDate() - now.getDay()));
         const startOfLastWeek = new Date(now.setDate(now.getDate() - 7));
 
+
         const totalProducts = await Image.countDocuments({
             restaurant: seller.managedRestaurant
         });
+
 
         const productsAddedThisWeek = await Image.countDocuments({
             restaurant: seller.managedRestaurant,
             createdAt: { $gte: startOfCurrentWeek }
         });
+
 
         const productsAddedLastWeek = await Image.countDocuments({
             restaurant: seller.managedRestaurant,
@@ -332,6 +350,7 @@ router.get('/products-stats', authMiddleware, sellerMiddleware, async (req, res)
                 $lt: startOfCurrentWeek
             }
         });
+
 
         let percentageChange = 0;
         if (productsAddedLastWeek > 0) {
@@ -362,6 +381,7 @@ router.get('/products-stats', authMiddleware, sellerMiddleware, async (req, res)
 
 
 
+
 router.get('/restaurant-stats', authMiddleware, sellerMiddleware, async (req, res) => {
     try {
         const seller = req.user;
@@ -369,6 +389,7 @@ router.get('/restaurant-stats', authMiddleware, sellerMiddleware, async (req, re
         if (!seller.managedRestaurant) {
             return res.status(400).json({ message: 'No restaurant assigned to you' });
         }
+
 
         const stats = await Order.aggregate([
             {
@@ -400,6 +421,7 @@ router.get('/restaurant-stats', authMiddleware, sellerMiddleware, async (req, re
             }
         ]);
 
+
         const result = stats[0] || {
             totalOrders: 0,
             totalRevenue: 0,
@@ -428,6 +450,7 @@ router.get('/restaurant-stats', authMiddleware, sellerMiddleware, async (req, re
         });
     }
 });
+
 
 
 router.get('/orders-details', authMiddleware, sellerMiddleware, async (req, res) => {
@@ -475,6 +498,7 @@ router.get('/orders-details', authMiddleware, sellerMiddleware, async (req, res)
 });
 
 
+
 router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res) => {
     try {
       const restaurant = await Restaurant.findById(req.user.managedRestaurant);
@@ -490,6 +514,7 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
       res.status(500).json({ message: 'Server error', error });
     }
   });
+
 
 
 
@@ -515,6 +540,7 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
   );
 
 
+
   
 //   router.get('/monthly-earnings',
 //     authMiddleware,
@@ -531,6 +557,7 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
   );
 
 
+
   router.get('/orders/stats',
     authMiddleware,
     sellerMiddleware,
@@ -538,12 +565,14 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
   );
   
 
+
   router.get('/orders/average-value',
     authMiddleware,
     sellerMiddleware,
     sellerController.getAverageOrderValue
   );
   
+
 
   router.get('/payouts/recent', 
     authMiddleware,
@@ -557,17 +586,20 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
     sellerController.requestPayout
   );
 
+
   router.get('/refunds/monthly',
     authMiddleware,
     sellerMiddleware,
     sellerController.getMonthlyRefunds
   );
 
+
   router.get('/analytics/best-seller',
     authMiddleware,
     sellerMiddleware,
     sellerController.getBestSeller
   );
+
 
 
   router.get('/orders/completed-this-month', 
@@ -577,17 +609,20 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
 );
   
 
+
 router.get('/notifications', 
     authMiddleware,
     sellerMiddleware,
     sellerController.getSellerNotifications
 );
 
+
 router.get('/profile',
     authMiddleware,
     sellerMiddleware,
     sellerController.getSellerProfile
 );
+
 
 
 router.put('/profile/language',
@@ -597,11 +632,13 @@ router.put('/profile/language',
 );
 
 
+
 router.get('/my-restaurant', 
     authMiddleware,
     sellerMiddleware,
     sellerController.getMyRestaurant
   );
+
 
 
   router.get('/payment-settings',
@@ -617,11 +654,13 @@ router.get('/my-restaurant',
   );
 
 
+
 //   router.get('/low-stock-items',
 //     authMiddleware,
 //     sellerMiddleware,
 //     sellerController.getLowStockItems
 //   );
+
 
 //   router.get('/stock-stats',
 //     authMiddleware,
@@ -629,11 +668,13 @@ router.get('/my-restaurant',
 //     sellerController.getStockStats
 //   );
 
+
   router.get('/inventory',
     authMiddleware,
     sellerMiddleware,
     sellerController.getInventoryItems
   );
+
 
 
   router.get('/restaurant-products',
@@ -650,11 +691,13 @@ router.get('/my-restaurant',
   );
 
 
+
   router.get('/new-customers-stats',
     authMiddleware,
     sellerMiddleware,
     sellerController.getNewCustomersStats
   );
+
 
 
   router.get('/top-product',
@@ -663,11 +706,13 @@ router.get('/my-restaurant',
     sellerController.getTopProduct
   );
 
+
   router.get('/top-selling-products',
     authMiddleware,
     sellerMiddleware,
     sellerController.getTopSellingProducts
   );
+
 
 
   router.get('/balance',
@@ -700,11 +745,13 @@ router.get('/my-restaurant',
     sellerController.getRevenueTrends
   );
 
+
   router.get('/revenue-peak-trends',
     authMiddleware,
     sellerMiddleware,
     sellerController.getRevenuePeakTrends
   );
+
 
 
   router.get('/customer-analytics',
@@ -724,6 +771,7 @@ router.get('/my-restaurant',
         }
 
         let user = await User.findOne({ email });
+
 
         const restaurant = await Restaurant.findById(restaurantId).select('name');
         if (!restaurant) {
@@ -828,13 +876,16 @@ router.get('/my-restaurant',
     }
 });
 
+
 router.post('/confirm-cash-payment/:orderId', authMiddleware, sellerMiddleware, confirmCashPayment);
+
 
 router.get('/low-stock-items',
   authMiddleware,
   sellerMiddleware,
   sellerController.getLowStockItems
 );
+
 
 // router.get('/orders/stats', authMiddleware, sellerMiddleware, async (req, res) => {
 //     try {
@@ -888,11 +939,13 @@ router.get('/low-stock-items',
 // });
 
 
+
 router.get('/orders/stats',
     authMiddleware,
     sellerMiddleware,
     sellerController.getOrdersStats
 );
+
 
 // router.get('/monthly-earnings-details',
 //     authMiddleware,
@@ -900,18 +953,18 @@ router.get('/orders/stats',
 //     sellerController.getMonthlyEarningsWithPaymentMethods
 // );
 
+
 router.get('/simplified-monthly-earnings',
     authMiddleware,
     sellerMiddleware,
     sellerController.getSimplifiedMonthlyEarnings
 );
 
-  
-
 router.get('/orders/details',
     authMiddleware,
     sellerMiddleware,
     sellerController.getOrderDetails
 );
+
   
 module.exports = router;

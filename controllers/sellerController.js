@@ -4,6 +4,7 @@ const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
 
 
+
 exports.getSellerOrders = async (req, res) => {
     try {
         const seller = req.seller;
@@ -21,6 +22,7 @@ exports.getSellerOrders = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
 
 exports.updateOrderStatus = async (req, res) => {
     const { orderId } = req.params;
@@ -47,6 +49,7 @@ exports.updateOrderStatus = async (req, res) => {
 };
 
 
+
 exports.getAvailableForWithdrawal = async (req, res) => {
     try {
       const restaurant = await Restaurant.findById(req.user.managedRestaurant);
@@ -62,6 +65,7 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       res.status(500).json({ message: 'Server error', error });
     }
   };
+
 
 
 
@@ -118,6 +122,7 @@ exports.getAvailableForWithdrawal = async (req, res) => {
 //     });
 //   }
 // };
+
 
 
 
@@ -203,6 +208,7 @@ exports.getAvailableForWithdrawal = async (req, res) => {
 
 
 
+
   exports.getOrderStats = async (req, res) => {
     if (!req.user?.managedRestaurant) {
       return res.status(403).json({
@@ -267,6 +273,7 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       });
     }
   };
+
 
 
 
@@ -345,6 +352,7 @@ exports.getAvailableForWithdrawal = async (req, res) => {
 
 
 
+
   exports.getRecentPayouts = async (req, res) => {
     try {
       const seller = req.user;
@@ -418,6 +426,7 @@ exports.getAvailableForWithdrawal = async (req, res) => {
 
 
 
+
   exports.getMonthlyRefunds = async (req, res) => {
     try {
       const now = new Date();
@@ -459,6 +468,7 @@ exports.getAvailableForWithdrawal = async (req, res) => {
       });
     }
   };
+
 
 
 
@@ -525,6 +535,7 @@ exports.getAvailableForWithdrawal = async (req, res) => {
 
 
 
+
   exports.getCompletedOrdersThisMonth = async (req, res) => {
     try {
         const seller = req.user;
@@ -564,6 +575,7 @@ exports.getAvailableForWithdrawal = async (req, res) => {
 
 
 
+
 exports.getSellerNotifications = async (req, res) => {
   try {
       const seller = req.user;
@@ -571,6 +583,7 @@ exports.getSellerNotifications = async (req, res) => {
       if (!seller.managedRestaurant) {
           return res.status(400).json({ message: 'No restaurant assigned' });
       }
+
 
       const newOrders = await Order.find({
           restaurantId: seller.managedRestaurant,
@@ -581,6 +594,7 @@ exports.getSellerNotifications = async (req, res) => {
       .populate('userId', 'firstName lastName')
       .select('_id totalAmount items');
 
+
       const lowStockItems = await Image.find({
           restaurant: seller.managedRestaurant,
           quantity: { $lte: 10 } 
@@ -588,10 +602,12 @@ exports.getSellerNotifications = async (req, res) => {
       .select('name quantity');
       console.log("Low Stock Items:", lowStockItems);
 
+
       const restaurant = await Restaurant.findById(seller.managedRestaurant)
           .select('payouts');
 
       const unreadPayouts = restaurant.payouts.filter(p => !p.isRead);
+
 
       const notifications = {
           newOrders: newOrders.map(order => ({
@@ -624,6 +640,7 @@ exports.getSellerNotifications = async (req, res) => {
 }
 };
 
+
 exports.getSellerProfile = async (req, res) => {
   try {
       const seller = await User.findById(req.user._id);
@@ -631,6 +648,7 @@ exports.getSellerProfile = async (req, res) => {
       if (!seller) {
           return res.status(404).json({ message: 'Seller not found' });
       }
+
 
       const usernameFromEmail = seller.email.split('@')[0];
 
@@ -647,6 +665,7 @@ exports.getSellerProfile = async (req, res) => {
       });
   }
 };
+
 
 exports.updateLanguage = async (req, res) => {
   try {
@@ -669,6 +688,7 @@ exports.updateLanguage = async (req, res) => {
       });
   }
 };
+
 
 
 exports.getMyRestaurant = async (req, res) => {
@@ -711,6 +731,7 @@ exports.getMyRestaurant = async (req, res) => {
 
 
 
+
 exports.getPaymentSettings = async (req, res) => {
   try {
     const seller = await User.findById(req.user._id)
@@ -727,6 +748,7 @@ exports.getPaymentSettings = async (req, res) => {
     });
   }
 };
+
 
 
 
@@ -759,6 +781,7 @@ exports.updatePaymentSettings = async (req, res) => {
     });
   }
 };
+
 
 
 
@@ -804,6 +827,7 @@ exports.updatePaymentSettings = async (req, res) => {
 // };
 
 
+
 exports.getStockStats = async (req, res) => {
   try {
     const seller = req.user;
@@ -839,6 +863,7 @@ exports.getStockStats = async (req, res) => {
     });
   }
 };
+
 
 
 
@@ -880,6 +905,7 @@ exports.getInventoryItems = async (req, res) => {
       };
     });
 
+
     const stats = {
       inStock: inventory.filter(i => i.status === 'IN_STOCK').length,
       lowStock: inventory.filter(i => i.status === 'LOW_STOCK').length,
@@ -898,6 +924,7 @@ exports.getInventoryItems = async (req, res) => {
     });
   }
 };
+
 
 
 
@@ -940,6 +967,7 @@ exports.getRestaurantProducts = async (req, res) => {
     });
   }
 };
+
 
 exports.getRevenueStats = async (req, res) => {
   try {
@@ -1006,6 +1034,7 @@ exports.getRevenueStats = async (req, res) => {
 
 
 
+
 exports.getNewCustomersStats = async (req, res) => {
   try {
     const seller = req.user;
@@ -1061,6 +1090,7 @@ exports.getNewCustomersStats = async (req, res) => {
 
 
 
+
 exports.getTopProduct = async (req, res) => {
   try {
     const seller = req.user;
@@ -1077,6 +1107,7 @@ exports.getTopProduct = async (req, res) => {
     const currentWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
     const lastWeekStart = new Date(currentWeekStart);
     lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
 
     const currentWeekTopProduct = await Order.aggregate([
       {
@@ -1105,6 +1136,7 @@ exports.getTopProduct = async (req, res) => {
       },
       { $unwind: "$product" }
     ]);
+
 
     let lastWeekCount = 0;
     if (currentWeekTopProduct.length > 0) {
@@ -1159,6 +1191,7 @@ exports.getTopProduct = async (req, res) => {
     });
   }
 };
+
 
 
 exports.getTopSellingProducts = async (req, res) => {
@@ -1216,32 +1249,34 @@ exports.getTopSellingProducts = async (req, res) => {
 
 
 
-// exports.getBalance = async (req, res) => {
-//   try {
-//     const seller = req.user;
+
+exports.getBalance = async (req, res) => {
+  try {
+    const seller = req.user;
     
-//     if (!seller.managedRestaurant) {
-//       return res.status(200).json({
-//         availableBalance: 0,
-//         pendingBalance: 0
-//       });
-//     }
+    if (!seller.managedRestaurant) {
+      return res.status(200).json({
+        availableBalance: 0,
+        pendingBalance: 0
+      });
+    }
 
-//     const restaurant = await Restaurant.findById(seller.managedRestaurant)
-//       .select('balance pendingWithdrawals');
+    const restaurant = await Restaurant.findById(seller.managedRestaurant)
+      .select('balance pendingWithdrawals');
 
-//     res.status(200).json({
-//       availableBalance: restaurant.balance || 0,
-//       pendingBalance: restaurant.pendingWithdrawals || 0
-//     });
+    res.status(200).json({
+      availableBalance: restaurant.balance || 0,
+      pendingBalance: restaurant.pendingWithdrawals || 0
+    });
 
-//   } catch (error) {
-//     res.status(200).json({
-//       availableBalance: 0,
-//       pendingBalance: 0
-//     });
-//   }
-// };
+  } catch (error) {
+    res.status(200).json({
+      availableBalance: 0,
+      pendingBalance: 0
+    });
+  }
+};
+
 
 
 
@@ -1260,9 +1295,11 @@ exports.requestWithdrawal = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Insufficient balance' });
     }
 
+
     restaurant.balance -= amount;
     restaurant.pendingWithdrawals += amount;
     await restaurant.save();
+
 
     const transaction = {
       amount,
@@ -1290,6 +1327,7 @@ exports.requestWithdrawal = async (req, res) => {
 };
 
 
+
 exports.getTransactionHistory = async (req, res) => {
   try {
     const seller = await User.findById(req.user._id)
@@ -1311,6 +1349,7 @@ exports.getTransactionHistory = async (req, res) => {
     res.status(200).json([]);
   }
 };
+
 
 
 
@@ -1420,6 +1459,7 @@ function formatChartData(data, period) {
 
 
 
+
 exports.getRevenueTrends = async (req, res) => {
   try {
     const seller = req.user;
@@ -1431,9 +1471,11 @@ exports.getRevenueTrends = async (req, res) => {
       });
     }
 
+
     const now = new Date();
     const sixMonthsAgo = new Date(now);
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
 
     const revenueData = await Order.aggregate([
       {
@@ -1467,8 +1509,10 @@ exports.getRevenueTrends = async (req, res) => {
       { $sort: { year: 1, month: 1 } }
     ]);
 
+
     const lifetimeValue = revenueData.reduce((sum, month) => sum + month.totalRevenue, 0);
     const customerAcquisitionCost = await calculateCustomerCost(seller.managedRestaurant, sixMonthsAgo);
+
 
     const formattedData = revenueData.map(item => ({
       month: `${item.month}/${item.year}`,
@@ -1506,6 +1550,7 @@ async function calculateCustomerCost(restaurantId, startDate) {
     { $group: { _id: null, total: { $sum: "$discountAmount" } } }
   ]);
 
+
   const newCustomers = await Order.distinct('userId', {
     restaurantId,
     createdAt: { $gte: startDate },
@@ -1517,6 +1562,7 @@ async function calculateCustomerCost(restaurantId, startDate) {
 
   return totalCost / customerCount;
 }
+
 
 
 
@@ -1564,9 +1610,11 @@ exports.getRevenuePeakTrends = async (req, res) => {
       });
     }
 
+
     const peakMonth = revenueData.reduce((max, current) => 
       current.totalRevenue > max.totalRevenue ? current : max
     );
+
 
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -1597,6 +1645,7 @@ exports.getRevenuePeakTrends = async (req, res) => {
 
 
 
+
 exports.getCustomerAnalytics = async (req, res) => {
   try {
     const seller = req.user;
@@ -1612,6 +1661,7 @@ exports.getCustomerAnalytics = async (req, res) => {
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const threeMonthsAgo = new Date(currentMonthStart);
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
 
     const customerData = await Order.aggregate([
       {
@@ -1702,6 +1752,7 @@ exports.getCustomerAnalytics = async (req, res) => {
   }
 };
 
+
 exports.confirmCashPayment = async (req, res) => {
     const { orderId } = req.params;
     const seller = req.user;
@@ -1719,6 +1770,7 @@ exports.confirmCashPayment = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
 
 exports.getLowStockItems = async (req, res) => {
   try {
@@ -1758,6 +1810,7 @@ exports.getLowStockItems = async (req, res) => {
     });
   }
 };
+
 
 exports.getOrdersStats = async (req, res) => {
     try {
@@ -1803,6 +1856,7 @@ exports.getOrdersStats = async (req, res) => {
         });
     }
 };
+
 
 
 // exports.getMonthlyEarningsWithPaymentMethods = async (req, res) => {
@@ -1921,6 +1975,7 @@ exports.getOrdersStats = async (req, res) => {
 //     }
 // };
 
+
 exports.getSimplifiedMonthlyEarnings = async (req, res) => {
     try {
         const seller = req.user;
@@ -1996,5 +2051,3 @@ exports.getSimplifiedMonthlyEarnings = async (req, res) => {
         });
     }
 };
-
-
