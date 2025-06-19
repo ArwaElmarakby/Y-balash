@@ -969,7 +969,7 @@ router.get('/orders/details',
     sellerController.getOrderDetails
 );
 
-router.get('/payment-balance', authMiddleware, sellerMiddleware, async (req, res) => {
+router.get('/balance-stats', authMiddleware, sellerMiddleware, async (req, res) => {
     try {
         const seller = req.user;
         
@@ -977,43 +977,67 @@ router.get('/payment-balance', authMiddleware, sellerMiddleware, async (req, res
             return res.status(400).json({ message: 'No restaurant assigned' });
         }
 
-        // حساب إجمالي الطلبات بالكاش
-        const cashOrders = await Order.aggregate([
+        // إحصائيات الدفع نقدًا
+        const cashStats = await Order.aggregate([
             { 
                 $match: { 
                     restaurantId: seller.managedRestaurant,
                     paymentMethod: 'cash',
-                    status: 'delivered' // فقط الطلبات المكتملة
+                    status: 'delivered'
                 }
             },
-            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            { 
+                $group: {
+                    _id: null,
+                    totalAmount: { $sum: "$totalAmount" },
+                    orderCount: { $sum: 1 }
+                }
+            }
         ]);
 
-        // حساب إجمالي الطلبات بالبطاقة
-        const cardOrders = await Order.aggregate([
+        // إحصائيات الدفع بالبطاقة
+        const cardStats = await Order.aggregate([
             { 
                 $match: { 
                     restaurantId: seller.managedRestaurant,
                     paymentMethod: 'card',
-                    status: 'delivered' // فقط الطلبات المكتملة
+                    status: 'delivered'
                 }
             },
-            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+            { 
+                $group: {
+                    _id: null,
+                    totalAmount: { $sum: "$totalAmount" },
+                    orderCount: { $sum: 1 }
+                }
+            }
         ]);
+
+        // الرصيد الحالي من المطعم
+        const restaurant = await Restaurant.findById(seller.managedRestaurant)
+            .select('balance pendingWithdrawal');
 
         res.status(200).json({
             success: true,
-            balance: {
-                cash: cashOrders[0]?.total || 0,
-                card: cardOrders[0]?.total || 0,
-                total: (cashOrders[0]?.total || 0) + (cardOrders[0]?.total || 0),
+            stats: {
+                cash: {
+                    totalAmount: cashStats[0]?.totalAmount || 0,
+                    orderCount: cashStats[0]?.orderCount || 0
+                },
+                card: {
+                    totalAmount: cardStats[0]?.totalAmount || 0,
+                    orderCount: cardStats[0]?.orderCount || 0
+                },
+                currentBalance: restaurant.balance || 0,
+                pendingWithdrawal: restaurant.pendingWithdrawal || 0,
+                availableBalance: (restaurant.balance || 0) - (restaurant.pendingWithdrawal || 0),
                 currency: "EGP"
             }
         });
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: 'Error fetching payment balance',
+            message: 'Error fetching balance stats',
             error: error.message
         });
     }
