@@ -69,59 +69,59 @@ exports.getAvailableForWithdrawal = async (req, res) => {
 
 
 
-  exports.getMonthlyEarnings = async (req, res) => {
-  try {
-    const seller = req.user;
+//   exports.getMonthlyEarnings = async (req, res) => {
+//   try {
+//     const seller = req.user;
     
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'No restaurant assigned to this seller' 
-      });
-    }
+//     if (!seller.managedRestaurant) {
+//       return res.status(400).json({ 
+//         success: false,
+//         message: 'No restaurant assigned to this seller' 
+//       });
+//     }
 
-    // حساب الإيرادات الشهرية
-    const monthlyEarnings = await Order.aggregate([
-      {
-        $match: {
-          restaurantId: seller.managedRestaurant,
-          status: 'delivered' // فقط الطلبات المكتملة
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" }
-          },
-          totalEarnings: { $sum: "$totalAmount" },
-          orderCount: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { "_id.year": 1, "_id.month": 1 }
-      }
-    ]);
+//     // حساب الإيرادات الشهرية
+//     const monthlyEarnings = await Order.aggregate([
+//       {
+//         $match: {
+//           restaurantId: seller.managedRestaurant,
+//           status: 'delivered' // فقط الطلبات المكتملة
+//         }
+//       },
+//       {
+//         $group: {
+//           _id: {
+//             year: { $year: "$createdAt" },
+//             month: { $month: "$createdAt" }
+//           },
+//           totalEarnings: { $sum: "$totalAmount" },
+//           orderCount: { $sum: 1 }
+//         }
+//       },
+//       {
+//         $sort: { "_id.year": 1, "_id.month": 1 }
+//       }
+//     ]);
 
-    res.status(200).json({
-      success: true,
-      data: monthlyEarnings.map(item => ({
-        year: item._id.year,
-        month: item._id.month,
-        totalEarnings: item.totalEarnings,
-        orderCount: item.orderCount,
-        currency: "EGP"
-      }))
-    });
+//     res.status(200).json({
+//       success: true,
+//       data: monthlyEarnings.map(item => ({
+//         year: item._id.year,
+//         month: item._id.month,
+//         totalEarnings: item.totalEarnings,
+//         orderCount: item.orderCount,
+//         currency: "EGP"
+//       }))
+//     });
 
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch monthly earnings',
-      error: error.message
-    });
-  }
-};
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: 'Failed to fetch monthly earnings',
+//       error: error.message
+//     });
+//   }
+// };
 
 
 
@@ -1857,5 +1857,75 @@ exports.getOrdersStats = async (req, res) => {
     }
 };
 
+
+exports.getMonthlyEarningsSummary = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        const now = new Date();
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+        // Get current month earnings
+        const currentMonthEarnings = await Order.aggregate([
+            { 
+                $match: { 
+                    restaurantId: seller.managedRestaurant,
+                    status: 'delivered',
+                    createdAt: { $gte: currentMonthStart }
+                }
+            },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+        ]);
+
+        // Get last month earnings
+        const lastMonthEarnings = await Order.aggregate([
+            { 
+                $match: { 
+                    restaurantId: seller.managedRestaurant,
+                    status: 'delivered',
+                    createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd }
+                }
+            },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+        ]);
+
+        const current = currentMonthEarnings[0]?.total || 0;
+        const last = lastMonthEarnings[0]?.total || 0;
+
+        let percentageChange = 0;
+        if (last > 0) {
+            percentageChange = ((current - last) / last) * 100;
+        } else if (current > 0) {
+            percentageChange = 100;
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                currentMonthEarnings: current,
+                percentageChange: percentageChange.toFixed(2),
+                trend: percentageChange >= 0 ? 'up' : 'down',
+                currency: 'EGP'
+            }
+        });
+
+    } catch (error) {
+        console.error("Error in getMonthlyEarningsSummary:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch monthly earnings summary',
+            error: error.message
+        });
+    }
+};
 
 
