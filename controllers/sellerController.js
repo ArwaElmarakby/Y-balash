@@ -1772,46 +1772,6 @@ exports.confirmCashPayment = async (req, res) => {
 };
 
 
-// exports.getLowStockItems = async (req, res) => {
-//   try {
-//     const seller = req.user;
-    
-//     if (!seller.managedRestaurant) {
-//       return res.status(400).json({ 
-//         success: false,
-//         message: 'No restaurant assigned to this seller' 
-//       });
-//     }
-
-//     const LOW_STOCK_THRESHOLD = 7;
-    
-//     // الحصول على جميع العناصر أولاً
-//     const allItems = await Image.find({
-//       restaurant: seller.managedRestaurant
-//     }).select('name quantity price imageUrl category');
-
-//     // تصفية العناصر يدويًا حيث أن quantity مخزنة كـ string
-//     const lowStockItems = allItems.filter(item => {
-//       const quantity = parseFloat(item.quantity);
-//       return quantity <= LOW_STOCK_THRESHOLD;
-//     });
-
-//     res.status(200).json({
-//       success: true,
-//       threshold: LOW_STOCK_THRESHOLD,
-//       count: lowStockItems.length,
-//       items: lowStockItems
-//     });
-//   } catch (error) {
-//     res.status(500).json({ 
-//       success: false,
-//       message: 'Server error',
-//       error: error.message
-//     });
-//   }
-// };
-
-
 exports.getLowStockItems = async (req, res) => {
   try {
     const seller = req.user;
@@ -1823,13 +1783,18 @@ exports.getLowStockItems = async (req, res) => {
       });
     }
 
-    const LOW_STOCK_THRESHOLD = 5;
+    const LOW_STOCK_THRESHOLD = 7;
     
-    // الحصول على جميع العناصر التي تكون الكمية فيها أقل من LOW_STOCK_THRESHOLD
-    const lowStockItems = await Image.find({
-      restaurant: seller.managedRestaurant,
-      quantity: { $lt: LOW_STOCK_THRESHOLD } // شرط الكمية أقل من 5
+    // الحصول على جميع العناصر أولاً
+    const allItems = await Image.find({
+      restaurant: seller.managedRestaurant
     }).select('name quantity price imageUrl category');
+
+    // تصفية العناصر يدويًا حيث أن quantity مخزنة كـ string
+    const lowStockItems = allItems.filter(item => {
+      const quantity = parseFloat(item.quantity);
+      return quantity <= LOW_STOCK_THRESHOLD;
+    });
 
     res.status(200).json({
       success: true,
@@ -1845,7 +1810,6 @@ exports.getLowStockItems = async (req, res) => {
     });
   }
 };
-
 
 
 exports.getOrdersStats = async (req, res) => {
