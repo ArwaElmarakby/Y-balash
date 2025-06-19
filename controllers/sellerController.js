@@ -2253,10 +2253,10 @@ exports.getMonthlyRefunds = async (req, res) => {
 };
 
 
-exports.getItemRefunds = async (req, res) => {
+exports.getMonthlyItemRefunds = async (req, res) => {
     try {
         const seller = req.user;
-        const { itemName } = req.body; // اسم الصنف المراد البحث عنه
+        const { image } = req.body; // سيتم استقبال اسم الصورة من body الطلب
 
         if (!seller.managedRestaurant) {
             return res.status(400).json({ 
@@ -2265,52 +2265,61 @@ exports.getItemRefunds = async (req, res) => {
             });
         }
 
-        if (!itemName) {
+        if (!image) {
             return res.status(400).json({
                 success: false,
-                message: 'Item name is required in the request body'
+                message: 'Image name is required in request body'
             });
         }
 
-        const refundedOrders = await Order.aggregate([
+        const currentMonthStart = new Date();
+        currentMonthStart.setDate(1);
+        currentMonthStart.setHours(0, 0, 0, 0);
+
+        const refundsStats = await Order.aggregate([
             {
                 $match: {
                     restaurantId: seller.managedRestaurant,
+                    createdAt: { $gte: currentMonthStart },
                     status: 'refunded',
-                    "items.name": itemName // البحث في مصفوفة items عن الصنف المطلوب
+                    "items.image": image // فلترة حسب اسم الصورة
                 }
             },
             {
-                $unwind: "$items" // تفكيك مصفوفة items إلى وثائق منفصلة لكل صنف
+                $unwind: "$items" // تفكيك مصفوفة الأصناف
             },
             {
                 $match: {
-                    "items.name": itemName // تصفية فقط الأصناف المطابقة للاسم
+                    "items.image": image // تأكيد المطابقة بعد التفكيك
                 }
             },
             {
-                $project: {
-                    _id: 0,
-                    date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-                    itemName: "$items.name",
-                    itemPrice: "$items.price",
-                    quantity: "$items.quantity"
+                $group: {
+                    _id: null,
+                    totalRefundedAmount: { $sum: "$items.price" }, // مجموع أسعار المرتجعات
+                    totalRefundedItems: { $sum: "$items.quantity" } // عدد القطع المرتجعة
                 }
             }
         ]);
 
+        const result = refundsStats[0] || { 
+            totalRefundedAmount: 0, 
+            totalRefundedItems: 0 
+        };
+
         res.status(200).json({
             success: true,
-            refunds: refundedOrders,
-            totalRefundedItems: refundedOrders.reduce((sum, item) => sum + item.quantity, 0),
-            message: 'Item refunds retrieved successfully'
+            itemImage: image,
+            totalRefundedAmount: result.totalRefundedAmount,
+            totalRefundedItems: result.totalRefundedItems,
+            message: 'Monthly item refund stats retrieved successfully'
         });
 
     } catch (error) {
-        console.error("Error in getItemRefunds:", error);
+        console.error("Error in getMonthlyItemRefunds:", error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch item refunds',
+            message: 'Failed to fetch item refund data',
             error: error.message
         });
     }

@@ -1056,10 +1056,10 @@ router.get('/monthly-refunds',
 );
 
 
-router.post('/item-refunds',
+router.post('/monthly-item-refunds',
     authMiddleware,
     sellerMiddleware,
-    sellerController.getItemRefunds
+    sellerController.getMonthlyItemRefunds
 );
   
 module.exports = router;
