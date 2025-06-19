@@ -1067,26 +1067,31 @@ router.get('/payment-balance',
                 });
             }
 
-            // جلب بيانات المطعم مع التأكد من وجود القيم
+            // حساب إجمالي المبيعات من الطلبات المكتملة
+            const totalSales = await Order.aggregate([
+                { 
+                    $match: { 
+                        restaurantId: seller.managedRestaurant,
+                        status: 'delivered' // فقط الطلبات المكتملة
+                    } 
+                },
+                { 
+                    $group: { 
+                        _id: null,
+                        totalAmount: { $sum: "$totalAmount" }
+                    } 
+                }
+            ]);
+
+            // الحصول على المبالغ المعلقة للسحب (إن وجدت)
             const restaurant = await Restaurant.findById(seller.managedRestaurant)
-                .select('balance pendingWithdrawal');
-
-            if (!restaurant) {
-                return res.status(404).json({ 
-                    success: false,
-                    message: 'Restaurant not found' 
-                });
-            }
-
-            // إذا كانت القيم غير معرّفة، نستخدم صفرًا كقيمة افتراضية
-            const currentBalance = restaurant.balance !== undefined ? restaurant.balance : 0;
-            const pendingWithdrawal = restaurant.pendingWithdrawal !== undefined ? restaurant.pendingWithdrawal : 0;
+                .select('pendingWithdrawal');
 
             res.status(200).json({
                 success: true,
                 data: {
-                    currentBalance,
-                    pendingWithdrawal,
+                    currentBalance: totalSales[0]?.totalAmount || 0, // إجمالي المبيعات
+                    pendingWithdrawal: restaurant.pendingWithdrawal || 0,
                     currency: "EGP"
                 }
             });
