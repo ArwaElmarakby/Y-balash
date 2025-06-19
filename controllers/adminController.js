@@ -367,7 +367,6 @@ exports.getLowStockItems = async (req, res) => {
 };
 
 
-
 exports.getTotalEarningsForSellers = async (req, res) => {
     try {
         const earnings = await Order.aggregate([
@@ -391,7 +390,10 @@ exports.getTotalEarningsForSellers = async (req, res) => {
                 }
             },
             {
-                $unwind: "$restaurantDetails" // تفكيك البيانات
+                $unwind: {
+                    path: "$restaurantDetails",
+                    preserveNullAndEmptyArrays: true // الحفاظ على العناصر الفارغة
+                }
             },
             {
                 $project: {
