@@ -2356,11 +2356,8 @@ exports.getRevenueComparison = async (req, res) => {
         res.status(200).json({
             success: true,
             currentMonthRevenue: current,
-            lastMonthRevenue: last,
             percentageChange: percentageChange.toFixed(2),
-            currency: "EGP",
-            currentMonth: currentMonthStart.toLocaleString('default', { month: 'long', year: 'numeric' }),
-            lastMonth: lastMonthStart.toLocaleString('default', { month: 'long', year: 'numeric' })
+            currency: "EGP"
         });
 
     } catch (error) {
