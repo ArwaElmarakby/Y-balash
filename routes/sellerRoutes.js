@@ -453,67 +453,67 @@ router.get('/restaurant-stats', authMiddleware, sellerMiddleware, async (req, re
 
 
 
-// router.get('/orders-details', authMiddleware, sellerMiddleware, async (req, res) => {
-//     try {
-//         const seller = req.user;
+router.get('/orders-details', authMiddleware, sellerMiddleware, async (req, res) => {
+    try {
+        const seller = req.user;
         
-//         if (!seller.managedRestaurant) {
-//             return res.status(400).json({ message: 'No restaurant assigned to you' });
-//         }
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned to you' });
+        }
 
-//         const orders = await Order.find({
-//             restaurantId: seller.managedRestaurant
-//         })
-//         .populate('userId', 'email') 
-//         .populate('items.itemId', 'name price') 
-//         .sort({ createdAt: -1 }); 
+        const orders = await Order.find({
+            restaurantId: seller.managedRestaurant
+        })
+        .populate('userId', 'email') 
+        .populate('items.itemId', 'name price') 
+        .sort({ createdAt: -1 }); 
 
-//         const formattedOrders = orders.map(order => ({
-//             orderId: order._id,
-//             clientEmail: order.userId.email,
-//             products: order.items.map(item => ({
-//                 name: item.itemId.name,
-//                 price: item.itemId.price,
-//                 quantity: item.quantity
-//             })),
-//             totalAmount: order.totalAmount,
-//             status: order.status,
-//             orderDate: order.createdAt,
-//             currency: "EGP"
-//         }));
+        const formattedOrders = orders.map(order => ({
+            orderId: order._id,
+            clientEmail: order.userId.email,
+            products: order.items.map(item => ({
+                name: item.itemId.name,
+                price: item.itemId.price,
+                quantity: item.quantity
+            })),
+            totalAmount: order.totalAmount,
+            status: order.status,
+            orderDate: order.createdAt,
+            currency: "EGP"
+        }));
 
-//         res.status(200).json({
-//             message: 'Orders details retrieved successfully',
-//             count: orders.length,
-//             orders: formattedOrders
-//         });
+        res.status(200).json({
+            message: 'Orders details retrieved successfully',
+            count: orders.length,
+            orders: formattedOrders
+        });
 
-//     } catch (error) {
-//         console.error("Error fetching orders details:", error);
-//         res.status(500).json({ 
-//             message: 'Server error',
-//             error: error.message
-//         });
-//     }
-// });
+    } catch (error) {
+        console.error("Error fetching orders details:", error);
+        res.status(500).json({ 
+            message: 'Server error',
+            error: error.message
+        });
+    }
+});
 
 
 
-// router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res) => {
-//     try {
-//       const restaurant = await Restaurant.findById(req.user.managedRestaurant);
-//       if (!restaurant) {
-//         return res.status(404).json({ message: 'Restaurant not found' });
-//       }
+router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res) => {
+    try {
+      const restaurant = await Restaurant.findById(req.user.managedRestaurant);
+      if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurant not found' });
+      }
   
-//       res.status(200).json({
-//         balance: restaurant.balance,
-//         currency: 'EGP'
-//       });
-//     } catch (error) {
-//       res.status(500).json({ message: 'Server error', error });
-//     }
-//   });
+      res.status(200).json({
+        balance: restaurant.balance,
+        currency: 'EGP'
+      });
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+    }
+  });
 
 
 
@@ -715,11 +715,11 @@ router.get('/my-restaurant',
 
 
 
-//   router.get('/balance',
-//     authMiddleware,
-//     sellerMiddleware,
-//     sellerController.getBalance
-//   );
+  router.get('/balance',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getBalance
+  );
   
   router.post('/withdraw',
     authMiddleware,
@@ -959,6 +959,7 @@ router.get('/simplified-monthly-earnings',
     sellerMiddleware,
     sellerController.getSimplifiedMonthlyEarnings
 );
+
   
 
 
@@ -967,4 +968,5 @@ router.get('/orders/details',
     sellerMiddleware,
     sellerController.getOrderDetails
 );
+  
 module.exports = router;
