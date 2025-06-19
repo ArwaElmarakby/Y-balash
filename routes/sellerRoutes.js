@@ -1053,6 +1053,48 @@ router.get('/orders/details',
 
 
 
+// router.get('/current-balance', 
+//     authMiddleware,
+//     sellerMiddleware,
+//     async (req, res) => {
+//         try {
+//             const seller = req.user;
+            
+//             if (!seller.managedRestaurant) {
+//                 return res.status(400).json({ 
+//                     success: false,
+//                     message: 'No restaurant assigned to this seller' 
+//                 });
+//             }
+
+//             const restaurant = await Restaurant.findById(seller.managedRestaurant)
+//                 .select('balance');
+
+//             if (!restaurant) {
+//                 return res.status(404).json({ 
+//                     success: false,
+//                     message: 'Restaurant not found' 
+//                 });
+//             }
+
+//             res.status(200).json({
+//                 success: true,
+//                 balance: restaurant.balance,
+//                 currency: 'EGP'
+//             });
+
+//         } catch (error) {
+//             res.status(500).json({ 
+//                 success: false,
+//                 message: 'Server error',
+//                 error: error.message 
+//             });
+//         }
+//     }
+// );
+
+
+
 router.get('/current-balance', 
     authMiddleware,
     sellerMiddleware,
@@ -1067,20 +1109,30 @@ router.get('/current-balance',
                 });
             }
 
-            const restaurant = await Restaurant.findById(seller.managedRestaurant)
-                .select('balance');
+            // حساب إجمالي المبيعات من الطلبات
+            const ordersTotal = await Order.aggregate([
+                {
+                    $match: {
+                        restaurantId: seller.managedRestaurant,
+                        status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: "$totalAmount" }
+                    }
+                }
+            ]);
 
-            if (!restaurant) {
-                return res.status(404).json({ 
-                    success: false,
-                    message: 'Restaurant not found' 
-                });
-            }
+            // حساب الرصيد الحالي (يمكن إضافة عمولات أو خصومات هنا إذا لزم الأمر)
+            const currentBalance = ordersTotal[0]?.total || 0;
 
             res.status(200).json({
                 success: true,
-                balance: restaurant.balance,
-                currency: 'EGP'
+                balance: currentBalance,
+                currency: 'EGP',
+                total_orders: ordersTotal[0]?.count || 0
             });
 
         } catch (error) {
