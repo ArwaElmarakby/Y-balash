@@ -961,8 +961,7 @@ router.get('/simplified-monthly-earnings',
 );
 
 
-// Get total earnings only for a seller
-router.get('/earnings/total', 
+router.get('/earnings/breakdown', 
     authMiddleware,
     sellerMiddleware,
     async (req, res) => {
@@ -976,7 +975,6 @@ router.get('/earnings/total',
                 });
             }
 
-            // Calculate total earnings from delivered orders
             const result = await Order.aggregate([
                 {
                     $match: {
@@ -986,25 +984,43 @@ router.get('/earnings/total',
                 },
                 {
                     $group: {
-                        _id: null,
-                        totalEarnings: { $sum: "$totalAmount" }
+                        _id: "$paymentMethod", // تجميع حسب طريقة الدفع
+                        total: { $sum: "$totalAmount" },
+                        count: { $sum: 1 } // عدد الطلبات لكل نوع
+                    }
+                },
+                {
+                    $project: {
+                        paymentMethod: "$_id",
+                        total: 1,
+                        count: 1,
+                        _id: 0
                     }
                 }
             ]);
 
-            const totalEarnings = result[0]?.totalEarnings || 0;
-
-            res.status(200).json({
+            // التنسيق النهائي للرد
+            const response = {
                 success: true,
-                totalEarnings,
-                currency: "EGP"
-            });
+                currency: "EGP",
+                cash: {
+                    total: result.find(r => r.paymentMethod === 'cash')?.total || 0,
+                    ordersCount: result.find(r => r.paymentMethod === 'cash')?.count || 0
+                },
+                card: {
+                    total: result.find(r => r.paymentMethod === 'card')?.total || 0,
+                    ordersCount: result.find(r => r.paymentMethod === 'card')?.count || 0
+                },
+                totalEarnings: result.reduce((sum, item) => sum + item.total, 0)
+            };
+
+            res.status(200).json(response);
 
         } catch (error) {
-            console.error("Error fetching total earnings:", error);
+            console.error("Error fetching earnings breakdown:", error);
             res.status(500).json({
                 success: false,
-                message: 'Failed to fetch total earnings',
+                message: 'Failed to fetch earnings breakdown',
                 error: error.message
             });
         }
