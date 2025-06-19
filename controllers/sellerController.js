@@ -1772,11 +1772,51 @@ exports.confirmCashPayment = async (req, res) => {
 };
 
 
+// exports.getLowStockItems = async (req, res) => {
+//   try {
+//     const seller = req.user;
+    
+//     if (!seller.managedRestaurant) {
+//       return res.status(400).json({ 
+//         success: false,
+//         message: 'No restaurant assigned to this seller' 
+//       });
+//     }
+
+//     const LOW_STOCK_THRESHOLD = 7;
+    
+//     // الحصول على جميع العناصر أولاً
+//     const allItems = await Image.find({
+//       restaurant: seller.managedRestaurant
+//     }).select('name quantity price imageUrl category');
+
+//     // تصفية العناصر يدويًا حيث أن quantity مخزنة كـ string
+//     const lowStockItems = allItems.filter(item => {
+//       const quantity = parseFloat(item.quantity);
+//       return quantity <= LOW_STOCK_THRESHOLD;
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       threshold: LOW_STOCK_THRESHOLD,
+//       count: lowStockItems.length,
+//       items: lowStockItems
+//     });
+//   } catch (error) {
+//     res.status(500).json({ 
+//       success: false,
+//       message: 'Server error',
+//       error: error.message
+//     });
+//   }
+// };
+
+
 exports.getLowStockItems = async (req, res) => {
   try {
     const seller = req.user;
     
-    if (!seller.managedRestaurant) {
+    if (!seller?.managedRestaurant) {
       return res.status(400).json({ 
         success: false,
         message: 'No restaurant assigned to this seller' 
@@ -1785,16 +1825,32 @@ exports.getLowStockItems = async (req, res) => {
 
     const LOW_STOCK_THRESHOLD = 7;
     
-    // الحصول على جميع العناصر أولاً
+    // استرجاع جميع العناصر مع التحقق من وجود حقل الكمية
     const allItems = await Image.find({
-      restaurant: seller.managedRestaurant
-    }).select('name quantity price imageUrl category');
+      restaurant: seller.managedRestaurant,
+      quantity: { $exists: true } // التأكد من وجود حقل الكمية
+    }).select('name quantity price imageUrl category').lean();
 
-    // تصفية العناصر يدويًا حيث أن quantity مخزنة كـ string
-    const lowStockItems = allItems.filter(item => {
-      const quantity = parseFloat(item.quantity);
-      return quantity <= LOW_STOCK_THRESHOLD;
-    });
+    // معالجة الكميات بطرق مختلفة حسب نوعها
+    const parseQuantity = (q) => {
+      if (q === null || q === undefined) return 0;
+      if (typeof q === 'number') return q;
+      if (typeof q === 'string') {
+        // تحويل السلسلة النصية إلى رقم (تجاهل أي أحرف غير رقمية)
+        const num = parseFloat(q.replace(/[^\d.-]/g, ''));
+        return isNaN(num) ? 0 : num;
+      }
+      return 0;
+    };
+
+    // تصفية العناصر ذات الكمية المنخفضة
+    const lowStockItems = allItems
+      .map(item => ({
+        ...item,
+        // إضافة حقل quantityParsed للاستخدام في العرض إذا لزم الأمر
+        quantityParsed: parseQuantity(item.quantity)
+      }))
+      .filter(item => item.quantityParsed <= LOW_STOCK_THRESHOLD);
 
     res.status(200).json({
       success: true,
@@ -1803,6 +1859,7 @@ exports.getLowStockItems = async (req, res) => {
       items: lowStockItems
     });
   } catch (error) {
+    console.error('Error in getLowStockItems:', error);
     res.status(500).json({ 
       success: false,
       message: 'Server error',
