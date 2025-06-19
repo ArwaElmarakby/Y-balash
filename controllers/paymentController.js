@@ -102,6 +102,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Cart = require('../models/cartModel'); 
 const Order = require('../models/orderModel');
 const { createNotification } = require('./notificationController');
+const Restaurant = require('../models/restaurantModel');
 
 exports.createPayment = async (req, res) => {
     const userId = req.user.id; 

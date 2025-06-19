@@ -3,6 +3,26 @@ const Image = require('../models/imageModel');
 const Order = require('../models/orderModel');
 
 
+// exports.createNotification = async (userId, restaurantId, type, title, message, relatedItem = null, metadata = {}) => {
+//   try {
+//     const notification = new Notification({
+//       userId,
+//       restaurantId,
+//       type,
+//       title,
+//       message,
+//       relatedItem,
+//       metadata
+//     });
+//     await notification.save();
+//     return notification;
+//   } catch (error) {
+//     console.error('Error creating notification:', error);
+//     return null;
+//   }
+// };
+
+
 exports.createNotification = async (userId, restaurantId, type, title, message, relatedItem = null, metadata = {}) => {
   try {
     const notification = new Notification({
