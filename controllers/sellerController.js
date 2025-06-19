@@ -1812,6 +1812,44 @@ exports.getLowStockItems = async (req, res) => {
 };
 
 
+// في ملف الـ controller
+exports.getOutOfStockItems = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No restaurant assigned to this seller' 
+      });
+    }
+    
+    // الحصول على جميع العناصر أولاً
+    const allItems = await Image.find({
+      restaurant: seller.managedRestaurant
+    }).select('name quantity price imageUrl category');
+
+    // تصفية العناصر التي كمية المخزون الخاصة بها تساوي 0
+    const outOfStockItems = allItems.filter(item => {
+      const quantity = parseFloat(item.quantity);
+      return quantity === 0;
+    });
+
+    res.status(200).json({
+      success: true,
+      count: outOfStockItems.length,
+      items: outOfStockItems
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+
 exports.getOrdersStats = async (req, res) => {
     try {
         const seller = req.user;

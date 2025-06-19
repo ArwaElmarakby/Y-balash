@@ -889,6 +889,12 @@ router.get('/low-stock-items',
 );
 
 
+router.get('/out-of-stock-items',
+  authMiddleware,
+  sellerMiddleware,
+  sellerController.getOutOfStockItems
+);
+
 // router.get('/orders/stats', authMiddleware, sellerMiddleware, async (req, res) => {
 //     try {
 //         const seller = req.user;
