@@ -1772,89 +1772,44 @@ exports.confirmCashPayment = async (req, res) => {
 };
 
 
-// exports.getLowStockItems = async (req, res) => {
-//   try {
-//     const seller = req.user;
-    
-//     if (!seller.managedRestaurant) {
-//       return res.status(400).json({ 
-//         success: false,
-//         message: 'No restaurant assigned to this seller' 
-//       });
-//     }
-
-//     const LOW_STOCK_THRESHOLD = 7;
-    
-//     // الحصول على جميع العناصر أولاً
-//     const allItems = await Image.find({
-//       restaurant: seller.managedRestaurant
-//     }).select('name quantity price imageUrl category');
-
-//     // تصفية العناصر يدويًا حيث أن quantity مخزنة كـ string
-//     const lowStockItems = allItems.filter(item => {
-//       const quantity = parseFloat(item.quantity);
-//       return quantity <= LOW_STOCK_THRESHOLD;
-//     });
-
-//     res.status(200).json({
-//       success: true,
-//       threshold: LOW_STOCK_THRESHOLD,
-//       count: lowStockItems.length,
-//       items: lowStockItems
-//     });
-//   } catch (error) {
-//     res.status(500).json({ 
-//       success: false,
-//       message: 'Server error',
-//       error: error.message
-//     });
-//   }
-// };
-
-
-
-
 exports.getLowStockItems = async (req, res) => {
-    try {
-        // يمكن جعل الـ threshold قابل للتعديل عبر query parameter
-        const threshold = parseInt(req.query.threshold) || 7; // Default: 7
-
-        // البحث عن المنتجات التي كميتها أقل من أو تساوي threshold
-        const lowStockItems = await Image.find({ 
-            quantity: { $lte: threshold }
-        }).populate('category', 'name');
-
-        if (!lowStockItems || lowStockItems.length === 0) {
-            return res.status(404).json({ 
-                success: false,
-                message: 'No low stock items found'
-            });
-        }
-
-        // تنسيق البيانات للإرجاع (الحد الأدنى من الحقول)
-        const simplifiedItems = lowStockItems.map(item => ({
-            name: item.name,
-            category: item.category ? item.category.name : 'Uncategorized',
-            remainingQuantity: item.quantity
-        }));
-
-        res.status(200).json({
-            success: true,
-            threshold,
-            count: simplifiedItems.length,
-            items: simplifiedItems
-        });
-
-    } catch (error) {
-        console.error("Error in getLowStockItems:", error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch low stock items',
-            error: error.message
-        });
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No restaurant assigned to this seller' 
+      });
     }
-};
 
+    const LOW_STOCK_THRESHOLD = 7;
+    
+    // الحصول على جميع العناصر أولاً
+    const allItems = await Image.find({
+      restaurant: seller.managedRestaurant
+    }).select('name quantity price imageUrl category');
+
+    // تصفية العناصر يدويًا حيث أن quantity مخزنة كـ string
+    const lowStockItems = allItems.filter(item => {
+      const quantity = parseFloat(item.quantity);
+      return quantity <= LOW_STOCK_THRESHOLD;
+    });
+
+    res.status(200).json({
+      success: true,
+      threshold: LOW_STOCK_THRESHOLD,
+      count: lowStockItems.length,
+      items: lowStockItems
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
 
 
 exports.getOrdersStats = async (req, res) => {
