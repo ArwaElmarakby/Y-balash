@@ -961,10 +961,12 @@ router.get('/simplified-monthly-earnings',
 );
 
 
-router.get('/orders-details',
+router.get('/orders-view',
     authMiddleware,
     sellerMiddleware,
-    sellerController.getSellerOrdersDetails
+    sellerController.getSellerOrdersView
 );
+
+
   
 module.exports = router;

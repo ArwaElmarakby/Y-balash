@@ -2054,59 +2054,61 @@ exports.getSimplifiedMonthlyEarnings = async (req, res) => {
 
 
 
-exports.getSellerOrdersDetails = async (req, res) => {
+exports.getSellerOrdersView = async (req, res) => {
     try {
         const seller = req.user;
         
         if (!seller.managedRestaurant) {
             return res.status(400).json({ 
                 success: false,
-                message: 'No restaurant assigned to this seller' 
+                message: 'No restaurant assigned' 
             });
         }
 
-        // Fetch orders with payment methods (cash/card)
+        // Fetch orders with payment methods
         const orders = await Order.find({
-            restaurantId: seller.managedRestaurant,
-            status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة
+            restaurantId: seller.managedRestaurant
         })
-        .populate('userId', 'email') // لجلب ايميل المستخدم
-        .populate('items.itemId', 'name price') // لجلب اسم المنتج وسعره
-        .sort({ createdAt: -1 }); // ترتيب من الأحدث إلى الأقدم
+        .populate('userId', 'email')
+        .populate('items.itemId', 'name price')
+        .sort({ createdAt: -1 });
 
-        // Format the response
+        // Format response
         const formattedOrders = orders.map(order => ({
-            orderId: order._id,
-            userEmail: order.userId.email,
+            id: order._id,
+            customer: order.userId.email,
             products: order.items.map(item => ({
                 name: item.itemId.name,
                 price: item.itemId.price,
-                quantity: item.quantity
+                qty: item.quantity
             })),
             total: order.totalAmount,
             status: order.status,
-            paymentMethod: order.paymentMethod, // cash أو card
-            date: order.createdAt.toISOString().split('T')[0], // التاريخ فقط بدون الوقت
-            actions: order.status === 'pending' 
-                ? ['confirm', 'cancel'] 
-                : order.status === 'preparing' 
-                    ? ['ready'] 
-                    : order.status === 'ready' 
-                        ? ['delivered'] 
-                        : []
+            payment: order.paymentMethod,
+            date: order.createdAt.toLocaleDateString('en-GB'),
+            actions: getAvailableActions(order.status)
         }));
 
         res.status(200).json({
             success: true,
-            orders: formattedOrders
+            data: formattedOrders
         });
 
     } catch (error) {
-        console.error("Error in getSellerOrdersDetails:", error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch orders details',
+            message: 'Server error',
             error: error.message
         });
     }
 };
+
+// Helper function
+function getAvailableActions(status) {
+    switch(status) {
+        case 'pending': return ['confirm', 'cancel'];
+        case 'preparing': return ['ready'];
+        case 'ready': return ['deliver'];
+        default: return [];
+    }
+}
