@@ -709,11 +709,11 @@ router.get('/my-restaurant',
   );
 
 
-  router.get('/top-selling-products',
-    authMiddleware,
-    sellerMiddleware,
-    sellerController.getTopSellingProducts
-  );
+//   router.get('/top-selling-products',
+//     authMiddleware,
+//     sellerMiddleware,
+//     sellerController.getTopSellingProducts
+//   );
 
 
 
@@ -1090,6 +1090,12 @@ router.get('/buyers/count',
     authMiddleware,
     sellerMiddleware,
     sellerController.getBuyerEmailsCount
+);
+
+router.get('/top-selling-products',
+  authMiddleware,
+  sellerMiddleware,
+  sellerController.getTopSellingProducts
 );
   
 module.exports = router;

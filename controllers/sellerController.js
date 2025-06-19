@@ -1194,58 +1194,58 @@ exports.getTopProduct = async (req, res) => {
 
 
 
-exports.getTopSellingProducts = async (req, res) => {
-  try {
-    const seller = req.user;
+// exports.getTopSellingProducts = async (req, res) => {
+//   try {
+//     const seller = req.user;
     
-    if (!seller.managedRestaurant) {
-      return res.status(200).json([]);
-    }
+//     if (!seller.managedRestaurant) {
+//       return res.status(200).json([]);
+//     }
 
-    const topProducts = await Order.aggregate([
-      {
-        $match: {
-          restaurantId: seller.managedRestaurant,
-          status: { $ne: 'cancelled' }
-        }
-      },
-      { $unwind: "$items" },
-      {
-        $group: {
-          _id: "$items.itemId",
-          unitsSold: { $sum: "$items.quantity" },
-          totalRevenue: { $sum: { $multiply: ["$items.quantity", "$items.price"] } }
-        }
-      },
-      { $sort: { totalRevenue: -1 } },
-      { $limit: 5 },
-      {
-        $lookup: {
-          from: "images",
-          localField: "_id",
-          foreignField: "_id",
-          as: "product"
-        }
-      },
-      { $unwind: "$product" },
-      {
-        $project: {
-          _id: 0,
-          productName: "$product.name",
-          imageUrl: "$product.imageUrl",
-          price: "$product.price",
-          unitsSold: 1,
-          totalRevenue: 1
-        }
-      }
-    ]);
+//     const topProducts = await Order.aggregate([
+//       {
+//         $match: {
+//           restaurantId: seller.managedRestaurant,
+//           status: { $ne: 'cancelled' }
+//         }
+//       },
+//       { $unwind: "$items" },
+//       {
+//         $group: {
+//           _id: "$items.itemId",
+//           unitsSold: { $sum: "$items.quantity" },
+//           totalRevenue: { $sum: { $multiply: ["$items.quantity", "$items.price"] } }
+//         }
+//       },
+//       { $sort: { totalRevenue: -1 } },
+//       { $limit: 5 },
+//       {
+//         $lookup: {
+//           from: "images",
+//           localField: "_id",
+//           foreignField: "_id",
+//           as: "product"
+//         }
+//       },
+//       { $unwind: "$product" },
+//       {
+//         $project: {
+//           _id: 0,
+//           productName: "$product.name",
+//           imageUrl: "$product.imageUrl",
+//           price: "$product.price",
+//           unitsSold: 1,
+//           totalRevenue: 1
+//         }
+//       }
+//     ]);
 
-    res.status(200).json(topProducts);
+//     res.status(200).json(topProducts);
 
-  } catch (error) {
-    res.status(200).json([]);
-  }
-};
+//   } catch (error) {
+//     res.status(200).json([]);
+//   }
+// };
 
 
 
@@ -2435,4 +2435,69 @@ exports.getBuyerEmailsCount = async (req, res) => {
             error: error.message
         });
     }
+};
+
+exports.getTopSellingProducts = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No restaurant assigned to this seller' 
+      });
+    }
+
+    const topProducts = await Order.aggregate([
+      {
+        $match: {
+          restaurantId: seller.managedRestaurant,
+          status: { $ne: 'cancelled' } // Exclude cancelled orders
+        }
+      },
+      { $unwind: '$items' }, // Break down items array
+      {
+        $group: {
+          _id: '$items.itemId',
+          totalQuantity: { $sum: '$items.quantity' },
+          totalRevenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
+        }
+      },
+      { $sort: { totalRevenue: -1 } }, // Sort by revenue descending
+      { $limit: 3 }, // Get top 3 only
+      {
+        $lookup: {
+          from: 'images',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'productDetails'
+        }
+      },
+      { $unwind: '$productDetails' }, // Flatten the product details
+      {
+        $project: {
+          _id: 0,
+          productId: '$_id',
+          productName: '$productDetails.name',
+          productImage: '$productDetails.imageUrl',
+          productPrice: '$productDetails.price',
+          totalQuantitySold: '$totalQuantity',
+          totalRevenue: 1
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      topProducts
+    });
+
+  } catch (error) {
+    console.error('Error fetching top selling products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch top selling products',
+      error: error.message
+    });
+  }
 };
