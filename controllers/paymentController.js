@@ -101,8 +101,6 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Cart = require('../models/cartModel'); 
 const Order = require('../models/orderModel');
-const { createNotification } = require('./notificationController');
-const { logActivity } = require('./activityController');
 
 exports.createPayment = async (req, res) => {
     const userId = req.user.id; 
@@ -208,10 +206,14 @@ exports.cashPayment = async (req, res) => {
         });
 
         await order.save();
-          await logActivity('order_placed', userId, {
-  orderId: order._id,
-  amount: totalPrice
-});
+          await createNotification(
+            req.user._id,
+            restaurantId,
+            'new_order',
+            'New Order Received',
+            `New cash order #${order._id} for ${totalPrice} EGP`,
+            order._id
+        );
 
         // Clear the cart after payment
         await Cart.deleteOne({ userId });
