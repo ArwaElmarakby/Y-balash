@@ -117,3 +117,29 @@ exports.usePointsForDiscount = async (req, res) => {
         });
     }
 };
+
+
+exports.getPointsValue = async (req, res) => {
+    const userId = req.user._id;
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // تحويل النقاط إلى جنيه (10 نقاط = 3 جنيه)
+        const pointsToEgp = (user.points / 10) * 3;
+
+        res.status(200).json({ 
+            points: user.points,
+            equivalentEgp: pointsToEgp.toFixed(2),
+            conversionRate: "10 points = 3 EGP"
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
+    }
+};
