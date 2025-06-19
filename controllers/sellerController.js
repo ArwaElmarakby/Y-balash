@@ -2293,35 +2293,65 @@ exports.getCurrentMonthOrdersCount = async (req, res) => {
 };
 
 
-
+// Get out of stock items (quantity = 0)
 exports.getOutOfStockItems = async (req, res) => {
-    try {
-        const seller = req.user;
-        
-        if (!seller.managedRestaurant) {
-            return res.status(400).json({ 
-                success: false,
-                message: 'No restaurant assigned to this seller' 
-            });
-        }
-
-        // البحث عن المنتجات التي quantity = 0
-        const outOfStockItems = await Image.find({
-            restaurant: seller.managedRestaurant,
-            quantity: "0" // نستخدم string لأن quantity في الموديل مخزنة كـ string
-        });
-
-        res.status(200).json({
-            success: true,
-            count: outOfStockItems.length,
-            message: 'Out of stock items retrieved successfully'
-        });
-
-    } catch (error) {
-        res.status(500).json({ 
-            success: false,
-            message: 'Failed to fetch out of stock items',
-            error: error.message
-        });
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No restaurant assigned to this seller' 
+      });
     }
+
+    const outOfStockItems = await Image.find({
+      restaurant: seller.managedRestaurant,
+      quantity: "0" // تم تعديله ليكون string لأن quantity في الموديل مخزنة كـ string
+    }).select('name imageUrl price');
+
+    res.status(200).json({
+      success: true,
+      count: outOfStockItems.length,
+      items: outOfStockItems
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// Get count of out of stock items only
+exports.getOutOfStockCount = async (req, res) => {
+  try {
+    const seller = req.user;
+    
+    if (!seller.managedRestaurant) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'No restaurant assigned to this seller' 
+      });
+    }
+
+    const count = await Image.countDocuments({
+      restaurant: seller.managedRestaurant,
+      quantity: "0" // تم تعديله ليكون string لأن quantity في الموديل مخزنة كـ string
+    });
+
+    res.status(200).json({
+      success: true,
+      outOfStockCount: count
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
 };
