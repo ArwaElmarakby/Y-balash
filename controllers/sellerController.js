@@ -2107,5 +2107,3 @@ exports.getOrderDetails = async (req, res) => {
         });
     }
 };
-
-
