@@ -959,5 +959,56 @@ router.get('/simplified-monthly-earnings',
     sellerMiddleware,
     sellerController.getSimplifiedMonthlyEarnings
 );
+
+
+// Get total earnings only for a seller
+router.get('/earnings/total', 
+    authMiddleware,
+    sellerMiddleware,
+    async (req, res) => {
+        try {
+            const seller = req.user;
+            
+            if (!seller.managedRestaurant) {
+                return res.status(400).json({ 
+                    success: false,
+                    message: 'No restaurant assigned to this seller' 
+                });
+            }
+
+            // Calculate total earnings from delivered orders
+            const result = await Order.aggregate([
+                {
+                    $match: {
+                        restaurantId: seller.managedRestaurant,
+                        status: 'delivered'
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalEarnings: { $sum: "$totalAmount" }
+                    }
+                }
+            ]);
+
+            const totalEarnings = result[0]?.totalEarnings || 0;
+
+            res.status(200).json({
+                success: true,
+                totalEarnings,
+                currency: "EGP"
+            });
+
+        } catch (error) {
+            console.error("Error fetching total earnings:", error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch total earnings',
+                error: error.message
+            });
+        }
+    }
+);
   
 module.exports = router;
