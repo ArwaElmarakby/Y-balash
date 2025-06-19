@@ -1250,32 +1250,32 @@ exports.getTopSellingProducts = async (req, res) => {
 
 
 
-// exports.getBalance = async (req, res) => {
-//   try {
-//     const seller = req.user;
+exports.getBalance = async (req, res) => {
+  try {
+    const seller = req.user;
     
-//     if (!seller.managedRestaurant) {
-//       return res.status(200).json({
-//         availableBalance: 0,
-//         pendingBalance: 0
-//       });
-//     }
+    if (!seller.managedRestaurant) {
+      return res.status(200).json({
+        availableBalance: 0,
+        pendingBalance: 0
+      });
+    }
 
-//     const restaurant = await Restaurant.findById(seller.managedRestaurant)
-//       .select('balance pendingWithdrawals');
+    const restaurant = await Restaurant.findById(seller.managedRestaurant)
+      .select('balance pendingWithdrawals');
 
-//     res.status(200).json({
-//       availableBalance: restaurant.balance || 0,
-//       pendingBalance: restaurant.pendingWithdrawals || 0
-//     });
+    res.status(200).json({
+      availableBalance: restaurant.balance || 0,
+      pendingBalance: restaurant.pendingWithdrawals || 0
+    });
 
-//   } catch (error) {
-//     res.status(200).json({
-//       availableBalance: 0,
-//       pendingBalance: 0
-//     });
-//   }
-// };
+  } catch (error) {
+    res.status(200).json({
+      availableBalance: 0,
+      pendingBalance: 0
+    });
+  }
+};
 
 
 

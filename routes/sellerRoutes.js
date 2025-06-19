@@ -959,14 +959,5 @@ router.get('/simplified-monthly-earnings',
     sellerMiddleware,
     sellerController.getSimplifiedMonthlyEarnings
 );
-
-  
-
-
-router.get('/orders/details',
-    authMiddleware,
-    sellerMiddleware,
-    sellerController.getOrderDetails
-);
   
 module.exports = router;
