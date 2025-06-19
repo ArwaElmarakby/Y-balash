@@ -11,6 +11,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { confirmCashPayment } = require('../controllers/sellerController');
 const { addReturn, getReturnsSummary } = require('../controllers/returnController');
+const { getCurrentMonthOrdersCount } = require('../controllers/sellerController');
 
 
 
@@ -1070,6 +1071,12 @@ router.get('/returns/summary',
   authMiddleware,
   sellerMiddleware,
   getReturnsSummary
+);
+
+router.get('/orders/current-month-count', 
+    authMiddleware,
+    sellerMiddleware,
+    getCurrentMonthOrdersCount
 );
 
   

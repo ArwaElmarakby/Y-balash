@@ -2252,3 +2252,43 @@ exports.getMonthlyRefunds = async (req, res) => {
     }
 };
 
+
+exports.getCurrentMonthOrdersCount = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); // أول يوم في الشهر الحالي
+
+        const totalOrders = await Order.countDocuments({
+            restaurantId: seller.managedRestaurant,
+            createdAt: { $gte: startOfMonth, $lte: now },
+            status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة إذا أردت
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Total orders count for current month retrieved successfully',
+            data: {
+                month: now.toLocaleString('default', { month: 'long' }), // اسم الشهر (باللغة الإنجليزية)
+                year: now.getFullYear(),
+                totalOrders
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch orders count',
+            error: error.message
+        });
+    }
+};
+
