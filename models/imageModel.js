@@ -7,7 +7,7 @@ const imageSchema = new mongoose.Schema({
   price: { type: String, required: true },
   productionDate: { type: String },
   expiryDate: { type: String },  
-  quantity: { type: String, required: true },
+  quantity: { type: Number, required: true },
   imageUrl: { type: String, required: true },
   views: { type: Number, default: 0 },
   flagged: { type: Boolean, default: false },
