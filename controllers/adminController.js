@@ -365,3 +365,50 @@ exports.getLowStockItems = async (req, res) => {
         });
     }
 };
+
+
+exports.getTotalSellersEarnings = async (req, res) => {
+    try {
+        // الحصول على جميع البائعين
+        const sellers = await User.find({ isSeller: true }).select('_id managedRestaurant');
+        
+        // حساب إجمالي الأرباح لكل البائعين
+        const earningsPromises = sellers.map(async (seller) => {
+            if (seller.managedRestaurant) {
+                const result = await Order.aggregate([
+                    { 
+                        $match: { 
+                            restaurantId: seller.managedRestaurant,
+                            status: { $ne: 'cancelled' }
+                        } 
+                    },
+                    { 
+                        $group: { 
+                            _id: null,
+                            total: { $sum: "$totalAmount" } 
+                        } 
+                    }
+                ]);
+                return result[0]?.total || 0;
+            }
+            return 0;
+        });
+
+        const earnings = await Promise.all(earningsPromises);
+        const totalEarnings = earnings.reduce((sum, amount) => sum + amount, 0);
+
+        res.status(200).json({
+            success: true,
+            totalEarnings,
+            currency: "EGP",
+            message: "Total earnings for all sellers retrieved successfully"
+        });
+    } catch (error) {
+        console.error("Error in getTotalSellersEarnings:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch total sellers earnings",
+            error: error.message
+        });
+    }
+};
