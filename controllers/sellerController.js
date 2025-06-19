@@ -1250,32 +1250,32 @@ exports.getTopSellingProducts = async (req, res) => {
 
 
 
-// exports.getBalance = async (req, res) => {
-//   try {
-//     const seller = req.user;
+exports.getBalance = async (req, res) => {
+  try {
+    const seller = req.user;
     
-//     if (!seller.managedRestaurant) {
-//       return res.status(200).json({
-//         availableBalance: 0,
-//         pendingBalance: 0
-//       });
-//     }
+    if (!seller.managedRestaurant) {
+      return res.status(200).json({
+        availableBalance: 0,
+        pendingBalance: 0
+      });
+    }
 
-//     const restaurant = await Restaurant.findById(seller.managedRestaurant)
-//       .select('balance pendingWithdrawals');
+    const restaurant = await Restaurant.findById(seller.managedRestaurant)
+      .select('balance pendingWithdrawals');
 
-//     res.status(200).json({
-//       availableBalance: restaurant.balance || 0,
-//       pendingBalance: restaurant.pendingWithdrawals || 0
-//     });
+    res.status(200).json({
+      availableBalance: restaurant.balance || 0,
+      pendingBalance: restaurant.pendingWithdrawals || 0
+    });
 
-//   } catch (error) {
-//     res.status(200).json({
-//       availableBalance: 0,
-//       pendingBalance: 0
-//     });
-//   }
-// };
+  } catch (error) {
+    res.status(200).json({
+      availableBalance: 0,
+      pendingBalance: 0
+    });
+  }
+};
 
 
 
@@ -2051,61 +2051,3 @@ exports.getSimplifiedMonthlyEarnings = async (req, res) => {
         });
     }
 };
-
-
-
-exports.getOrderDetails = async (req, res) => {
-    try {
-        const seller = req.user;
-        
-        if (!seller.managedRestaurant) {
-            return res.status(400).json({ 
-                success: false,
-                message: 'No restaurant assigned to this seller' 
-            });
-        }
-
-        // Get all orders for the seller's restaurant
-        const orders = await Order.find({ 
-            restaurantId: seller.managedRestaurant 
-        })
-        .populate('userId', 'email')
-        .populate('items.itemId', 'name price imageUrl')
-        .sort({ createdAt: -1 });
-
-        // Format the orders data
-        const formattedOrders = orders.map(order => ({
-            orderId: order._id,
-            userEmail: order.userId.email,
-            products: order.items.map(item => ({
-                name: item.itemId.name,
-                price: item.itemId.price,
-                imageUrl: item.itemId.imageUrl,
-                quantity: item.quantity
-            })),
-            total: order.totalAmount,
-            status: order.status,
-            paymentMethod: order.paymentMethod,
-            date: order.createdAt.toISOString(),
-            actions: {
-                canUpdate: ['pending', 'preparing'].includes(order.status),
-                canCancel: order.status === 'pending',
-                canComplete: order.status === 'ready'
-            }
-        }));
-
-        res.status(200).json({
-            success: true,
-            count: formattedOrders.length,
-            orders: formattedOrders
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch order details',
-            error: error.message
-        });
-    }
-};
-
-
