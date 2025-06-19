@@ -427,47 +427,47 @@ exports.getAvailableForWithdrawal = async (req, res) => {
 
 
 
-  exports.getMonthlyRefunds = async (req, res) => {
-    try {
-      const now = new Date();
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  // exports.getMonthlyRefunds = async (req, res) => {
+  //   try {
+  //     const now = new Date();
+  //     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  //     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   
-      const restaurant = await Restaurant.findOne(
-        { _id: req.user.managedRestaurant },
-        { refunds: 1 }
-      );
+  //     const restaurant = await Restaurant.findOne(
+  //       { _id: req.user.managedRestaurant },
+  //       { refunds: 1 }
+  //     );
   
-      if (!restaurant) {
-        return res.status(404).json({
-          success: false,
-          message: "Restaurant not found"
-        });
-      }
+  //     if (!restaurant) {
+  //       return res.status(404).json({
+  //         success: false,
+  //         message: "Restaurant not found"
+  //       });
+  //     }
   
-      const monthlyRefunds = restaurant.refunds.filter(refund => 
-        refund.date >= firstDay && refund.date <= lastDay
-      );
+  //     const monthlyRefunds = restaurant.refunds.filter(refund => 
+  //       refund.date >= firstDay && refund.date <= lastDay
+  //     );
   
-      const totalAmount = monthlyRefunds.reduce((sum, refund) => sum + refund.amount, 0);
-      const refundCount = monthlyRefunds.length;
+  //     const totalAmount = monthlyRefunds.reduce((sum, refund) => sum + refund.amount, 0);
+  //     const refundCount = monthlyRefunds.length;
   
-      res.status(200).json({
-        success: true,
-        month: now.toLocaleString('en-US', { month: 'long' }),
-        year: now.getFullYear(),
-        totalAmount: totalAmount.toFixed(2),
-        refundCount,
-        currency: "EGP"
-      });
+  //     res.status(200).json({
+  //       success: true,
+  //       month: now.toLocaleString('en-US', { month: 'long' }),
+  //       year: now.getFullYear(),
+  //       totalAmount: totalAmount.toFixed(2),
+  //       refundCount,
+  //       currency: "EGP"
+  //     });
   
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Server error"
-      });
-    }
-  };
+  //   } catch (error) {
+  //     res.status(500).json({
+  //       success: false,
+  //       message: "Server error"
+  //     });
+  //   }
+  // };
 
 
 
@@ -2192,6 +2192,61 @@ exports.getLast7DaysPaidOrders = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch last 7 days orders',
+            error: error.message
+        });
+    }
+};
+
+
+exports.getMonthlyRefunds = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        const currentMonthStart = new Date(); // بداية الشهر الحالي
+        currentMonthStart.setDate(1);
+        currentMonthStart.setHours(0, 0, 0, 0);
+
+        const refundsStats = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    createdAt: { $gte: currentMonthStart },
+                    status: 'refunded' // فقط الطلبات المرتجعة
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRefundedAmount: { $sum: "$totalAmount" }, // إجمالي المبالغ المرتجعة
+                    totalRefundedItems: { $sum: { $size: "$items" } } // عدد العناصر المرتجعة
+                }
+            }
+        ]);
+
+        const result = refundsStats[0] || { 
+            totalRefundedAmount: 0, 
+            totalRefundedItems: 0 
+        };
+
+        res.status(200).json({
+            success: true,
+            totalRefundedAmount: result.totalRefundedAmount,
+            totalRefundedItems: result.totalRefundedItems,
+            message: 'Monthly refunds stats retrieved successfully'
+        });
+
+    } catch (error) {
+        console.error("Error in getMonthlyRefunds:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch refunds data',
             error: error.message
         });
     }

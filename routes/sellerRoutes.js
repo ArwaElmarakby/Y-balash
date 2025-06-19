@@ -1047,5 +1047,12 @@ router.get('/last-7-days-orders',
     sellerMiddleware,
     sellerController.getLast7DaysPaidOrders
 );
+
+
+router.get('/monthly-refunds',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getMonthlyRefunds
+);
   
 module.exports = router;
