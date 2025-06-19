@@ -2369,3 +2369,92 @@ exports.getRevenueComparison = async (req, res) => {
     }
 };
 
+exports.getNewCustomersStats = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        const now = new Date();
+        const currentWeekStart = new Date(now.setDate(now.getDate() - now.getDay())); // بداية الأسبوع الحالي
+        const lastWeekStart = new Date(currentWeekStart);
+        lastWeekStart.setDate(lastWeekStart.getDate() - 7); // بداية الأسبوع الماضي
+
+        // عملاء الأسبوع الحالي (عملاء جدد لم يطلبوا من قبل)
+        const currentWeekCustomers = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    createdAt: { $gte: currentWeekStart },
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: "$userId",
+                    firstOrder: { $min: "$createdAt" }
+                }
+            },
+            {
+                $match: {
+                    firstOrder: { $gte: currentWeekStart }
+                }
+            }
+        ]);
+
+        // عملاء الأسبوع الماضي (عملاء جدد لم يطلبوا من قبل)
+        const lastWeekCustomers = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    createdAt: { $gte: lastWeekStart, $lt: currentWeekStart },
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: "$userId",
+                    firstOrder: { $min: "$createdAt" }
+                }
+            },
+            {
+                $match: {
+                    firstOrder: { $gte: lastWeekStart, $lt: currentWeekStart }
+                }
+            }
+        ]);
+
+        const currentCount = currentWeekCustomers.length;
+        const lastCount = lastWeekCustomers.length;
+
+        let percentageChange = 0;
+        if (lastCount > 0) {
+            percentageChange = ((currentCount - lastCount) / lastCount) * 100;
+        } else if (currentCount > 0) {
+            percentageChange = 100; // إذا كان الأسبوع الماضي صفر والآن لدينا عملاء
+        }
+
+        res.status(200).json({
+            success: true,
+            stats: {
+                currentWeekNewCustomers: currentCount,
+                lastWeekNewCustomers: lastCount,
+                percentageChange: percentageChange.toFixed(2) + '%',
+                changeDirection: percentageChange >= 0 ? 'increase' : 'decrease'
+            }
+        });
+
+    } catch (error) {
+        console.error("Error in getNewCustomersStats:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch new customers stats',
+            error: error.message
+        });
+    }
+};
