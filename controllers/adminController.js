@@ -365,3 +365,53 @@ exports.getLowStockItems = async (req, res) => {
         });
     }
 };
+
+
+
+exports.getTotalEarningsForSellers = async (req, res) => {
+    try {
+        const earnings = await Order.aggregate([
+            {
+                $match: {
+                    status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة
+                }
+            },
+            {
+                $group: {
+                    _id: "$restaurantId", // تجميع حسب restaurantId
+                    totalEarnings: { $sum: "$totalAmount" } // جمع إجمالي المبالغ
+                }
+            },
+            {
+                $lookup: {
+                    from: "restaurants", // اسم مجموعة المطاعم
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "restaurantDetails"
+                }
+            },
+            {
+                $unwind: "$restaurantDetails" // تفكيك البيانات
+            },
+            {
+                $project: {
+                    _id: 0,
+                    restaurantName: "$restaurantDetails.name",
+                    totalEarnings: 1
+                }
+            }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            totalEarnings: earnings
+        });
+    } catch (error) {
+        console.error("Error fetching total earnings for sellers:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch total earnings',
+            error: error.message
+        });
+    }
+};

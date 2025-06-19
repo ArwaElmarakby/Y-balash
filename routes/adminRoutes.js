@@ -841,4 +841,6 @@ router.get('/low-stock-items', authMiddleware, adminMiddleware, getLowStockItems
 
 router.get('/recent-activities', authMiddleware, adminMiddleware, getRecentActivities);
 
+router.get('/sellers/earnings', authMiddleware, adminMiddleware, getTotalEarningsForSellers);
+
 module.exports = router;
