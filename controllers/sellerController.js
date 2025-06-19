@@ -2251,3 +2251,67 @@ exports.getMonthlyRefunds = async (req, res) => {
         });
     }
 };
+
+
+exports.getItemRefunds = async (req, res) => {
+    try {
+        const seller = req.user;
+        const { itemName } = req.body; // اسم الصنف المراد البحث عنه
+
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        if (!itemName) {
+            return res.status(400).json({
+                success: false,
+                message: 'Item name is required in the request body'
+            });
+        }
+
+        const refundedOrders = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    status: 'refunded',
+                    "items.name": itemName // البحث في مصفوفة items عن الصنف المطلوب
+                }
+            },
+            {
+                $unwind: "$items" // تفكيك مصفوفة items إلى وثائق منفصلة لكل صنف
+            },
+            {
+                $match: {
+                    "items.name": itemName // تصفية فقط الأصناف المطابقة للاسم
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    itemName: "$items.name",
+                    itemPrice: "$items.price",
+                    quantity: "$items.quantity"
+                }
+            }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            refunds: refundedOrders,
+            totalRefundedItems: refundedOrders.reduce((sum, item) => sum + item.quantity, 0),
+            message: 'Item refunds retrieved successfully'
+        });
+
+    } catch (error) {
+        console.error("Error in getItemRefunds:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch item refunds',
+            error: error.message
+        });
+    }
+};
