@@ -2525,29 +2525,32 @@ exports.getUserStatistics = async (req, res) => {
     const restaurantId = seller.managedRestaurant;
 
     if (!restaurantId) {
-      return res.status(400).json({ success: false, message: 'No restaurant assigned' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No restaurant assigned' 
+      });
     }
 
-    // حساب New Users (زوار جدد في آخر 7 أيام)
+    // 1. New Users (زوار جدد في آخر 7 أيام)
     const newUsers = await Order.aggregate([
       { 
         $match: { 
-          restaurantId,
+          restaurantId: new mongoose.Types.ObjectId(restaurantId), // تأكد من تحويل ID إلى ObjectId
           status: { $ne: 'cancelled' },
-          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // آخر 7 أيام
+          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
         }
       },
       { $group: { _id: '$userId' } },
       { $count: 'newUsers' }
     ]);
 
-    // حساب Returning Users (زائرين عادوا بعد غياب 30 يومًا)
+    // 2. Returning Users (عائدين بعد غياب 30 يومًا)
     const returningUsers = await Order.aggregate([
       {
         $match: {
-          restaurantId,
+          restaurantId: new mongoose.Types.ObjectId(restaurantId),
           status: { $ne: 'cancelled' },
-          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // زاروا في آخر 7 أيام
+          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
         }
       },
       {
@@ -2560,42 +2563,49 @@ exports.getUserStatistics = async (req, res) => {
                 $expr: {
                   $and: [
                     { $eq: ['$$userId', '$userId'] },
-                    { $lt: ['$createdAt', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)] } // زاروا قبل 30 يومًا
+                    { $lt: ['$createdAt', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)] }
                   ]
-                }
+                },
+                restaurantId: new mongoose.Types.ObjectId(restaurantId) // أضف هذه الفلترة
               }
             }
           ],
           as: 'previousOrders'
         }
       },
-      { $match: { previousOrders: { $ne: [] } } }, // فقط المستخدمين الذين زاروا سابقًا
+      { $match: { previousOrders: { $ne: [] } } },
       { $group: { _id: '$userId' } },
       { $count: 'returningUsers' }
     ]);
 
-    // حساب Regular Users (زائرين أكثر من 3 مرات)
+    // 3. Regular Users (زائرين أكثر من 3 مرات)
     const regularUsers = await Order.aggregate([
       { 
         $match: { 
-          restaurantId,
+          restaurantId: new mongoose.Types.ObjectId(restaurantId),
           status: { $ne: 'cancelled' }
-        }
+        } 
       },
       { $group: { _id: '$userId', count: { $sum: 1 } } },
-      { $match: { count: { $gt: 3 } } }, // أكثر من 3 زيارات
+      { $match: { count: { $gt: 3 } } },
       { $count: 'regularUsers' }
     ]);
 
-    const stats = {
-      newUsers: newUsers[0]?.newUsers || 0,
-      returningUsers: returningUsers[0]?.returningUsers || 0,
-      regularUsers: regularUsers[0]?.regularUsers || 0
-    };
+    res.status(200).json({
+      success: true,
+      stats: {
+        newUsers: newUsers[0]?.newUsers || 0,
+        returningUsers: returningUsers[0]?.returningUsers || 0,
+        regularUsers: regularUsers[0]?.regularUsers || 0
+      }
+    });
 
-    res.status(200).json({ success: true, stats });
   } catch (error) {
-    console.error('Error fetching user stats:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch user stats' });
+    console.error('Error details:', error); // طباعة التفاصيل الكاملة للخطأ
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user stats',
+      error: error.message // إرسال رسالة الخطأ للفرونتند
+    });
   }
 };
