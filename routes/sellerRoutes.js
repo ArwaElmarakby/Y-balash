@@ -1026,5 +1026,12 @@ router.get('/earnings/breakdown',
         }
     }
 );
+
+
+router.get('/total-earnings-since-start',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getTotalEarningsSinceStart
+);
   
 module.exports = router;

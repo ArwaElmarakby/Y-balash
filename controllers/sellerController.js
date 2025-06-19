@@ -2051,3 +2051,50 @@ exports.getSimplifiedMonthlyEarnings = async (req, res) => {
         });
     }
 };
+
+
+
+exports.getTotalEarningsSinceStart = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        // Get all earnings since beginning (excluding cancelled orders)
+        const totalEarningsStats = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        const total = totalEarningsStats[0] || { totalEarnings: 0 };
+
+        res.status(200).json({
+            success: true,
+            totalEarnings: total.totalEarnings,
+            message: 'Total earnings since beginning'
+        });
+
+    } catch (error) {
+        console.error("Error in getTotalEarningsSinceStart:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch total earnings',
+            error: error.message
+        });
+    }
+};
