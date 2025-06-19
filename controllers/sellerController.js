@@ -2258,6 +2258,8 @@ exports.getMonthlyItemRefunds = async (req, res) => {
         const seller = req.user;
         const { image } = req.body;
 
+        console.log("Searching for image:", image); // Debug 1
+
         if (!seller.managedRestaurant) {
             return res.status(400).json({ 
                 success: false,
@@ -2265,18 +2267,13 @@ exports.getMonthlyItemRefunds = async (req, res) => {
             });
         }
 
-        if (!image) {
-            return res.status(400).json({
-                success: false,
-                message: 'Image name is required in request body'
-            });
-        }
-
         const currentMonthStart = new Date();
         currentMonthStart.setDate(1);
         currentMonthStart.setHours(0, 0, 0, 0);
 
-        const result = await Order.aggregate([
+        console.log("Current month start:", currentMonthStart); // Debug 2
+
+        const aggregationPipeline = [
             {
                 $match: {
                     restaurantId: seller.managedRestaurant,
@@ -2285,13 +2282,11 @@ exports.getMonthlyItemRefunds = async (req, res) => {
                     "items.image": image
                 }
             },
-            {
-                $unwind: "$items"
-            },
-            {
-                $match: {
-                    "items.image": image
-                }
+            { $unwind: "$items" },
+            { 
+                $match: { 
+                    "items.image": image 
+                } 
             },
             {
                 $group: {
@@ -2304,7 +2299,12 @@ exports.getMonthlyItemRefunds = async (req, res) => {
                     totalRefundedItems: { $sum: "$items.quantity" }
                 }
             }
-        ]);
+        ];
+
+        console.log("Aggregation Pipeline:", JSON.stringify(aggregationPipeline, null, 2)); // Debug 3
+
+        const result = await Order.aggregate(aggregationPipeline);
+        console.log("Raw aggregation result:", result); // Debug 4
 
         const stats = result[0] || { 
             totalRefundedAmount: 0, 
