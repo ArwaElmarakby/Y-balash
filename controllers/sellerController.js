@@ -2293,7 +2293,7 @@ exports.getCurrentMonthOrdersCount = async (req, res) => {
 };
 
 
-exports.getOutOfStockCount = async (req, res) => {
+exports.getOutOfStockItems = async (req, res) => {
   try {
     const seller = req.user;
     
@@ -2304,20 +2304,22 @@ exports.getOutOfStockCount = async (req, res) => {
       });
     }
 
-    const outOfStockCount = await Image.countDocuments({
+    // البحث عن المنتجات التي quantity = 0
+    const outOfStockItems = await Image.find({
       restaurant: seller.managedRestaurant,
-      quantity: { $lte: 0 } // نفد من المخزون
+      quantity: 0
     });
 
     res.status(200).json({
       success: true,
-      outOfStockCount
+      count: outOfStockItems.length,
+      message: `Found ${outOfStockItems.length} out of stock items`
     });
 
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch out of stock count',
+      message: 'Failed to fetch out of stock items',
       error: error.message
     });
   }
