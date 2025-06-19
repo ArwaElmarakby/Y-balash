@@ -2557,3 +2557,41 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
 };
 
 
+
+
+exports.getTotalEarningsForAllSellers = async (req, res) => {
+    try {
+        // تجميع إجمالي الأرباح من جميع المطاعم
+        const result = await Order.aggregate([
+            {
+                $match: {
+                    status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: "$totalAmount" },
+                    totalOrders: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const totalEarnings = result[0]?.totalEarnings || 0;
+        const totalOrders = result[0]?.totalOrders || 0;
+
+        res.status(200).json({
+            success: true,
+            totalEarnings,
+            totalOrders,
+            currency: "EGP"
+        });
+    } catch (error) {
+        console.error("Error in getTotalEarningsForAllSellers:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch total earnings for all sellers",
+            error: error.message
+        });
+    }
+};

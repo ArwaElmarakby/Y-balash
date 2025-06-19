@@ -365,37 +365,3 @@ exports.getLowStockItems = async (req, res) => {
         });
     }
 };
-
-
-exports.getTotalEarningsForAllSellers = async (req, res) => {
-    try {
-        // تجميع إجمالي الأرباح من جميع الطلبات (حالة delivered فقط)
-        const earningsResult = await Order.aggregate([
-            {
-                $match: {
-                    status: 'delivered' // فقط الطلبات المكتملة
-                }
-            },
-            {
-                $group: {
-                    _id: null, // تجميع كل الطلبات معًا بدون تصنيف
-                    totalEarnings: { $sum: "$totalAmount" } // حساب الإجمالي
-                }
-            }
-        ]);
-
-        const totalEarnings = earningsResult[0]?.totalEarnings || 0;
-
-        res.status(200).json({
-            success: true,
-            totalEarnings,
-            currency: "EGP"
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Failed to fetch total earnings",
-            error: error.message
-        });
-    }
-};
