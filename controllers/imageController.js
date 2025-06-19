@@ -548,3 +548,20 @@ exports.getItemsSummary = async (req, res) => {
       res.status(500).json({ message: 'Server error', error });
   }
 };
+
+
+exports.getTotalProducts = async (req, res) => {
+    try {
+        const totalProducts = await Image.countDocuments();
+        res.status(200).json({ 
+            success: true,
+            totalProducts 
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            success: false,
+            message: 'Failed to fetch total products count',
+            error: error.message 
+        });
+    }
+};
