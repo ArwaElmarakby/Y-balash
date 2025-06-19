@@ -2,8 +2,7 @@ const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
-const Withdrawal = require('../models/Withdrawal');
-const Restaurant = require('../models/Restaurant');
+
 
 
 exports.getSellerOrders = async (req, res) => {
@@ -2520,59 +2519,3 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
 };
 
 
-exports.getLastWithdrawal = async (req, res) => {
-  try {
-    const lastWithdrawal = await Withdrawal.findOne({
-      restaurantId: req.user.managedRestaurant
-    }).sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      lastWithdrawal: lastWithdrawal || null
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get last withdrawal'
-    });
-  }
-};
-
-// تنفيذ سحب جديد
-exports.createWithdrawal = async (req, res) => {
-  try {
-    const { amount } = req.body;
-    const restaurantId = req.user.managedRestaurant;
-
-    // 1. التحقق من الرصيد المتاح
-    const restaurant = await Restaurant.findById(restaurantId);
-    
-    if (restaurant.totalEarnings < amount) {
-      return res.status(400).json({
-        success: false,
-        message: 'المبلغ المطلوب أكبر من الرصيد المتاح'
-      });
-    }
-
-    // 2. إنشاء سجل السحب
-    const withdrawal = await Withdrawal.create({
-      restaurantId,
-      amount,
-      status: 'completed'
-    });
-
-    // 3. تحديث الرصيد
-    restaurant.totalEarnings -= amount;
-    await restaurant.save();
-
-    res.status(200).json({
-      success: true,
-      withdrawal
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to process withdrawal'
-    });
-  }
-};

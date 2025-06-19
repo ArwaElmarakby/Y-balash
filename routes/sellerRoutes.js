@@ -12,10 +12,6 @@ const jwt = require('jsonwebtoken');
 const { confirmCashPayment } = require('../controllers/sellerController');
 const { addReturn, getReturnsSummary } = require('../controllers/returnController');
 const { getCurrentMonthOrdersCount } = require('../controllers/sellerController');
-const {
-  getLastWithdrawal,
-  createWithdrawal
-} = require('../controllers/sellerController');
 
 
 
@@ -1105,7 +1101,6 @@ router.get('/top-selling-with-payments',
 );
 
 
-router.get('/withdraw/last', getLastWithdrawal);
-router.post('/withdraw', createWithdrawal);
+
   
 module.exports = router;
