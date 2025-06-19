@@ -2,7 +2,8 @@ const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
-
+const Withdrawal = require('../models/Withdrawal');
+const Restaurant = require('../models/Restaurant');
 
 
 exports.getSellerOrders = async (req, res) => {
@@ -2519,93 +2520,59 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
 };
 
 
-exports.getUserStatistics = async (req, res) => {
+exports.getLastWithdrawal = async (req, res) => {
   try {
-    const seller = req.user;
-    const restaurantId = seller.managedRestaurant;
-
-    if (!restaurantId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No restaurant assigned' 
-      });
-    }
-
-    // 1. New Users (زوار جدد في آخر 7 أيام)
-    const newUsers = await Order.aggregate([
-      { 
-        $match: { 
-          restaurantId: new mongoose.Types.ObjectId(restaurantId), // تأكد من تحويل ID إلى ObjectId
-          status: { $ne: 'cancelled' },
-          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-        }
-      },
-      { $group: { _id: '$userId' } },
-      { $count: 'newUsers' }
-    ]);
-
-    // 2. Returning Users (عائدين بعد غياب 30 يومًا)
-    const returningUsers = await Order.aggregate([
-      {
-        $match: {
-          restaurantId: new mongoose.Types.ObjectId(restaurantId),
-          status: { $ne: 'cancelled' },
-          createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-        }
-      },
-      {
-        $lookup: {
-          from: 'orders',
-          let: { userId: '$userId' },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$$userId', '$userId'] },
-                    { $lt: ['$createdAt', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)] }
-                  ]
-                },
-                restaurantId: new mongoose.Types.ObjectId(restaurantId) // أضف هذه الفلترة
-              }
-            }
-          ],
-          as: 'previousOrders'
-        }
-      },
-      { $match: { previousOrders: { $ne: [] } } },
-      { $group: { _id: '$userId' } },
-      { $count: 'returningUsers' }
-    ]);
-
-    // 3. Regular Users (زائرين أكثر من 3 مرات)
-    const regularUsers = await Order.aggregate([
-      { 
-        $match: { 
-          restaurantId: new mongoose.Types.ObjectId(restaurantId),
-          status: { $ne: 'cancelled' }
-        } 
-      },
-      { $group: { _id: '$userId', count: { $sum: 1 } } },
-      { $match: { count: { $gt: 3 } } },
-      { $count: 'regularUsers' }
-    ]);
+    const lastWithdrawal = await Withdrawal.findOne({
+      restaurantId: req.user.managedRestaurant
+    }).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
-      stats: {
-        newUsers: newUsers[0]?.newUsers || 0,
-        returningUsers: returningUsers[0]?.returningUsers || 0,
-        regularUsers: regularUsers[0]?.regularUsers || 0
-      }
+      lastWithdrawal: lastWithdrawal || null
     });
-
   } catch (error) {
-    console.error('Error details:', error); // طباعة التفاصيل الكاملة للخطأ
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch user stats',
-      error: error.message // إرسال رسالة الخطأ للفرونتند
+      message: 'Failed to get last withdrawal'
+    });
+  }
+};
+
+// تنفيذ سحب جديد
+exports.createWithdrawal = async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const restaurantId = req.user.managedRestaurant;
+
+    // 1. التحقق من الرصيد المتاح
+    const restaurant = await Restaurant.findById(restaurantId);
+    
+    if (restaurant.totalEarnings < amount) {
+      return res.status(400).json({
+        success: false,
+        message: 'المبلغ المطلوب أكبر من الرصيد المتاح'
+      });
+    }
+
+    // 2. إنشاء سجل السحب
+    const withdrawal = await Withdrawal.create({
+      restaurantId,
+      amount,
+      status: 'completed'
+    });
+
+    // 3. تحديث الرصيد
+    restaurant.totalEarnings -= amount;
+    await restaurant.save();
+
+    res.status(200).json({
+      success: true,
+      withdrawal
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process withdrawal'
     });
   }
 };
