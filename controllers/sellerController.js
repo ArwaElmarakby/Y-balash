@@ -6,563 +6,563 @@ const Image = require('../models/imageModel');
 
 
 exports.getSellerOrders = async (req, res) => {
-  try {
-    const seller = req.seller;
+    try {
+        const seller = req.seller;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned to this seller' });
+        }
 
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ message: 'No restaurant assigned to this seller' });
+        const orders = await Order.find({ restaurantId: seller.managedRestaurant })
+            .populate('userId', 'email phone')
+            .populate('items.itemId', 'name price');
+
+        res.status(200).json(orders);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
     }
-
-    const orders = await Order.find({ restaurantId: seller.managedRestaurant })
-      .populate('userId', 'email phone')
-      .populate('items.itemId', 'name price');
-
-    res.status(200).json(orders);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
-  }
 };
 
 
 exports.updateOrderStatus = async (req, res) => {
-  const { orderId } = req.params;
-  const { status } = req.body;
+    const { orderId } = req.params;
+    const { status } = req.body;
 
-  try {
-    const order = await Order.findOneAndUpdate(
-      {
-        _id: orderId,
-        restaurantId: req.seller.managedRestaurant
-      },
-      { status },
-      { new: true }
-    );
+    try {
+        const order = await Order.findOneAndUpdate(
+            { 
+                _id: orderId,
+                restaurantId: req.seller.managedRestaurant 
+            },
+            { status },
+            { new: true }
+        );
 
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found or not under your management' });
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found or not under your management' });
+        }
+
+        res.status(200).json({ message: 'Order status updated', order });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
     }
-
-    res.status(200).json({ message: 'Order status updated', order });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
-  }
 };
 
 
 
 exports.getAvailableForWithdrawal = async (req, res) => {
-  try {
-    const restaurant = await Restaurant.findById(req.user.managedRestaurant);
-    if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
+    try {
+      const restaurant = await Restaurant.findById(req.user.managedRestaurant);
+      if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurant not found' });
+      }
+  
+
+      const availableForWithdrawal = restaurant.balance;
+  
+      res.status(200).json(availableForWithdrawal); 
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
     }
-
-
-    const availableForWithdrawal = restaurant.balance;
-
-    res.status(200).json(availableForWithdrawal);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
-  }
-};
+  };
 
 
 
 
-exports.getMonthlyEarnings = async (req, res) => {
-  try {
+  exports.getMonthlyEarnings = async (req, res) => {
+    try {
 
-    const restaurant = await Restaurant.findById(req.user.managedRestaurant);
-    if (!restaurant) {
-      return res.status(404).json({ error: "Restaurant not found" });
+        const restaurant = await Restaurant.findById(req.user.managedRestaurant);
+      if (!restaurant) {
+        return res.status(404).json({ error: "Restaurant not found" });
+      }
+  
+
+      const currentDate = new Date();
+      const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+      const lastMonthDate = new Date(currentDate);
+      lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+      const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+  
+
+      const getEarnings = (month) => {
+        const entry = restaurant.earnings.find(e => e.month === month);
+        return entry ? entry.amount : 0;
+      };
+  
+      const currentEarnings = getEarnings(currentMonth);
+      const lastEarnings = getEarnings(lastMonth);
+  
+
+      let percentageIncrease;
+      if (lastEarnings > 0) {
+        const increase = ((currentEarnings - lastEarnings) / lastEarnings) * 100;
+        percentageIncrease = `${increase.toFixed(2)}%`;
+      } else {
+        percentageIncrease = currentEarnings > 0 ? "100%" : "0%";
+      }
+  
+
+      res.status(200).json({
+        totalEarnings: currentEarnings,
+        currency: "EGP",
+        percentageIncrease
+      });
+  
+    } catch (error) {
+      console.error("Error in getMonthlyEarnings:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-
-
-    const currentDate = new Date();
-    const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-    const lastMonthDate = new Date(currentDate);
-    lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
-    const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
-
-
-    const getEarnings = (month) => {
-      const entry = restaurant.earnings.find(e => e.month === month);
-      return entry ? entry.amount : 0;
-    };
-
-    const currentEarnings = getEarnings(currentMonth);
-    const lastEarnings = getEarnings(lastMonth);
-
-
-    let percentageIncrease;
-    if (lastEarnings > 0) {
-      const increase = ((currentEarnings - lastEarnings) / lastEarnings) * 100;
-      percentageIncrease = `${increase.toFixed(2)}%`;
-    } else {
-      percentageIncrease = currentEarnings > 0 ? "100%" : "0%";
-    }
-
-
-    res.status(200).json({
-      totalEarnings: currentEarnings,
-      currency: "EGP",
-      percentageIncrease
-    });
-
-  } catch (error) {
-    console.error("Error in getMonthlyEarnings:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
+  };
 
 
 
 
 
-exports.getCurrentMonthEarnings = async (req, res) => {
-  if (!req.user?.managedRestaurant) {
-    return res.status(403).json({
-      success: false,
-      message: "Unauthorized access"
-    });
-  }
-
-  try {
-    const restaurant = await Restaurant.findOne(
-      { _id: req.user.managedRestaurant },
-      { monthlyEarnings: 1 }
-    ).lean().exec();
-
-    if (!restaurant) {
-      return res.status(404).json({
+  exports.getCurrentMonthEarnings = async (req, res) => {
+    if (!req.user?.managedRestaurant) {
+      return res.status(403).json({
         success: false,
-        message: "Restaurant not found"
+        message: "Unauthorized access"
       });
     }
-
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-
-    let prevYear = currentYear;
-    let prevMonth = currentMonth - 1;
-
-    if (prevMonth < 1) {
-      prevMonth = 12;
-      prevYear--;
-    }
-
-    const formatMonth = (y, m) => `${y}-${m.toString().padStart(2, '0')}`;
-
-    const currentMonthKey = formatMonth(currentYear, currentMonth);
-    const prevMonthKey = formatMonth(prevYear, prevMonth);
-
-    const getEarnings = (month) => {
-      if (!restaurant.monthlyEarnings) return 0;
-      const entry = restaurant.monthlyEarnings.find(e => e.month === month);
-      return entry ? entry.amount : 0;
-    };
-
-    const currentEarnings = Number(getEarnings(currentMonthKey)) || 0;
-    const previousEarnings = Number(getEarnings(prevMonthKey)) || 0;
-
-    let percentageChange = "0%";
-    if (previousEarnings > 0) {
-      const change = ((currentEarnings - previousEarnings) / previousEarnings) * 100;
-      percentageChange = change >= 0
-        ? `+${Math.abs(change).toFixed(2)}%`
-        : `-${Math.abs(change).toFixed(2)}%`;
-    } else if (currentEarnings > 0) {
-      percentageChange = "+100%";
-    }
-
-    const response = {
-      success: true,
-      data: {
-        current_month: currentMonthKey,
-        current_earnings: currentEarnings,
-        previous_month: prevMonthKey,
-        previous_earnings: previousEarnings,
-        percentage_change: percentageChange,
-        currency: "EGP"
+  
+    try {
+      const restaurant = await Restaurant.findOne(
+        { _id: req.user.managedRestaurant },
+        { monthlyEarnings: 1 }
+      ).lean().exec();
+  
+      if (!restaurant) {
+        return res.status(404).json({
+          success: false,
+          message: "Restaurant not found"
+        });
       }
-    };
-
-    return res.status(200).json(response);
-
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Server error"
-    });
-  }
-};
-
-
-
-
-exports.getOrderStats = async (req, res) => {
-  if (!req.user?.managedRestaurant) {
-    return res.status(403).json({
-      total_orders: 0,
-      percentage_change: "0%"
-    });
-  }
-
-  try {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-
-    let prevYear = currentYear;
-    let prevMonth = currentMonth - 1;
-
-    if (prevMonth < 1) {
-      prevMonth = 12;
-      prevYear--;
-    }
-
-    const formatMonth = (y, m) => `${y}-${m.toString().padStart(2, '0')}`;
-
-    const currentMonthKey = formatMonth(currentYear, currentMonth);
-    const prevMonthKey = formatMonth(prevYear, prevMonth);
-
-    const currentOrders = await Order.countDocuments({
-      restaurantId: req.user.managedRestaurant,
-      createdAt: {
-        $gte: new Date(`${currentMonthKey}-01`),
-        $lt: new Date(`${currentMonthKey}-31`)
+  
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      
+      let prevYear = currentYear;
+      let prevMonth = currentMonth - 1;
+      
+      if (prevMonth < 1) {
+        prevMonth = 12;
+        prevYear--;
       }
-    });
-
-    const previousOrders = await Order.countDocuments({
-      restaurantId: req.user.managedRestaurant,
-      createdAt: {
-        $gte: new Date(`${prevMonthKey}-01`),
-        $lt: new Date(`${prevMonthKey}-31`)
+  
+      const formatMonth = (y, m) => `${y}-${m.toString().padStart(2, '0')}`;
+      
+      const currentMonthKey = formatMonth(currentYear, currentMonth);
+      const prevMonthKey = formatMonth(prevYear, prevMonth);
+  
+      const getEarnings = (month) => {
+        if (!restaurant.monthlyEarnings) return 0;
+        const entry = restaurant.monthlyEarnings.find(e => e.month === month);
+        return entry ? entry.amount : 0;
+      };
+  
+      const currentEarnings = Number(getEarnings(currentMonthKey)) || 0;
+      const previousEarnings = Number(getEarnings(prevMonthKey)) || 0;
+  
+      let percentageChange = "0%";
+      if (previousEarnings > 0) {
+        const change = ((currentEarnings - previousEarnings) / previousEarnings) * 100;
+        percentageChange = change >= 0 
+          ? `+${Math.abs(change).toFixed(2)}%` 
+          : `-${Math.abs(change).toFixed(2)}%`;
+      } else if (currentEarnings > 0) {
+        percentageChange = "+100%";
       }
-    });
-
-    let percentageChange = "0%";
-    if (previousOrders > 0) {
-      const change = ((currentOrders - previousOrders) / previousOrders) * 100;
-      percentageChange = change >= 0
-        ? `+${Math.abs(change).toFixed(2)}%`
-        : `-${Math.abs(change).toFixed(2)}%`;
-    } else if (currentOrders > 0) {
-      percentageChange = "+100%";
-    }
-
-    return res.status(200).json({
-      total_orders: currentOrders,
-      percentage_change: percentageChange
-    });
-
-  } catch (error) {
-    return res.status(200).json({
-      total_orders: 0,
-      percentage_change: "0%"
-    });
-  }
-};
-
-
-
-
-exports.getAverageOrderValue = async (req, res) => {
-  if (!req.user?.managedRestaurant) {
-    return res.status(200).json({
-      average_order_value: 0,
-      percentage_change: "0%"
-    });
-  }
-
-  try {
-    // Calculate current and previous month dates
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-
-    let prevYear = currentYear;
-    let prevMonth = currentMonth - 1;
-
-    if (prevMonth < 1) {
-      prevMonth = 12;
-      prevYear--;
-    }
-
-    // Date range for current month
-    const currentMonthStart = new Date(currentYear, currentMonth - 1, 1);
-    const currentMonthEnd = new Date(currentYear, currentMonth, 0);
-
-    // Date range for previous month
-    const prevMonthStart = new Date(prevYear, prevMonth - 1, 1);
-    const prevMonthEnd = new Date(prevYear, prevMonth, 0);
-
-    // Get current month orders
-    const currentMonthOrders = await Order.find({
-      restaurantId: req.user.managedRestaurant,
-      createdAt: { $gte: currentMonthStart, $lte: currentMonthEnd }
-    });
-
-    // Get previous month orders
-    const prevMonthOrders = await Order.find({
-      restaurantId: req.user.managedRestaurant,
-      createdAt: { $gte: prevMonthStart, $lte: prevMonthEnd }
-    });
-
-    // Calculate averages
-    const currentAvg = currentMonthOrders.reduce((sum, order) => sum + order.totalAmount, 0) /
-      (currentMonthOrders.length || 1);
-
-    const prevAvg = prevMonthOrders.reduce((sum, order) => sum + order.totalAmount, 0) /
-      (prevMonthOrders.length || 1);
-
-    // Calculate percentage change
-    let percentageChange = "0%";
-    if (prevAvg > 0) {
-      const change = ((currentAvg - prevAvg) / prevAvg) * 100;
-      percentageChange = change >= 0
-        ? `+${Math.abs(change).toFixed(2)}%`
-        : `-${Math.abs(change).toFixed(2)}%`;
-    } else if (currentAvg > 0) {
-      percentageChange = "+100%";
-    }
-
-    return res.status(200).json({
-      average_order_value: Math.round(currentAvg),
-      percentage_change: percentageChange
-    });
-
-  } catch (error) {
-    return res.status(200).json({
-      average_order_value: 0,
-      percentage_change: "0%"
-    });
-  }
-};
-
-
-
-
-exports.getRecentPayouts = async (req, res) => {
-  try {
-    const seller = req.user;
-
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ message: 'No restaurant assigned to you' });
-    }
-
-    const restaurant = await Restaurant.findById(seller.managedRestaurant)
-      .select('payouts')
-      .sort({ 'payouts.date': -1 })
-      .limit(10);
-
-    if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
-    }
-
-    res.status(200).json({
-      message: 'Recent payouts retrieved successfully',
-      payouts: restaurant.payouts
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-exports.requestPayout = async (req, res) => {
-  try {
-    const seller = req.user;
-    const { amount, paymentMethod } = req.body;
-
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ message: 'No restaurant assigned to you' });
-    }
-
-    if (!amount || !paymentMethod) {
-      return res.status(400).json({ message: 'Amount and payment method are required' });
-    }
-
-    const restaurant = await Restaurant.findById(seller.managedRestaurant);
-
-    if (restaurant.balance < amount) {
-      return res.status(400).json({ message: 'Insufficient balance' });
-    }
-
-
-    restaurant.balance -= amount;
-    restaurant.payouts.push({
-      amount,
-      paymentMethod,
-      status: 'pending'
-    });
-
-    await restaurant.save();
-
-    res.status(200).json({
-      message: 'Payout requested successfully',
-      newBalance: restaurant.balance
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-
-
-
-
-exports.getMonthlyRefunds = async (req, res) => {
-  try {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    const restaurant = await Restaurant.findOne(
-      { _id: req.user.managedRestaurant },
-      { refunds: 1 }
-    );
-
-    if (!restaurant) {
-      return res.status(404).json({
-        success: false,
-        message: "Restaurant not found"
-      });
-    }
-
-    const monthlyRefunds = restaurant.refunds.filter(refund =>
-      refund.date >= firstDay && refund.date <= lastDay
-    );
-
-    const totalAmount = monthlyRefunds.reduce((sum, refund) => sum + refund.amount, 0);
-    const refundCount = monthlyRefunds.length;
-
-    res.status(200).json({
-      success: true,
-      month: now.toLocaleString('en-US', { month: 'long' }),
-      year: now.getFullYear(),
-      totalAmount: totalAmount.toFixed(2),
-      refundCount,
-      currency: "EGP"
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Server error"
-    });
-  }
-};
-
-
-
-
-exports.getBestSeller = async (req, res) => {
-  try {
-    const restaurantId = req.user.managedRestaurant;
-
-    const bestSeller = await Order.aggregate([
-      {
-        $match: {
-          restaurantId: restaurantId,
-          status: { $ne: 'cancelled' }
-        }
-      },
-      { $unwind: '$items' },
-      {
-        $group: {
-          _id: '$items.itemId',
-          totalUnits: { $sum: '$items.quantity' }
-        }
-      },
-      { $sort: { totalUnits: -1 } },
-      { $limit: 1 },
-      {
-        $lookup: {
-          from: 'images',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'itemDetails'
-        }
-      },
-      { $unwind: '$itemDetails' },
-      {
-        $project: {
-          itemName: '$itemDetails.name',
-          itemImage: '$itemDetails.imageUrl',
-          totalUnits: 1,
-          _id: 0
-        }
-      }
-    ]);
-
-    if (!bestSeller.length) {
-      return res.status(200).json({
+  
+      const response = {
         success: true,
-        message: "No sales data available",
-        bestSeller: null
+        data: {
+          current_month: currentMonthKey,
+          current_earnings: currentEarnings,
+          previous_month: prevMonthKey,
+          previous_earnings: previousEarnings,
+          percentage_change: percentageChange,
+          currency: "EGP"
+        }
+      };
+  
+      return res.status(200).json(response);
+  
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Server error"
       });
     }
-
-    res.status(200).json({
-      success: true,
-      bestSeller: bestSeller[0]
-    });
-
-  } catch (error) {
-    console.error('Error fetching best seller:', error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching best seller data"
-    });
-  }
-};
+  };
 
 
 
 
-exports.getCompletedOrdersThisMonth = async (req, res) => {
-  try {
-    const seller = req.user;
-
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ message: 'No restaurant assigned to you' });
+  exports.getOrderStats = async (req, res) => {
+    if (!req.user?.managedRestaurant) {
+      return res.status(403).json({
+        total_orders: 0,
+        percentage_change: "0%"
+      });
     }
-
-    const currentDate = new Date();
-    const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-
-    const completedOrders = await Order.countDocuments({
-      restaurantId: seller.managedRestaurant,
-      status: 'delivered',
-      createdAt: {
-        $gte: firstDayOfMonth,
-        $lte: lastDayOfMonth
+  
+    try {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      
+      let prevYear = currentYear;
+      let prevMonth = currentMonth - 1;
+      
+      if (prevMonth < 1) {
+        prevMonth = 12;
+        prevYear--;
       }
-    });
+  
+      const formatMonth = (y, m) => `${y}-${m.toString().padStart(2, '0')}`;
+      
+      const currentMonthKey = formatMonth(currentYear, currentMonth);
+      const prevMonthKey = formatMonth(prevYear, prevMonth);
+  
+      const currentOrders = await Order.countDocuments({
+        restaurantId: req.user.managedRestaurant,
+        createdAt: {
+          $gte: new Date(`${currentMonthKey}-01`),
+          $lt: new Date(`${currentMonthKey}-31`)
+        }
+      });
+  
+      const previousOrders = await Order.countDocuments({
+        restaurantId: req.user.managedRestaurant,
+        createdAt: {
+          $gte: new Date(`${prevMonthKey}-01`),
+          $lt: new Date(`${prevMonthKey}-31`)
+        }
+      });
+  
+      let percentageChange = "0%";
+      if (previousOrders > 0) {
+        const change = ((currentOrders - previousOrders) / previousOrders) * 100;
+        percentageChange = change >= 0 
+          ? `+${Math.abs(change).toFixed(2)}%` 
+          : `-${Math.abs(change).toFixed(2)}%`;
+      } else if (currentOrders > 0) {
+        percentageChange = "+100%";
+      }
+  
+      return res.status(200).json({
+        total_orders: currentOrders,
+        percentage_change: percentageChange
+      });
+  
+    } catch (error) {
+      return res.status(200).json({
+        total_orders: 0,
+        percentage_change: "0%"
+      });
+    }
+  };
 
-    res.status(200).json({
-      success: true,
-      month: currentDate.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
-      completedOrders,
-      message: 'Completed orders count retrieved successfully'
-    });
-  } catch (error) {
-    console.error("Error in getCompletedOrdersThisMonth:", error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
-  }
+
+
+
+  exports.getAverageOrderValue = async (req, res) => {
+    if (!req.user?.managedRestaurant) {
+      return res.status(200).json({
+        average_order_value: 0,
+        percentage_change: "0%"
+      });
+    }
+  
+    try {
+      // Calculate current and previous month dates
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      
+      let prevYear = currentYear;
+      let prevMonth = currentMonth - 1;
+      
+      if (prevMonth < 1) {
+        prevMonth = 12;
+        prevYear--;
+      }
+  
+      // Date range for current month
+      const currentMonthStart = new Date(currentYear, currentMonth - 1, 1);
+      const currentMonthEnd = new Date(currentYear, currentMonth, 0);
+      
+      // Date range for previous month
+      const prevMonthStart = new Date(prevYear, prevMonth - 1, 1);
+      const prevMonthEnd = new Date(prevYear, prevMonth, 0);
+  
+      // Get current month orders
+      const currentMonthOrders = await Order.find({
+        restaurantId: req.user.managedRestaurant,
+        createdAt: { $gte: currentMonthStart, $lte: currentMonthEnd }
+      });
+  
+      // Get previous month orders
+      const prevMonthOrders = await Order.find({
+        restaurantId: req.user.managedRestaurant,
+        createdAt: { $gte: prevMonthStart, $lte: prevMonthEnd }
+      });
+  
+      // Calculate averages
+      const currentAvg = currentMonthOrders.reduce((sum, order) => sum + order.totalAmount, 0) / 
+                        (currentMonthOrders.length || 1);
+      
+      const prevAvg = prevMonthOrders.reduce((sum, order) => sum + order.totalAmount, 0) / 
+                     (prevMonthOrders.length || 1);
+  
+      // Calculate percentage change
+      let percentageChange = "0%";
+      if (prevAvg > 0) {
+        const change = ((currentAvg - prevAvg) / prevAvg) * 100;
+        percentageChange = change >= 0 
+          ? `+${Math.abs(change).toFixed(2)}%` 
+          : `-${Math.abs(change).toFixed(2)}%`;
+      } else if (currentAvg > 0) {
+        percentageChange = "+100%";
+      }
+  
+      return res.status(200).json({
+        average_order_value: Math.round(currentAvg),
+        percentage_change: percentageChange
+      });
+  
+    } catch (error) {
+      return res.status(200).json({
+        average_order_value: 0,
+        percentage_change: "0%"
+      });
+    }
+  };
+
+
+
+
+  exports.getRecentPayouts = async (req, res) => {
+    try {
+      const seller = req.user;
+      
+      if (!seller.managedRestaurant) {
+        return res.status(400).json({ message: 'No restaurant assigned to you' });
+      }
+  
+      const restaurant = await Restaurant.findById(seller.managedRestaurant)
+        .select('payouts')
+        .sort({ 'payouts.date': -1 }) 
+        .limit(10); 
+  
+      if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurant not found' });
+      }
+  
+      res.status(200).json({
+        message: 'Recent payouts retrieved successfully',
+        payouts: restaurant.payouts
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  };
+  
+  exports.requestPayout = async (req, res) => {
+    try {
+      const seller = req.user;
+      const { amount, paymentMethod } = req.body;
+  
+      if (!seller.managedRestaurant) {
+        return res.status(400).json({ message: 'No restaurant assigned to you' });
+      }
+  
+      if (!amount || !paymentMethod) {
+        return res.status(400).json({ message: 'Amount and payment method are required' });
+      }
+  
+      const restaurant = await Restaurant.findById(seller.managedRestaurant);
+      
+      if (restaurant.balance < amount) {
+        return res.status(400).json({ message: 'Insufficient balance' });
+      }
+  
+
+      restaurant.balance -= amount;
+      restaurant.payouts.push({
+        amount,
+        paymentMethod,
+        status: 'pending'
+      });
+      
+      await restaurant.save();
+  
+      res.status(200).json({
+        message: 'Payout requested successfully',
+        newBalance: restaurant.balance
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  };
+
+
+
+
+
+  exports.getMonthlyRefunds = async (req, res) => {
+    try {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
+      const restaurant = await Restaurant.findOne(
+        { _id: req.user.managedRestaurant },
+        { refunds: 1 }
+      );
+  
+      if (!restaurant) {
+        return res.status(404).json({
+          success: false,
+          message: "Restaurant not found"
+        });
+      }
+  
+      const monthlyRefunds = restaurant.refunds.filter(refund => 
+        refund.date >= firstDay && refund.date <= lastDay
+      );
+  
+      const totalAmount = monthlyRefunds.reduce((sum, refund) => sum + refund.amount, 0);
+      const refundCount = monthlyRefunds.length;
+  
+      res.status(200).json({
+        success: true,
+        month: now.toLocaleString('en-US', { month: 'long' }),
+        year: now.getFullYear(),
+        totalAmount: totalAmount.toFixed(2),
+        refundCount,
+        currency: "EGP"
+      });
+  
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Server error"
+      });
+    }
+  };
+
+
+
+
+  exports.getBestSeller = async (req, res) => {
+    try {
+      const restaurantId = req.user.managedRestaurant;
+  
+      const bestSeller = await Order.aggregate([
+        { 
+          $match: { 
+            restaurantId: restaurantId,
+            status: { $ne: 'cancelled' } 
+          } 
+        },
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: '$items.itemId',
+            totalUnits: { $sum: '$items.quantity' }
+          }
+        },
+        { $sort: { totalUnits: -1 } },
+        { $limit: 1 },
+        {
+          $lookup: {
+            from: 'images',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'itemDetails'
+          }
+        },
+        { $unwind: '$itemDetails' },
+        {
+          $project: {
+            itemName: '$itemDetails.name',
+            itemImage: '$itemDetails.imageUrl',
+            totalUnits: 1,
+            _id: 0
+          }
+        }
+      ]);
+  
+      if (!bestSeller.length) {
+        return res.status(200).json({
+          success: true,
+          message: "No sales data available",
+          bestSeller: null
+        });
+      }
+  
+      res.status(200).json({
+        success: true,
+        bestSeller: bestSeller[0]
+      });
+  
+    } catch (error) {
+      console.error('Error fetching best seller:', error);
+      res.status(500).json({
+        success: false,
+        message: "Error fetching best seller data"
+      });
+    }
+  };
+
+
+
+
+  exports.getCompletedOrdersThisMonth = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned to you' });
+        }
+
+        const currentDate = new Date();
+        const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+        const completedOrders = await Order.countDocuments({
+            restaurantId: seller.managedRestaurant,
+            status: 'delivered',
+            createdAt: {
+                $gte: firstDayOfMonth,
+                $lte: lastDayOfMonth
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            month: currentDate.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+            completedOrders,
+            message: 'Completed orders count retrieved successfully'
+        });
+    } catch (error) {
+        console.error("Error in getCompletedOrdersThisMonth:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
 };
 
 
@@ -570,114 +570,114 @@ exports.getCompletedOrdersThisMonth = async (req, res) => {
 
 exports.getSellerNotifications = async (req, res) => {
   try {
-    const seller = req.user;
+      const seller = req.user;
+      
+      if (!seller.managedRestaurant) {
+          return res.status(400).json({ message: 'No restaurant assigned' });
+      }
 
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ message: 'No restaurant assigned' });
-    }
 
-
-    const newOrders = await Order.find({
-      restaurantId: seller.managedRestaurant,
-      status: 'pending',
-      'notifications.type': 'new_order',
-      'notifications.isRead': false
-    })
+      const newOrders = await Order.find({
+          restaurantId: seller.managedRestaurant,
+          status: 'pending',
+          'notifications.type': 'new_order',
+          'notifications.isRead': false
+      })
       .populate('userId', 'firstName lastName')
       .select('_id totalAmount items');
 
 
-    const lowStockItems = await Image.find({
-      restaurant: seller.managedRestaurant,
-      quantity: { $lte: 10 }
-    })
+      const lowStockItems = await Image.find({
+          restaurant: seller.managedRestaurant,
+          quantity: { $lte: 10 } 
+      })
       .select('name quantity');
-    console.log("Low Stock Items:", lowStockItems);
+      console.log("Low Stock Items:", lowStockItems);
 
 
-    const restaurant = await Restaurant.findById(seller.managedRestaurant)
-      .select('payouts');
+      const restaurant = await Restaurant.findById(seller.managedRestaurant)
+          .select('payouts');
 
-    const unreadPayouts = restaurant.payouts.filter(p => !p.isRead);
+      const unreadPayouts = restaurant.payouts.filter(p => !p.isRead);
 
 
-    const notifications = {
-      newOrders: newOrders.map(order => ({
-        type: 'new_order',
-        orderId: order._id,
-        customerName: order.userId ? `${order.userId.firstName} ${order.userId.lastName}` : 'Guest',
-        totalAmount: order.totalAmount,
-        items: order.items
-      })),
-      lowStockAlerts: lowStockItems.map(item => ({
-        type: 'low_stock',
-        productName: item.name,
-        remainingQuantity: item.quantity
-      })),
-      payouts: unreadPayouts.map(payout => ({
-        type: 'payout',
-        amount: payout.amount,
-        status: payout.status,
-        date: payout.date
-      }))
-    };
+      const notifications = {
+          newOrders: newOrders.map(order => ({
+              type: 'new_order',
+              orderId: order._id,
+              customerName: order.userId ? `${order.userId.firstName} ${order.userId.lastName}` : 'Guest',
+              totalAmount: order.totalAmount,
+              items: order.items
+          })),
+          lowStockAlerts: lowStockItems.map(item => ({
+              type: 'low_stock',
+              productName: item.name,
+              remainingQuantity: item.quantity
+          })),
+          payouts: unreadPayouts.map(payout => ({
+              type: 'payout',
+              amount: payout.amount,
+              status: payout.status,
+              date: payout.date
+          }))
+      };
 
-    res.status(200).json(notifications);
+      res.status(200).json(notifications);
   } catch (error) {
     console.error("Full Error:", error);
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
+    res.status(500).json({ 
+        message: 'Server error',
+        error: error.message 
     });
-  }
+}
 };
 
 
 exports.getSellerProfile = async (req, res) => {
   try {
-    const seller = await User.findById(req.user._id);
+      const seller = await User.findById(req.user._id);
+      
+      if (!seller) {
+          return res.status(404).json({ message: 'Seller not found' });
+      }
 
-    if (!seller) {
-      return res.status(404).json({ message: 'Seller not found' });
-    }
 
+      const usernameFromEmail = seller.email.split('@')[0];
 
-    const usernameFromEmail = seller.email.split('@')[0];
-
-    res.status(200).json({
-      profileImage: seller.profileImage || null,
-      username: usernameFromEmail,
-      fullEmail: seller.email,
-      language: seller.language || null
-    });
+      res.status(200).json({
+          profileImage: seller.profileImage || null, 
+          username: usernameFromEmail, 
+          fullEmail: seller.email, 
+          language: seller.language || null 
+      });
   } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
+      res.status(500).json({ 
+          message: 'Server error',
+          error: error.message 
+      });
   }
 };
 
 
 exports.updateLanguage = async (req, res) => {
   try {
-    const { language } = req.body;
+      const { language } = req.body;
 
-    const updatedSeller = await User.findByIdAndUpdate(
-      req.user._id,
-      { language },
-      { new: true }
-    ).select('language');
+      const updatedSeller = await User.findByIdAndUpdate(
+          req.user._id,
+          { language },
+          { new: true }
+      ).select('language');
 
-    res.status(200).json({
-      message: 'Language updated successfully',
-      language: updatedSeller.language
-    });
+      res.status(200).json({
+          message: 'Language updated successfully',
+          language: updatedSeller.language
+      });
   } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
+      res.status(500).json({ 
+          message: 'Server error',
+          error: error.message 
+      });
   }
 };
 
@@ -686,11 +686,11 @@ exports.updateLanguage = async (req, res) => {
 exports.getMyRestaurant = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
-        message: 'No restaurant assigned to this seller'
+        message: 'No restaurant assigned to this seller' 
       });
     }
 
@@ -698,9 +698,9 @@ exports.getMyRestaurant = async (req, res) => {
       .select('name location description defaultShippingTime imageUrl');
 
     if (!restaurant) {
-      return res.status(404).json({
+      return res.status(404).json({ 
         success: false,
-        message: 'Restaurant not found'
+        message: 'Restaurant not found' 
       });
     }
 
@@ -714,7 +714,7 @@ exports.getMyRestaurant = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(500).json({ 
       success: false,
       message: 'Server error'
     });
@@ -780,7 +780,7 @@ exports.updatePaymentSettings = async (req, res) => {
 // exports.getLowStockItems = async (req, res) => {
 //   try {
 //     const seller = req.user;
-
+    
 //     if (!seller.managedRestaurant) {
 //       return res.status(400).json({ 
 //         success: false,
@@ -823,16 +823,16 @@ exports.updatePaymentSettings = async (req, res) => {
 exports.getStockStats = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         outOfStock: 0,
         lowStock: 0
       });
     }
 
     const LOW_STOCK_THRESHOLD = 10;
-
+    
     const [outOfStockCount, lowStockCount] = await Promise.all([
       Image.countDocuments({
         restaurant: seller.managedRestaurant,
@@ -849,7 +849,7 @@ exports.getStockStats = async (req, res) => {
       lowStock: lowStockCount
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(500).json({ 
       outOfStock: 0,
       lowStock: 0
     });
@@ -862,11 +862,11 @@ exports.getStockStats = async (req, res) => {
 exports.getInventoryItems = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
-        message: 'No restaurant assigned to this seller'
+        message: 'No restaurant assigned to this seller' 
       });
     }
 
@@ -878,7 +878,7 @@ exports.getInventoryItems = async (req, res) => {
     const inventory = items.map(item => {
       let status = 'IN_STOCK';
       let statusQuantity = item.quantity;
-
+      
       if (item.quantity <= 0) {
         status = 'OUT_OF_STOCK';
         statusQuantity = 0;
@@ -910,7 +910,7 @@ exports.getInventoryItems = async (req, res) => {
       items: inventory
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(500).json({ 
       success: false,
       message: 'Server error'
     });
@@ -923,11 +923,11 @@ exports.getInventoryItems = async (req, res) => {
 exports.getRestaurantProducts = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
-        message: 'No restaurant assigned to this seller'
+        message: 'No restaurant assigned to this seller' 
       });
     }
 
@@ -941,8 +941,8 @@ exports.getRestaurantProducts = async (req, res) => {
       price: product.price,
       imageUrl: product.imageUrl,
       stock: product.quantity > 0 ? product.quantity : 0,
-      status: product.quantity <= 0 ? 'Out of Stock' :
-        product.quantity <= 10 ? 'Low Stock' : 'In Stock',
+      status: product.quantity <= 0 ? 'Out of Stock' : 
+              product.quantity <= 10 ? 'Low Stock' : 'In Stock',
       category: product.category,
       lastUpdated: product.updatedAt
     }));
@@ -953,7 +953,7 @@ exports.getRestaurantProducts = async (req, res) => {
       products: formattedProducts
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(500).json({ 
       success: false,
       message: 'Failed to fetch products'
     });
@@ -964,7 +964,7 @@ exports.getRestaurantProducts = async (req, res) => {
 exports.getRevenueStats = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
       return res.status(200).json({
         totalRevenue: 0,
@@ -1030,7 +1030,7 @@ exports.getRevenueStats = async (req, res) => {
 exports.getNewCustomersStats = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
       return res.status(200).json({
         newCustomers: 0,
@@ -1086,7 +1086,7 @@ exports.getNewCustomersStats = async (req, res) => {
 exports.getTopProduct = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
       return res.status(200).json({
         productName: "N/A",
@@ -1189,7 +1189,7 @@ exports.getTopProduct = async (req, res) => {
 exports.getTopSellingProducts = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
       return res.status(200).json([]);
     }
@@ -1245,7 +1245,7 @@ exports.getTopSellingProducts = async (req, res) => {
 exports.getBalance = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
       return res.status(200).json({
         availableBalance: 0,
@@ -1304,14 +1304,14 @@ exports.requestWithdrawal = async (req, res) => {
       $push: { transactions: transaction }
     });
 
-    res.status(200).json({
+    res.status(200).json({ 
       success: true,
       message: 'Withdrawal request submitted',
       newBalance: restaurant.balance
     });
 
   } catch (error) {
-    res.status(500).json({
+    res.status(500).json({ 
       success: false,
       message: 'Withdrawal request failed'
     });
@@ -1329,8 +1329,8 @@ exports.getTransactionHistory = async (req, res) => {
     const formattedTransactions = seller.transactions.map(t => ({
       date: t.date,
       amount: t.amount,
-      method: t.method === 'bank' ? 'Bank Transfer' :
-        t.method === 'mobile' ? 'Mobile Wallet' : 'PayPal',
+      method: t.method === 'bank' ? 'Bank Transfer' : 
+             t.method === 'mobile' ? 'Mobile Wallet' : 'PayPal',
       status: t.status.charAt(0).toUpperCase() + t.status.slice(1),
       reference: t.reference
     }));
@@ -1363,13 +1363,13 @@ exports.getSalesAnalytics = async (req, res) => {
 
     if (period === 'week') {
       startDate = new Date(now.setDate(now.getDate() - 7));
-      groupFormat = {
+      groupFormat = { 
         day: { $dayOfMonth: '$createdAt' },
         month: { $month: '$createdAt' }
       };
     } else { // month
       startDate = new Date(now.setMonth(now.getMonth() - 1));
-      groupFormat = {
+      groupFormat = { 
         week: { $week: '$createdAt' },
         month: { $month: '$createdAt' }
       };
@@ -1441,8 +1441,8 @@ async function getPreviousPeriodSales(restaurantId, startDate, period) {
 
 function formatChartData(data, period) {
   return data.map(item => ({
-    label: period === 'week'
-      ? `Day ${item._id.day}/${item._id.month}`
+    label: period === 'week' 
+      ? `Day ${item._id.day}/${item._id.month}` 
       : `Week ${item._id.week}`,
     sales: item.totalSales,
     orders: item.orderCount
@@ -1455,7 +1455,7 @@ function formatChartData(data, period) {
 exports.getRevenueTrends = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
       return res.status(200).json({
         success: false,
@@ -1550,7 +1550,7 @@ async function calculateCustomerCost(restaurantId, startDate) {
   });
 
   const totalCost = marketingCosts[0]?.total || 0;
-  const customerCount = newCustomers.length || 1;
+  const customerCount = newCustomers.length || 1; 
 
   return totalCost / customerCount;
 }
@@ -1561,7 +1561,7 @@ async function calculateCustomerCost(restaurantId, startDate) {
 exports.getRevenuePeakTrends = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
       return res.status(200).json({
         success: false,
@@ -1603,19 +1603,19 @@ exports.getRevenuePeakTrends = async (req, res) => {
     }
 
 
-    const peakMonth = revenueData.reduce((max, current) =>
+    const peakMonth = revenueData.reduce((max, current) => 
       current.totalRevenue > max.totalRevenue ? current : max
     );
 
 
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
     const formattedData = revenueData.map(item => ({
       label: `${monthNames[item._id.month - 1]} ${item._id.year}`,
       revenue: item.totalRevenue,
-      isPeak: item._id.month === peakMonth._id.month &&
-        item._id.year === peakMonth._id.year
+      isPeak: item._id.month === peakMonth._id.month && 
+              item._id.year === peakMonth._id.year
     }));
 
     res.status(200).json({
@@ -1641,7 +1641,7 @@ exports.getRevenuePeakTrends = async (req, res) => {
 exports.getCustomerAnalytics = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
       return res.status(200).json({
         success: false,
@@ -1718,9 +1718,9 @@ exports.getCustomerAnalytics = async (req, res) => {
               result.churnedCustomers
             ],
             backgroundColor: [
-              "#FFCE56",
-              "#36A2EB",
-              "#4BC0C0"
+              "#FFCE56", 
+              "#36A2EB", 
+              "#4BC0C0"  
             ]
           }
         ]
@@ -1730,7 +1730,7 @@ exports.getCustomerAnalytics = async (req, res) => {
         returningCustomers: result.returningCustomers,
         churnedCustomers: result.churnedCustomers,
         totalActiveCustomers,
-        churnRate: totalActiveCustomers > 0
+        churnRate: totalActiveCustomers > 0 
           ? (result.churnedCustomers / totalActiveCustomers * 100).toFixed(2) + "%"
           : "0%"
       }
@@ -1746,37 +1746,37 @@ exports.getCustomerAnalytics = async (req, res) => {
 
 
 exports.confirmCashPayment = async (req, res) => {
-  const { orderId } = req.params;
-  const seller = req.user;
-  try {
-    const order = await Order.findOneAndUpdate(
-      { _id: orderId, restaurantId: seller.managedRestaurant },
-      { status: 'confirmed' }, // Update status to confirmed
-      { new: true }
-    );
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found or not under your management' });
+    const { orderId } = req.params;
+    const seller = req.user;
+    try {
+        const order = await Order.findOneAndUpdate(
+            { _id: orderId, restaurantId: seller.managedRestaurant },
+            { status: 'confirmed' }, // Update status to confirmed
+            { new: true }
+        );
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found or not under your management' });
+        }
+        res.status(200).json({ message: 'Cash payment confirmed successfully', order });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
     }
-    res.status(200).json({ message: 'Cash payment confirmed successfully', order });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
-  }
 };
 
 
 exports.getLowStockItems = async (req, res) => {
   try {
     const seller = req.user;
-
+    
     if (!seller.managedRestaurant) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
-        message: 'No restaurant assigned to this seller'
+        message: 'No restaurant assigned to this seller' 
       });
     }
 
     const LOW_STOCK_THRESHOLD = 7;
-
+    
     // الحصول على جميع العناصر أولاً
     const allItems = await Image.find({
       restaurant: seller.managedRestaurant
@@ -1795,7 +1795,7 @@ exports.getLowStockItems = async (req, res) => {
       items: lowStockItems
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(500).json({ 
       success: false,
       message: 'Server error',
       error: error.message
@@ -1805,130 +1805,49 @@ exports.getLowStockItems = async (req, res) => {
 
 
 exports.getOrdersStats = async (req, res) => {
-  try {
-    const seller = req.user;
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned' });
+        }
 
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ message: 'No restaurant assigned' });
+        // احصل على الإجمالي فقط بدون التقسيم
+        const stats = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant
+                }
+            },
+            {
+                $group: {
+                    _id: null, // تجميع كل شيء معًا
+                    totalOrders: { $sum: 1 },
+                    totalRevenue: { $sum: "$totalAmount" },
+                    avgOrderValue: { $avg: "$totalAmount" }
+                }
+            }
+        ]);
+
+        // إذا لم توجد طلبات
+        const result = stats[0] || { 
+            totalOrders: 0, 
+            totalRevenue: 0, 
+            avgOrderValue: 0 
+        };
+
+        res.status(200).json({
+            success: true,
+            stats: result
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching orders stats',
+            error: error.message
+        });
     }
-
-    // احصل على الإجمالي فقط بدون التقسيم
-    const stats = await Order.aggregate([
-      {
-        $match: {
-          restaurantId: seller.managedRestaurant
-        }
-      },
-      {
-        $group: {
-          _id: null, // تجميع كل شيء معًا
-          totalOrders: { $sum: 1 },
-          totalRevenue: { $sum: "$totalAmount" },
-          avgOrderValue: { $avg: "$totalAmount" }
-        }
-      }
-    ]);
-
-    // إذا لم توجد طلبات
-    const result = stats[0] || {
-      totalOrders: 0,
-      totalRevenue: 0,
-      avgOrderValue: 0
-    };
-
-    res.status(200).json({
-      success: true,
-      stats: result
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching orders stats',
-      error: error.message
-    });
-  }
 };
 
 
 
-exports.getMonthlyEarningsComparison = async (req, res) => {
-  try {
-    const seller = req.user;
-
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({
-        success: false,
-        message: 'No restaurant assigned to this seller'
-      });
-    }
-
-    const now = new Date();
-    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-
-    // Get current month earnings
-    const currentMonthEarnings = await Order.aggregate([
-      {
-        $match: {
-          restaurantId: seller.managedRestaurant,
-          createdAt: { $gte: currentMonth },
-          status: { $ne: 'cancelled' }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$totalAmount" }
-        }
-      }
-    ]);
-
-    // Get last month earnings
-    const lastMonthEarnings = await Order.aggregate([
-      {
-        $match: {
-          restaurantId: seller.managedRestaurant,
-          createdAt: {
-            $gte: lastMonth,
-            $lt: currentMonth
-          },
-          status: { $ne: 'cancelled' }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$totalAmount" }
-        }
-      }
-    ]);
-
-    const current = currentMonthEarnings[0]?.total || 0;
-    const last = lastMonthEarnings[0]?.total || 0;
-
-    let percentageChange = "0%";
-    if (last > 0) {
-      const change = ((current - last) / last) * 100;
-      percentageChange = change >= 0 ?
-        `+${Math.abs(change).toFixed(2)}%` :
-        `-${Math.abs(change).toFixed(2)}%`;
-    } else if (current > 0) {
-      percentageChange = "+100%";
-    }
-
-    res.status(200).json({
-      success: true,
-      data: {
-        currentMonthEarnings: current,
-        percentageChange
-      }
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch monthly earnings',
-      error: error.message
-    });
-  }
-};
