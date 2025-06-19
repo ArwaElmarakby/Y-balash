@@ -2369,3 +2369,52 @@ exports.getRevenueComparison = async (req, res) => {
     }
 };
 
+
+exports.getBuyerEmailsCount = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        // الحصول على جميع الطلبات للمطعم التابع لهذا البائع
+        const orders = await Order.find({ 
+            restaurantId: seller.managedRestaurant,
+            status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة
+        }).select('userId');
+
+        if (!orders || orders.length === 0) {
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                message: 'No buyers found for this seller'
+            });
+        }
+
+        // استخراج جميع userIds الفريدة
+        const uniqueUserIds = [...new Set(orders.map(order => order.userId.toString()))];
+
+        // الحصول على الإيميلات لهؤلاء المستخدمين
+        const users = await User.find({ 
+            _id: { $in: uniqueUserIds }
+        }).select('email');
+
+        res.status(200).json({
+            success: true,
+            count: users.length,
+            buyers: users.map(user => user.email)
+        });
+
+    } catch (error) {
+        console.error("Error in getBuyerEmailsCount:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch buyer emails count',
+            error: error.message
+        });
+    }
+};

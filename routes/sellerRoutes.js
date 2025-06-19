@@ -1085,5 +1085,11 @@ router.get('/revenue-comparison',
     sellerController.getRevenueComparison
 );
 
+
+router.get('/buyers/count',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getBuyerEmailsCount
+);
   
 module.exports = router;
