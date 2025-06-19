@@ -542,11 +542,11 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
 
 
   
-  router.get('/monthly-earnings',
-    authMiddleware,
-    sellerMiddleware,
-    sellerController.getMonthlyEarnings
-  );
+//   router.get('/monthly-earnings',
+//     authMiddleware,
+//     sellerMiddleware,
+//     sellerController.getMonthlyEarnings
+//   );
 
   
 
@@ -946,7 +946,7 @@ router.get('/orders/stats',
     sellerController.getOrdersStats
 );
 
-router.get('/monthly-earnings-simple',
+router.get('/monthly-earnings',
   authMiddleware,
   sellerMiddleware,
   sellerController.getMonthlyEarningsSimple

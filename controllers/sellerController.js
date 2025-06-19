@@ -69,51 +69,51 @@ exports.getAvailableForWithdrawal = async (req, res) => {
 
 
 
-  exports.getMonthlyEarnings = async (req, res) => {
-    try {
+  // exports.getMonthlyEarnings = async (req, res) => {
+  //   try {
 
-        const restaurant = await Restaurant.findById(req.user.managedRestaurant);
-      if (!restaurant) {
-        return res.status(404).json({ error: "Restaurant not found" });
-      }
-  
-
-      const currentDate = new Date();
-      const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-      const lastMonthDate = new Date(currentDate);
-      lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
-      const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+  //       const restaurant = await Restaurant.findById(req.user.managedRestaurant);
+  //     if (!restaurant) {
+  //       return res.status(404).json({ error: "Restaurant not found" });
+  //     }
   
 
-      const getEarnings = (month) => {
-        const entry = restaurant.earnings.find(e => e.month === month);
-        return entry ? entry.amount : 0;
-      };
-  
-      const currentEarnings = getEarnings(currentMonth);
-      const lastEarnings = getEarnings(lastMonth);
+  //     const currentDate = new Date();
+  //     const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+  //     const lastMonthDate = new Date(currentDate);
+  //     lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+  //     const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
   
 
-      let percentageIncrease;
-      if (lastEarnings > 0) {
-        const increase = ((currentEarnings - lastEarnings) / lastEarnings) * 100;
-        percentageIncrease = `${increase.toFixed(2)}%`;
-      } else {
-        percentageIncrease = currentEarnings > 0 ? "100%" : "0%";
-      }
+  //     const getEarnings = (month) => {
+  //       const entry = restaurant.earnings.find(e => e.month === month);
+  //       return entry ? entry.amount : 0;
+  //     };
+  
+  //     const currentEarnings = getEarnings(currentMonth);
+  //     const lastEarnings = getEarnings(lastMonth);
   
 
-      res.status(200).json({
-        totalEarnings: currentEarnings,
-        currency: "EGP",
-        percentageIncrease
-      });
+  //     let percentageIncrease;
+  //     if (lastEarnings > 0) {
+  //       const increase = ((currentEarnings - lastEarnings) / lastEarnings) * 100;
+  //       percentageIncrease = `${increase.toFixed(2)}%`;
+  //     } else {
+  //       percentageIncrease = currentEarnings > 0 ? "100%" : "0%";
+  //     }
   
-    } catch (error) {
-      console.error("Error in getMonthlyEarnings:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  };
+
+  //     res.status(200).json({
+  //       totalEarnings: currentEarnings,
+  //       currency: "EGP",
+  //       percentageIncrease
+  //     });
+  
+  //   } catch (error) {
+  //     console.error("Error in getMonthlyEarnings:", error);
+  //     res.status(500).json({ error: "Internal server error" });
+  //   }
+  // };
 
 
 
@@ -1863,18 +1863,20 @@ exports.getMonthlyEarningsSimple = async (req, res) => {
     }
 
     const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthFormatted = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
 
     const [currentMonthEarnings, lastMonthEarnings] = await Promise.all([
       Order.aggregate([
         {
           $match: {
             restaurantId: seller.managedRestaurant,
-            createdAt: { $gte: currentMonthStart, $lte: currentMonthEnd },
-            status: 'delivered'
+            status: 'delivered',
+            createdAt: {
+              $gte: new Date(`${currentMonth}-01`),
+              $lte: new Date(now)
+            }
           }
         },
         { $group: { _id: null, total: { $sum: "$totalAmount" } } }
@@ -1883,8 +1885,11 @@ exports.getMonthlyEarningsSimple = async (req, res) => {
         {
           $match: {
             restaurantId: seller.managedRestaurant,
-            createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd },
-            status: 'delivered'
+            status: 'delivered',
+            createdAt: {
+              $gte: new Date(`${lastMonthFormatted}-01`),
+              $lte: new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0)
+            }
           }
         },
         { $group: { _id: null, total: { $sum: "$totalAmount" } } }
@@ -1908,9 +1913,11 @@ exports.getMonthlyEarningsSimple = async (req, res) => {
     });
 
   } catch (error) {
+    console.error("Error in monthly earnings:", error);
     res.status(500).json({
       totalEarnings: 0,
-      percentage: "0%"
+      percentage: "0%",
+      error: error.message
     });
   }
 };
