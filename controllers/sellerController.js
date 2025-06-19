@@ -1250,32 +1250,32 @@ exports.getTopSellingProducts = async (req, res) => {
 
 
 
-exports.getBalance = async (req, res) => {
-  try {
-    const seller = req.user;
+// exports.getBalance = async (req, res) => {
+//   try {
+//     const seller = req.user;
     
-    if (!seller.managedRestaurant) {
-      return res.status(200).json({
-        availableBalance: 0,
-        pendingBalance: 0
-      });
-    }
+//     if (!seller.managedRestaurant) {
+//       return res.status(200).json({
+//         availableBalance: 0,
+//         pendingBalance: 0
+//       });
+//     }
 
-    const restaurant = await Restaurant.findById(seller.managedRestaurant)
-      .select('balance pendingWithdrawals');
+//     const restaurant = await Restaurant.findById(seller.managedRestaurant)
+//       .select('balance pendingWithdrawals');
 
-    res.status(200).json({
-      availableBalance: restaurant.balance || 0,
-      pendingBalance: restaurant.pendingWithdrawals || 0
-    });
+//     res.status(200).json({
+//       availableBalance: restaurant.balance || 0,
+//       pendingBalance: restaurant.pendingWithdrawals || 0
+//     });
 
-  } catch (error) {
-    res.status(200).json({
-      availableBalance: 0,
-      pendingBalance: 0
-    });
-  }
-};
+//   } catch (error) {
+//     res.status(200).json({
+//       availableBalance: 0,
+//       pendingBalance: 0
+//     });
+//   }
+// };
 
 
 
@@ -2103,6 +2103,62 @@ exports.getOrderDetails = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch order details',
+            error: error.message
+        });
+    }
+};
+
+
+exports.getCurrentBalanceFromOrders = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        // حساب إجمالي الأرباح من الطلبات المكتملة
+        const completedOrders = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    status: 'delivered'
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: "$totalAmount" },
+                    orderCount: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // حساب المبالغ المسحوبة
+        const restaurant = await Restaurant.findById(seller.managedRestaurant);
+        const totalWithdrawn = restaurant.payouts.reduce((sum, payout) => sum + payout.amount, 0);
+
+        // الرصيد الحالي = إجمالي الأرباح - المسحوبات
+        const currentBalance = completedOrders[0]?.totalEarnings || 0 - totalWithdrawn;
+
+        res.status(200).json({
+            success: true,
+            balance: currentBalance,
+            currency: "EGP",
+            stats: {
+                totalEarnings: completedOrders[0]?.totalEarnings || 0,
+                totalWithdrawn: totalWithdrawn,
+                completedOrders: completedOrders[0]?.orderCount || 0
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch current balance',
             error: error.message
         });
     }

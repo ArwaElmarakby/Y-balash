@@ -499,21 +499,21 @@ router.get('/restaurant-stats', authMiddleware, sellerMiddleware, async (req, re
 
 
 
-router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res) => {
-    try {
-      const restaurant = await Restaurant.findById(req.user.managedRestaurant);
-      if (!restaurant) {
-        return res.status(404).json({ message: 'Restaurant not found' });
-      }
+// router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res) => {
+//     try {
+//       const restaurant = await Restaurant.findById(req.user.managedRestaurant);
+//       if (!restaurant) {
+//         return res.status(404).json({ message: 'Restaurant not found' });
+//       }
   
-      res.status(200).json({
-        balance: restaurant.balance,
-        currency: 'EGP'
-      });
-    } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
-    }
-  });
+//       res.status(200).json({
+//         balance: restaurant.balance,
+//         currency: 'EGP'
+//       });
+//     } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//     }
+//   });
 
 
 
@@ -967,6 +967,13 @@ router.get('/orders/details',
     authMiddleware,
     sellerMiddleware,
     sellerController.getOrderDetails
+);
+
+
+router.get('/current-balance-from-orders',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getCurrentBalanceFromOrders
 );
   
 module.exports = router;
