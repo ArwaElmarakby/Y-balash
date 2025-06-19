@@ -841,10 +841,4 @@ router.get('/low-stock-items', authMiddleware, adminMiddleware, getLowStockItems
 
 router.get('/recent-activities', authMiddleware, adminMiddleware, getRecentActivities);
 
-router.get('/total-products-all-sellers', 
-    authMiddleware, 
-    adminMiddleware, 
-    adminController.getTotalProductsForAllSellers
-);
-
 module.exports = router;
