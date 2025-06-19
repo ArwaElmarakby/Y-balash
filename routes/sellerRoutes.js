@@ -1040,5 +1040,12 @@ router.get('/total-cash-earnings',
     sellerMiddleware,
     sellerController.getTotalCashEarnings
 );
+
+
+router.get('/last-7-days-orders',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getLast7DaysPaidOrders
+);
   
 module.exports = router;

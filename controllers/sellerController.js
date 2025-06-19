@@ -2145,3 +2145,54 @@ exports.getTotalCashEarnings = async (req, res) => {
         });
     }
 };
+
+
+exports.getLast7DaysPaidOrders = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const orders = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    createdAt: { $gte: sevenDaysAgo },
+                    status: { $in: ['paid', 'pending'] }
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, // تنسيق التاريخ
+                    totalAmount: 1,
+                    paymentMethod: 1,
+                    status: 1
+                }
+            },
+            { $sort: { createdAt: -1 } }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            orders: orders,
+            message: 'Last 7 days paid orders retrieved successfully'
+        });
+
+    } catch (error) {
+        console.error("Error in getLast7DaysPaidOrders:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch last 7 days orders',
+            error: error.message
+        });
+    }
+};
