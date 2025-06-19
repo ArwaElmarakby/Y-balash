@@ -2437,7 +2437,9 @@ exports.getBuyerEmailsCount = async (req, res) => {
     }
 };
 
-exports.getTopSellingProducts = async (req, res) => {
+
+
+exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
   try {
     const seller = req.user;
     
@@ -2448,23 +2450,34 @@ exports.getTopSellingProducts = async (req, res) => {
       });
     }
 
+    // الحصول على أفضل 3 منتجات مبيعًا
     const topProducts = await Order.aggregate([
-      {
-        $match: {
+      { 
+        $match: { 
           restaurantId: seller.managedRestaurant,
-          status: { $ne: 'cancelled' } // Exclude cancelled orders
-        }
+          status: { $ne: 'cancelled' } 
+        } 
       },
-      { $unwind: '$items' }, // Break down items array
+      { $unwind: '$items' },
       {
         $group: {
           _id: '$items.itemId',
-          totalQuantity: { $sum: '$items.quantity' },
-          totalRevenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
+          totalUnitsSold: { $sum: '$items.quantity' },
+          totalRevenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } },
+          cashOrders: {
+            $sum: {
+              $cond: [{ $eq: ['$paymentMethod', 'cash'] }, '$items.quantity', 0]
+            }
+          },
+          cardOrders: {
+            $sum: {
+              $cond: [{ $eq: ['$paymentMethod', 'card'] }, '$items.quantity', 0]
+            }
+          }
         }
       },
-      { $sort: { totalRevenue: -1 } }, // Sort by revenue descending
-      { $limit: 3 }, // Get top 3 only
+      { $sort: { totalUnitsSold: -1 } },
+      { $limit: 3 },
       {
         $lookup: {
           from: 'images',
@@ -2473,7 +2486,7 @@ exports.getTopSellingProducts = async (req, res) => {
           as: 'productDetails'
         }
       },
-      { $unwind: '$productDetails' }, // Flatten the product details
+      { $unwind: '$productDetails' },
       {
         $project: {
           _id: 0,
@@ -2481,8 +2494,12 @@ exports.getTopSellingProducts = async (req, res) => {
           productName: '$productDetails.name',
           productImage: '$productDetails.imageUrl',
           productPrice: '$productDetails.price',
-          totalQuantitySold: '$totalQuantity',
-          totalRevenue: 1
+          totalUnitsSold: 1,
+          totalRevenue: 1,
+          paymentMethods: {
+            cash: '$cashOrders',
+            card: '$cardOrders'
+          }
         }
       }
     ]);

@@ -1092,10 +1092,13 @@ router.get('/buyers/count',
     sellerController.getBuyerEmailsCount
 );
 
-router.get('/top-selling-products',
+
+
+router.get('/top-selling-with-payments',
   authMiddleware,
   sellerMiddleware,
-  sellerController.getTopSellingProducts
+  sellerController.getTopSellingProductsWithPaymentMethods
 );
+
   
 module.exports = router;
