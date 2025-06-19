@@ -2051,3 +2051,62 @@ exports.getSimplifiedMonthlyEarnings = async (req, res) => {
         });
     }
 };
+
+
+
+exports.getSellerOrdersDetails = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        // Fetch orders with payment methods (cash/card)
+        const orders = await Order.find({
+            restaurantId: seller.managedRestaurant,
+            status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة
+        })
+        .populate('userId', 'email') // لجلب ايميل المستخدم
+        .populate('items.itemId', 'name price') // لجلب اسم المنتج وسعره
+        .sort({ createdAt: -1 }); // ترتيب من الأحدث إلى الأقدم
+
+        // Format the response
+        const formattedOrders = orders.map(order => ({
+            orderId: order._id,
+            userEmail: order.userId.email,
+            products: order.items.map(item => ({
+                name: item.itemId.name,
+                price: item.itemId.price,
+                quantity: item.quantity
+            })),
+            total: order.totalAmount,
+            status: order.status,
+            paymentMethod: order.paymentMethod, // cash أو card
+            date: order.createdAt.toISOString().split('T')[0], // التاريخ فقط بدون الوقت
+            actions: order.status === 'pending' 
+                ? ['confirm', 'cancel'] 
+                : order.status === 'preparing' 
+                    ? ['ready'] 
+                    : order.status === 'ready' 
+                        ? ['delivered'] 
+                        : []
+        }));
+
+        res.status(200).json({
+            success: true,
+            orders: formattedOrders
+        });
+
+    } catch (error) {
+        console.error("Error in getSellerOrdersDetails:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch orders details',
+            error: error.message
+        });
+    }
+};
