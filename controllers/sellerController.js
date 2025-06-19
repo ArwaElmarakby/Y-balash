@@ -2293,35 +2293,35 @@ exports.getCurrentMonthOrdersCount = async (req, res) => {
 };
 
 
+
 exports.getOutOfStockItems = async (req, res) => {
-  try {
-    const seller = req.user;
-    
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'No restaurant assigned to this seller' 
-      });
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        // البحث عن المنتجات التي quantity = 0
+        const outOfStockItems = await Image.find({
+            restaurant: seller.managedRestaurant,
+            quantity: "0" // نستخدم string لأن quantity في الموديل مخزنة كـ string
+        });
+
+        res.status(200).json({
+            success: true,
+            count: outOfStockItems.length,
+            message: 'Out of stock items retrieved successfully'
+        });
+
+    } catch (error) {
+        res.status(500).json({ 
+            success: false,
+            message: 'Failed to fetch out of stock items',
+            error: error.message
+        });
     }
-
-    // البحث عن المنتجات التي quantity = 0
-    const outOfStockItems = await Image.find({
-      restaurant: seller.managedRestaurant,
-      quantity: 0
-    });
-
-    res.status(200).json({
-      success: true,
-      count: outOfStockItems.length,
-      message: `Found ${outOfStockItems.length} out of stock items`
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch out of stock items',
-      error: error.message
-    });
-  }
 };
-

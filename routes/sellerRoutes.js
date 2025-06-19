@@ -1079,11 +1079,11 @@ router.get('/orders/current-month-count',
     getCurrentMonthOrdersCount
 );
 
-  router.get('/out-of-stock-count',
-  authMiddleware,
-  sellerMiddleware,
-  sellerController.getOutOfStockItems
-);
 
+router.get('/out-of-stock-count',
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.getOutOfStockItems
+);  
 
 module.exports = router;
