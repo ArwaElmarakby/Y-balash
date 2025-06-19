@@ -558,11 +558,11 @@ router.get('/current-balance', authMiddleware, sellerMiddleware, async (req, res
 
 
 
-  router.get('/orders/stats',
-    authMiddleware,
-    sellerMiddleware,
-    sellerController.getOrderStats
-  );
+//   router.get('/orders/stats',
+//     authMiddleware,
+//     sellerMiddleware,
+//     sellerController.getOrderStats
+//   );
   
 
 
