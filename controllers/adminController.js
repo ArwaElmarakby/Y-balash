@@ -365,3 +365,52 @@ exports.getLowStockItems = async (req, res) => {
         });
     }
 };
+
+
+
+exports.getTotalProductsForAllSellers = async (req, res) => {
+    try {
+        // الحصول على جميع الـ Sellers
+        const sellers = await User.find({ isSeller: true })
+            .select('_id email managedRestaurant');
+
+        if (!sellers || sellers.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No sellers found'
+            });
+        }
+
+        // حساب عدد المنتجات لكل seller
+        const sellersWithProducts = await Promise.all(sellers.map(async (seller) => {
+            const productCount = await Image.countDocuments({ 
+                restaurant: seller.managedRestaurant 
+            });
+
+            return {
+                sellerId: seller._id,
+                email: seller.email,
+                restaurantId: seller.managedRestaurant,
+                totalProducts: productCount
+            };
+        }));
+
+        // حساب الإجمالي العام
+        const grandTotal = sellersWithProducts.reduce((sum, seller) => sum + seller.totalProducts, 0);
+
+        res.status(200).json({
+            success: true,
+            count: sellersWithProducts.length,
+            grandTotal,
+            sellers: sellersWithProducts
+        });
+
+    } catch (error) {
+        console.error("Error in getTotalProductsForAllSellers:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch products count',
+            error: error.message
+        });
+    }
+};
