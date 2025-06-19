@@ -2496,9 +2496,8 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
           productPrice: '$productDetails.price',
           totalUnitsSold: 1,
           totalRevenue: 1,
-          paymentMethods: {
-            cash: '$cashOrders',
-            card: '$cardOrders'
+          totalPaymentMethods: {
+            $add: ['$cashOrders', '$cardOrders']
           }
         }
       }
