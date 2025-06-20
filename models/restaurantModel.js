@@ -31,7 +31,15 @@ const restaurantSchema = new mongoose.Schema({
   defaultShippingTime: { type: String, default: '30-45 minutes' },
   images: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Image' }],
   balance: { type: Number, default: 0 },
-  pendingWithdrawal: { type: Number, default: 0 },
+  pendingWithdrawals: { type: Number, default: 0 }, // طلبات السحب قيد الانتظار
+  withdrawals: [{
+    amount: Number,
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    requestDate: { type: Date, default: Date.now },
+    processedDate: Date,
+    paymentMethod: String,
+    accountDetails: String
+  }],
   items: [{
   type: mongoose.Schema.Types.ObjectId,
   ref: 'Image'
