@@ -32,15 +32,17 @@ const restaurantSchema = new mongoose.Schema({
   images: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Image' }],
   balance: { type: Number, default: 0 },
   pendingWithdrawal: { type: Number, default: 0 },
+  stripeAccountId: String,
   items: [{
   type: mongoose.Schema.Types.ObjectId,
   ref: 'Image'
 }],
   payouts: [{
-    date: { type: Date, default: Date.now },
-    amount: { type: Number, required: true },
-    paymentMethod: { type: String, required: true }, 
-    status: { type: String, enum: ['pending', 'paid'], default: 'pending' }
+   amount: Number,
+    status: { type: String, enum: ['pending', 'processed', 'failed'], default: 'pending' },
+    createdAt: { type: Date, default: Date.now },
+    processedAt: Date,
+    stripePayoutId: String
   }],
   refunds: [refundSchema]
 });

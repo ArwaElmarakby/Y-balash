@@ -881,4 +881,9 @@ router.get('/total-earnings', authMiddleware, adminMiddleware, async (req, res) 
     }
 });
 
+
+router.get('/withdrawals/pending', authMiddleware, adminMiddleware, adminController.getPendingWithdrawals);
+router.post('/withdrawals/process', authMiddleware, adminMiddleware, adminController.processWithdrawal);
+
+
 module.exports = router;

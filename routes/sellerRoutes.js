@@ -723,11 +723,11 @@ router.get('/my-restaurant',
     sellerController.getBalance
   );
   
-  router.post('/withdraw',
-    authMiddleware,
-    sellerMiddleware,
-    sellerController.requestWithdrawal
-  );
+//   router.post('/withdraw',
+//     authMiddleware,
+//     sellerMiddleware,
+//     sellerController.requestWithdrawal
+//   );
   
   router.get('/transactions',
     authMiddleware,
@@ -1107,6 +1107,7 @@ router.get('/top-selling-with-payments',
 );
 
 
-
+router.post('/withdraw', authMiddleware, sellerMiddleware, sellerController.requestWithdrawal);
+router.get('/withdrawals', authMiddleware, sellerMiddleware, sellerController.getWithdrawalRequests);
   
 module.exports = router;
