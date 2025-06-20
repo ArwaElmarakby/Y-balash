@@ -365,39 +365,3 @@ exports.getLowStockItems = async (req, res) => {
         });
     }
 };
-
-
-// In adminController.js
-exports.approveWithdrawal = async (req, res) => {
-    const { sellerId, amount } = req.body; // Seller ID and amount to approve
-
-    try {
-        const seller = await User.findById(sellerId);
-        if (!seller) {
-            return res.status(404).json({ message: 'Seller not found' });
-        }
-
-        const restaurant = await Restaurant.findById(seller.managedRestaurant);
-        if (!restaurant) {
-            return res.status(404).json({ message: 'Restaurant not found' });
-        }
-
-        if (amount > restaurant.pendingWithdrawals) {
-            return res.status(400).json({ message: 'Withdrawal amount exceeds pending withdrawals' });
-        }
-
-        // Process the withdrawal (e.g., transfer funds)
-        // Here you can integrate with your payment system to transfer the funds
-
-        // Deduct from pending withdrawals
-        restaurant.pendingWithdrawals -= amount;
-        await restaurant.save();
-
-        res.status(200).json({
-            message: 'Withdrawal approved successfully',
-            newPendingWithdrawals: restaurant.pendingWithdrawals
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-};

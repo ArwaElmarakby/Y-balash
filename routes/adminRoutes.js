@@ -881,6 +881,4 @@ router.get('/total-earnings', authMiddleware, adminMiddleware, async (req, res) 
     }
 });
 
-router.post('/approve-withdrawal', authMiddleware, adminMiddleware, approveWithdrawal);
-
 module.exports = router;
