@@ -2,8 +2,7 @@ const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
-const Withdrawal = require('../models/withdrawalModel');
-const { createNotification } = require('./notificationController');
+
 
 
 exports.getSellerOrders = async (req, res) => {
@@ -2555,48 +2554,6 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
       error: error.message
     });
   }
-};
-
-
-
-exports.requestWithdrawal = async (req, res) => {
-    const { amount } = req.body;
-    const seller = req.user;
-
-    if (!seller.managedRestaurant) {
-        return res.status(400).json({ message: 'No restaurant assigned to you' });
-    }
-
-    const restaurant = await Restaurant.findById(seller.managedRestaurant);
-    if (!restaurant) {
-        return res.status(404).json({ message: 'Restaurant not found' });
-    }
-
-    if (amount > restaurant.balance) {
-        return res.status(400).json({ message: 'Insufficient balance' });
-    }
-
-    const withdrawalRequest = new Withdrawal({
-        sellerId: seller._id,
-        amount,
-        status: 'pending'
-    });
-
-    await withdrawalRequest.save();
-
-    await createNotification(
-        null, // No specific restaurantId for admin notifications
-        null, // No specific restaurantId for admin notifications
-        'withdrawal',
-        'New Withdrawal Request',
-        `Seller ${seller.email} has requested a withdrawal of ${amount} EGP.`,
-        withdrawalRequest._id
-    );
-
-    res.status(201).json({
-        message: 'Withdrawal request submitted successfully',
-        withdrawalRequest
-    });
 };
 
 
