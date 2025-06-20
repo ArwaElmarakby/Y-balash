@@ -4,7 +4,6 @@ const Image = require('../models/imageModel');
 const Category = require('../models/categoryModel');
 const ApprovedSeller = require('../models/approvedSellerModel');
 const { logActivity } = require('./activityController');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 exports.assignSellerToRestaurant = async (req, res) => {
     const { userId, restaurantId } = req.body;
@@ -365,75 +364,4 @@ exports.getLowStockItems = async (req, res) => {
             error: error.message
         });
     }
-};
-
-
-exports.getPendingWithdrawals = async (req, res) => {
-  try {
-    const restaurants = await Restaurant.find({ 'payouts.status': 'pending' })
-      .populate('payouts')
-      .select('name payouts balance');
-
-    const pendingRequests = restaurants.flatMap(rest => 
-      rest.payouts
-        .filter(p => p.status === 'pending')
-        .map(p => ({
-          restaurantId: rest._id,
-          restaurantName: rest.name,
-          payoutId: p._id,
-          amount: p.amount,
-          requestedAt: p.createdAt,
-          sellerBalance: rest.balance
-        }))
-    );
-
-    res.status(200).json(pendingRequests);
-
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to get withdrawals', error });
-  }
-};
-
-// معالجة طلب السحب
-exports.processWithdrawal = async (req, res) => {
-  try {
-    const { restaurantId, payoutId } = req.body;
-    
-    const restaurant = await Restaurant.findById(restaurantId);
-    if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
-    }
-
-    const payout = restaurant.payouts.id(payoutId);
-    if (!payout || payout.status !== 'pending') {
-      return res.status(404).json({ message: 'Payout not found or already processed' });
-    }
-
-    // التحويل عبر Stripe
-    const transfer = await stripe.transfers.create({
-      amount: payout.amount * 100, // تحويل المبلغ لسنتات
-      currency: 'egp',
-      destination: restaurant.stripeAccountId,
-      description: `Payout for ${restaurant.name}`
-    });
-
-    // تحديث حالة السحب
-    payout.status = 'processed';
-    payout.processedAt = new Date();
-    payout.stripePayoutId = transfer.id;
-    restaurant.pendingWithdrawals -= payout.amount;
-    
-    await restaurant.save();
-
-    res.status(200).json({ 
-      message: 'Payout processed successfully',
-      payout
-    });
-
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'Payout processing failed',
-      error: error.message 
-    });
-  }
 };

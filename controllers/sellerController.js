@@ -2,7 +2,7 @@ const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 
 
 exports.getSellerOrders = async (req, res) => {
@@ -2553,62 +2553,6 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
       message: 'Failed to fetch top selling products',
       error: error.message
     });
-  }
-};
-
-
-exports.requestWithdrawal = async (req, res) => {
-  try {
-    const { amount } = req.body;
-    const seller = req.user;
-    
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ message: 'No restaurant assigned' });
-    }
-
-    const restaurant = await Restaurant.findById(seller.managedRestaurant);
-    
-    if (amount > restaurant.balance) {
-      return res.status(400).json({ message: 'Insufficient balance' });
-    }
-
-    // خصم المبلغ من الرصيد وإضافته للمبالغ المنتظرة
-    restaurant.balance -= amount;
-    restaurant.pendingWithdrawals += amount;
-    restaurant.payouts.push({
-      amount,
-      status: 'pending'
-    });
-    
-    await restaurant.save();
-
-    res.status(200).json({ 
-      message: 'Withdrawal request submitted',
-      newBalance: restaurant.balance,
-      pendingWithdrawals: restaurant.pendingWithdrawals
-    });
-
-  } catch (error) {
-    res.status(500).json({ message: 'Withdrawal failed', error });
-  }
-};
-
-// الحصول على طلبات السحب
-exports.getWithdrawalRequests = async (req, res) => {
-  try {
-    const seller = req.user;
-    
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ message: 'No restaurant assigned' });
-    }
-
-    const restaurant = await Restaurant.findById(seller.managedRestaurant)
-      .select('payouts balance pendingWithdrawals');
-    
-    res.status(200).json(restaurant.payouts);
-
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to get withdrawals', error });
   }
 };
 
