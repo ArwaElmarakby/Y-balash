@@ -841,4 +841,44 @@ router.get('/low-stock-items', authMiddleware, adminMiddleware, getLowStockItems
 
 router.get('/recent-activities', authMiddleware, adminMiddleware, getRecentActivities);
 
+router.get('/total-earnings', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        // Aggregate to calculate total earnings from all orders (excluding cancelled)
+        const earningsResult = await Order.aggregate([
+            {
+                $match: {
+                    status: { $ne: 'cancelled' } // Exclude cancelled orders
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: "$totalAmount" },
+                    totalOrders: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const result = earningsResult[0] || { 
+            totalEarnings: 0,
+            totalOrders: 0
+        };
+
+        res.status(200).json({
+            success: true,
+            totalEarnings: result.totalEarnings,
+            currency: "EGP",
+            totalOrders: result.totalOrders
+        });
+
+    } catch (error) {
+        console.error("Error fetching total earnings:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch total earnings",
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
