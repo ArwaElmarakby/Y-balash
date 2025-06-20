@@ -14,6 +14,7 @@ const RejectedSeller = require('../models/rejectedSellerModel');
 const { getApprovedSellers, approveSeller } = require('../controllers/adminController');
 const { getLowStockItems } = require('../controllers/adminController');
 const { getRecentActivities } = require('../controllers/activityController');
+const Withdrawal = require('../models/withdrawalModel');
 
 
 router.get('/welcome', authMiddleware, adminMiddleware, (req, res) => {
@@ -880,5 +881,52 @@ router.get('/total-earnings', authMiddleware, adminMiddleware, async (req, res) 
         });
     }
 });
+
+
+
+router.get('/withdrawals', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const withdrawals = await Withdrawal.find()
+            .populate('sellerId', 'email') // Populate seller's email
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            count: withdrawals.length,
+            withdrawals
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+router.put('/withdrawals/:id/approve', authMiddleware, adminMiddleware, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const withdrawal = await Withdrawal.findById(id);
+        if (!withdrawal) {
+            return res.status(404).json({ message: 'Withdrawal request not found' });
+        }
+
+        // Update the status to approved
+        withdrawal.status = 'approved';
+        await withdrawal.save();
+
+        // Update the seller's balance
+        const seller = await User.findById(withdrawal.sellerId);
+        const restaurant = await Restaurant.findById(seller.managedRestaurant);
+        restaurant.balance -= withdrawal.amount; // Deduct the amount from the restaurant's balance
+        await restaurant.save();
+
+        res.status(200).json({
+            message: 'Withdrawal request approved successfully',
+            withdrawal
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
 
 module.exports = router;
