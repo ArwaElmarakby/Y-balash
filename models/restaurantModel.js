@@ -39,9 +39,24 @@ const restaurantSchema = new mongoose.Schema({
   payouts: [{
     date: { type: Date, default: Date.now },
     amount: { type: Number, required: true },
-    paymentMethod: { type: String, required: true }, 
-    status: { type: String, enum: ['pending', 'paid'], default: 'pending' }
+    paymentMethod: { 
+      type: String, 
+      enum: ['bank', 'card', 'mobile_wallet'], 
+      required: true 
+    },
+    cardDetails: {
+      last4: String,
+      brand: String
+    },
+    status: { 
+      type: String, 
+      enum: ['pending', 'processed', 'failed'], 
+      default: 'pending' 
+    },
+    transactionId: String
   }],
+  availableBalance: { type: Number, default: 0 },
+  pendingBalance: { type: Number, default: 0 },
   refunds: [refundSchema]
 });
 
