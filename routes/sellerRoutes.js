@@ -1106,7 +1106,6 @@ router.get('/top-selling-with-payments',
   sellerController.getTopSellingProductsWithPaymentMethods
 );
 
-router.post('/withdraw/card', authMiddleware, sellerMiddleware, sellerController.requestWithdrawalToCard);
 
 
   

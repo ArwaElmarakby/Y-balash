@@ -2,7 +2,7 @@ const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 
 
 exports.getSellerOrders = async (req, res) => {
@@ -2556,48 +2556,4 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
   }
 };
 
-
-
-
-exports.requestWithdrawalToCard = async (req, res) => {
-    const { amount, cardDetails } = req.body; // cardDetails should include necessary card info
-
-    try {
-        const seller = req.user;
-
-        if (!seller.managedRestaurant) {
-            return res.status(400).json({ message: 'No restaurant assigned to you' });
-        }
-
-        const restaurant = await Restaurant.findById(seller.managedRestaurant);
-        if (!restaurant) {
-            return res.status(404).json({ message: 'Restaurant not found' });
-        }
-
-        if (amount > restaurant.balance) {
-            return res.status(400).json({ message: 'Insufficient balance' });
-        }
-
-        // Create a payment intent to transfer funds to the card
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: amount * 100, // amount in cents
-            currency: 'egp',
-            payment_method: cardDetails, // This should be a valid payment method ID
-            confirm: true,
-        });
-
-        // Update the restaurant's balance
-        restaurant.balance -= amount;
-        await restaurant.save();
-
-        res.status(200).json({
-            message: 'Withdrawal successful',
-            paymentIntent,
-            newBalance: restaurant.balance
-        });
-    } catch (error) {
-        console.error("Error in withdrawal:", error);
-        res.status(500).json({ message: 'Withdrawal failed', error: error.message });
-    }
-};
 
