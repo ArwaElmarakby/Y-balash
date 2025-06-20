@@ -50,6 +50,8 @@ const userSchema = new mongoose.Schema({
     points: { type: Number, default: 0 },
     isAdmin: { type: Boolean, default: false },
     isSeller: { type: Boolean, default: false },
+     balance: { type: Number, default: 0 }, // To track the seller's balance
+    pendingWithdrawals: { type: Number, default: 0 },
     isSellerRequested: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     lastActive: { type: Date, default: Date.now },

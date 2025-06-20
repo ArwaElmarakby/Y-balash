@@ -2557,3 +2557,36 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
 };
 
 
+exports.requestWithdrawal = async (req, res) => {
+    const { amount } = req.body; // Amount to withdraw
+    const seller = req.user;
+
+    try {
+        const restaurant = await Restaurant.findById(seller.managedRestaurant);
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant not found' });
+        }
+
+        if (amount > restaurant.balance) {
+            return res.status(400).json({ message: 'Insufficient balance' });
+        }
+
+        // Deduct the amount from the seller's balance
+        restaurant.balance -= amount;
+        restaurant.pendingWithdrawals += amount; // Update pending withdrawals
+        await restaurant.save();
+
+        // Optionally, you can create a notification for the admin
+        // await createNotification(adminId, restaurant._id, 'withdrawal', 'Withdrawal Request', `Seller ${seller.email} requested a withdrawal of ${amount} EGP`);
+
+        res.status(200).json({
+            message: 'Withdrawal request submitted successfully',
+            newBalance: restaurant.balance
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+
+
