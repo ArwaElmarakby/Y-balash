@@ -103,6 +103,7 @@ const Cart = require('../models/cartModel');
 const Order = require('../models/orderModel');
 const { createNotification } = require('./notificationController');
 const Restaurant = require('../models/restaurantModel');
+const Image = require('../models/imageModel');
 
 // exports.createPayment = async (req, res) => {
 //     const userId = req.user.id; 
@@ -151,6 +152,18 @@ const Restaurant = require('../models/restaurantModel');
 //         res.status(500).json({ message: 'Payment failed', error: error.message });
 //     }
 // };
+
+
+async function updateProductQuantities(items) {
+  const bulkOps = items.map(item => ({
+    updateOne: {
+      filter: { _id: item.itemId },
+      update: { $inc: { quantity: -item.quantity } } // تقليل الكمية
+    }
+  }));
+
+  await Image.bulkWrite(bulkOps);
+}
 
 
 exports.createPayment = async (req, res) => {
@@ -255,16 +268,31 @@ exports.cashPayment = async (req, res) => {
         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
         // Create an order
+        // const order = new Order({
+        //     userId: userId,
+        //     restaurantId: restaurantId,
+        //     items: cart.items,
+        //     totalAmount: totalPrice,
+        //     status: 'pending', // Set initial status to pending
+        //     paymentMethod: 'cash' 
+        // });
+
+
         const order = new Order({
             userId: userId,
             restaurantId: restaurantId,
-            items: cart.items,
+            items: cart.items.map(item => ({
+                itemId: item.itemId._id,
+                quantity: item.quantity,
+                price: item.itemId.price
+            })),
             totalAmount: totalPrice,
-            status: 'pending', // Set initial status to pending
-            paymentMethod: 'cash' 
+            status: 'pending',
+            paymentMethod: 'cash'
         });
 
         await order.save();
+         await updateProductQuantities(cart.items);
           await createNotification(
             req.user._id,
             restaurantId,
