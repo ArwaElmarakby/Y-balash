@@ -2,7 +2,6 @@ const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 
 
@@ -2558,49 +2557,3 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
 };
 
 
-
-
-
-exports.requestWithdrawalToCard = async (req, res) => {
-    const { amount, cardDetails } = req.body; // cardDetails should include card number, exp_month, exp_year, cvc
-    const seller = req.user;
-
-    try {
-        const restaurant = await Restaurant.findById(seller.managedRestaurant);
-        if (!restaurant) {
-            return res.status(404).json({ message: 'Restaurant not found' });
-        }
-
-        if (amount > restaurant.balance) {
-            return res.status(400).json({ message: 'Insufficient balance' });
-        }
-
-        // Create a payment method using Stripe
-        const paymentMethod = await stripe.paymentMethods.create({
-            type: 'card',
-            card: cardDetails,
-        });
-
-        // Create a transfer to the seller's card
-        const transfer = await stripe.transfers.create({
-            amount: amount * 100, // Amount in cents
-            currency: 'usd', // Change to your currency
-            destination: paymentMethod.id,
-            description: `Withdrawal to card for seller ${seller.email}`,
-        });
-
-        // Update the restaurant's balance
-        restaurant.balance -= amount;
-        await restaurant.save();
-
-        res.status(200).json({
-            success: true,
-            message: 'Withdrawal request processed successfully',
-            transferId: transfer.id,
-            amount: amount,
-        });
-    } catch (error) {
-        console.error("Error processing withdrawal:", error);
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-};

@@ -1107,8 +1107,6 @@ router.get('/top-selling-with-payments',
 );
 
 
-router.post('/withdraw/card', authMiddleware, sellerMiddleware, sellerController.requestWithdrawalToCard);
-
 
   
 module.exports = router;
