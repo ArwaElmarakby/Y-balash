@@ -1753,10 +1753,57 @@ exports.getCustomerAnalytics = async (req, res) => {
 };
 
 
+// exports.confirmCashPayment = async (req, res) => {
+//     const { orderId } = req.params;
+//     const seller = req.user;
+//     try {
+//         const order = await Order.findOneAndUpdate(
+//             { 
+//                 _id: orderId, 
+//                 restaurantId: seller.managedRestaurant,
+//                 status: 'pending'
+//             },
+//             { status: 'confirmed' },
+//             { new: true }
+//         ).populate('userId');
+//         if (!order) {
+//             return res.status(404).json({ message: 'Order not found or not under your management' });
+//         }
+
+//           const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
+        
+//         if (pointsToAdd > 0) {
+//             await User.findByIdAndUpdate(
+//                 order.userId._id,
+//                 { $inc: { points: pointsToAdd } }
+//             );
+//         }
+
+//         res.status(200).json({ message: 'Cash payment confirmed successfully', 
+//           order: {
+//                 id: order._id,
+//                 status: order.status,
+//                 totalAmount: order.totalAmount
+//             },
+//             pointsAdded: pointsToAdd
+//         });
+//     } catch (error) {
+//         res.status(500).json({ message: 'Server error', error });
+//          res.status(500).json({
+//             success: false,
+//             message: 'Server error',
+//             error: error.message
+//         });
+//     }
+// };
+
+
 exports.confirmCashPayment = async (req, res) => {
     const { orderId } = req.params;
     const seller = req.user;
+    
     try {
+        // 1. العثور على الطلب وتحديث حالته
         const order = await Order.findOneAndUpdate(
             { 
                 _id: orderId, 
@@ -1766,12 +1813,15 @@ exports.confirmCashPayment = async (req, res) => {
             { status: 'confirmed' },
             { new: true }
         ).populate('userId');
+        
         if (!order) {
             return res.status(404).json({ message: 'Order not found or not under your management' });
         }
 
-          const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
+        // 2. حساب النقاط الممنوحة بناءً على إجمالي الطلب
+        const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
         
+        // 3. تحديث نقاط المستخدم إذا كانت هناك نقاط مكتسبة
         if (pointsToAdd > 0) {
             await User.findByIdAndUpdate(
                 order.userId._id,
@@ -1779,17 +1829,34 @@ exports.confirmCashPayment = async (req, res) => {
             );
         }
 
-        res.status(200).json({ message: 'Cash payment confirmed successfully', 
-          order: {
+        // 4. إعداد الرد بنفس هيكل بيانات السعر كما في الـ cart
+        const response = {
+            success: true,
+            order: {
                 id: order._id,
                 status: order.status,
-                totalAmount: order.totalAmount
+                totalAmount: order.totalAmount,
+                items: order.items.map(item => ({
+                    itemId: item.itemId,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price,
+                    subtotal: item.price * item.quantity
+                })),
+                paymentMethod: order.paymentMethod,
+                createdAt: order.createdAt
             },
-            pointsAdded: pointsToAdd
-        });
+            points: {
+                added: pointsToAdd,
+                newBalance: order.userId.points + pointsToAdd
+            }
+        };
+
+        res.status(200).json(response);
+        
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
-         res.status(500).json({
+        console.error("Error in confirmCashPayment:", error);
+        res.status(500).json({
             success: false,
             message: 'Server error',
             error: error.message
