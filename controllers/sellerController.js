@@ -1803,25 +1803,27 @@ exports.confirmCashPayment = async (req, res) => {
     const seller = req.user;
     
     try {
-        // 1. العثور على الطلب وتحديث حالته
-        const order = await Order.findOneAndUpdate(
-            { 
-                _id: orderId, 
-                restaurantId: seller.managedRestaurant,
-                status: 'pending'
-            },
-            { status: 'confirmed' },
-            { new: true }
-        ).populate('userId');
+        // 1. العثور على الطلب
+        const order = await Order.findById(orderId)
+            .populate('userId');
         
-        if (!order) {
+        if (!order || order.restaurantId.toString() !== seller.managedRestaurant.toString()) {
             return res.status(404).json({ message: 'Order not found or not under your management' });
         }
 
-        // 2. حساب النقاط الممنوحة بناءً على إجمالي الطلب
-        const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
-        
-        // 3. تحديث نقاط المستخدم إذا كانت هناك نقاط مكتسبة
+        if (order.status !== 'pending') {
+            return res.status(400).json({ message: 'Order is not in a pending state' });
+        }
+
+        // 2. حساب النقاط الممنوحة بناءً على إجمالي الطلب بعد الخصم (إن وجد)
+        const totalAfterDiscount = order.totalAmount - (order.discountFromPoints || 0);
+        const pointsToAdd = Math.floor(totalAfterDiscount / 40) * 5;
+
+        // 3. تحديث حالة الطلب
+        order.status = 'confirmed';
+        await order.save();
+
+        // 4. تحديث نقاط المستخدم إذا كانت هناك نقاط مكتسبة
         if (pointsToAdd > 0) {
             await User.findByIdAndUpdate(
                 order.userId._id,
@@ -1829,16 +1831,17 @@ exports.confirmCashPayment = async (req, res) => {
             );
         }
 
-        // 4. إعداد الرد بنفس هيكل بيانات السعر كما في الـ cart
+        // 5. إعداد الرد
         const response = {
             success: true,
             order: {
                 id: order._id,
                 status: order.status,
                 totalAmount: order.totalAmount,
+                discountFromPoints: order.discountFromPoints || 0,
+                finalAmount: totalAfterDiscount,
                 items: order.items.map(item => ({
                     itemId: item.itemId,
-                    name: item.name,
                     quantity: item.quantity,
                     price: item.price,
                     subtotal: item.price * item.quantity
@@ -1848,7 +1851,7 @@ exports.confirmCashPayment = async (req, res) => {
             },
             points: {
                 added: pointsToAdd,
-                newBalance: order.userId.points + pointsToAdd
+                newBalance: (order.userId.points || 0) + pointsToAdd
             }
         };
 
