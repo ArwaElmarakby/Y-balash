@@ -75,40 +75,16 @@ exports.addItemToCategory = async (req, res) => {
 
 
 
-// exports.getCategoryItems = async (req, res) => {
-//   const { categoryId } = req.body; 
-
-//   try {
-//     const category = await Category.findById(categoryId).populate('items');
-//     if (!category) {
-//       return res.status(404).json({ message: 'Category not found' });
-//     }
-
-//     res.status(200).json(category.items);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error', error });
-//   }
-// };
-
-
 exports.getCategoryItems = async (req, res) => {
-  const { categoryId } = req.params; // تغيير من req.body إلى req.params لأفضل ممارسات REST API
+  const { categoryId } = req.body; 
 
   try {
-    const category = await Category.findById(categoryId).populate({
-      path: 'items',
-      select: '-__v', // استثناء حقل __v إذا كنت لا تريدينه
-      // يمكنك إضافة المزيد من الخيارات هنا إذا لزم الأمر
-    });
-
+    const category = await Category.findById(categoryId).populate('items');
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    res.status(200).json({
-      message: 'Category items retrieved successfully',
-      items: category.items
-    });
+    res.status(200).json(category.items);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
