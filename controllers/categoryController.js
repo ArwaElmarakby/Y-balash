@@ -124,14 +124,50 @@ exports.removeItemFromCategory = async (req, res) => {
 };
 
 
+// exports.getCategories = async (req, res) => {
+//     try {
+//       const categories = await Category.find();
+//       res.status(200).json(categories);
+//     } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//     }
+//   };
+
+
 exports.getCategories = async (req, res) => {
-    try {
-      const categories = await Category.find();
-      res.status(200).json(categories);
-    } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
-    }
-  };
+  try {
+    const categories = await Category.find().populate({
+      path: 'items',
+      select: 'name imageUrl price discount quantity description',
+    });
+
+    const categoriesWithFullData = categories.map(category => {
+      const itemsWithPrices = category.items.map(item => {
+        const originalPrice = parseFloat(item.price);
+        const discountPercentage = item.discount?.percentage || 0;
+        const discountedPrice = originalPrice * (1 - (discountPercentage / 100));
+        
+        return {
+          ...item.toObject(),
+          originalPrice: originalPrice.toFixed(2),
+          discountedPrice: discountedPrice.toFixed(2)
+        };
+      });
+
+      return {
+        ...category.toObject(),
+        items: itemsWithPrices
+      };
+    });
+
+    res.status(200).json(categoriesWithFullData);
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+};
 
 
   exports.deleteCategory = async (req, res) => {
