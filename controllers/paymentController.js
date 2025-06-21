@@ -233,97 +233,6 @@ exports.createPayment = async (req, res) => {
 
 
 
-// exports.cashPayment = async (req, res) => {
-//     const userId = req.user.id;
-
-//     try {
-//         const cart = await Cart.findOne({ userId })
-//             .populate('items.itemId')
-//             .populate('offers.offerId');
-//         if (!cart) {
-//             return res.status(404).json({ message: 'Cart not found' });
-//         }
-
-//         // Retrieve restaurantId from items or offers
-//         let restaurantId = null;
-//         if (cart.items.length > 0) {
-//             restaurantId = cart.items[0].itemId.restaurant || null;
-//         } 
-//         if (!restaurantId && cart.offers.length > 0) {
-//             restaurantId = cart.offers[0].offerId.restaurant || null;
-//         }
-//         if (!restaurantId) {
-//             return res.status(400).json({ message: 'Unable to determine restaurant from cart items/offers' });
-//         }
-
-//         // Calculate total items price
-//         let totalItemsPrice = 0;
-//         cart.items.forEach(item => {
-//             totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
-//         });
-
-//         // Calculate total offers price
-//         let totalOffersPrice = 0;
-//         cart.offers.forEach(offer => {
-//             totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
-//         });
-
-//         // Additional costs
-//         const shippingCost = 50; 
-//         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; // Calculate import charges as 1/4 of total items price
-
-//         // Total price calculation
-//         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
-
-//         // Create an order
-//         // const order = new Order({
-//         //     userId: userId,
-//         //     restaurantId: restaurantId,
-//         //     items: cart.items,
-//         //     totalAmount: totalPrice,
-//         //     status: 'pending', // Set initial status to pending
-//         //     paymentMethod: 'cash' 
-//         // });
-
-
-//         const order = new Order({
-//             userId: userId,
-//             restaurantId: restaurantId,
-//             items: cart.items.map(item => ({
-//                 itemId: item.itemId._id,
-//                 quantity: item.quantity,
-//                 price: item.itemId.price
-//             })),
-//             totalAmount: totalPrice,
-//             status: 'pending',
-//             paymentMethod: 'cash' 
-//         });
-
-//         await order.save();
-
-//         await updateProductQuantities(cart.items);
-
-        
-//           await createNotification(
-//             req.user._id,
-//             restaurantId,
-//             'new_order',
-//             'New Order Received',
-//             `New cash order #${order._id} for ${totalPrice} EGP`,
-//             order._id
-//         );
-
-//         // Clear the cart after payment
-//         await Cart.deleteOne({ userId });
-
-//         res.status(200).json({ message: 'Cash payment initiated successfully', orderId: order._id });
-//     } catch (error) {
-//         res.status(500).json({ message: 'Cash payment failed', error: error.message });
-//     }
-// };
-
-
-
 exports.cashPayment = async (req, res) => {
     const userId = req.user.id;
 
@@ -331,36 +240,55 @@ exports.cashPayment = async (req, res) => {
         const cart = await Cart.findOne({ userId })
             .populate('items.itemId')
             .populate('offers.offerId');
-        
         if (!cart) {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
-        // Retrieve restaurantId
-        let restaurantId = cart.items[0]?.itemId?.restaurant || 
-                         cart.offers[0]?.offerId?.restaurant;
-        
+        // Retrieve restaurantId from items or offers
+        let restaurantId = null;
+        if (cart.items.length > 0) {
+            restaurantId = cart.items[0].itemId.restaurant || null;
+        } 
+        if (!restaurantId && cart.offers.length > 0) {
+            restaurantId = cart.offers[0].offerId.restaurant || null;
+        }
         if (!restaurantId) {
-            return res.status(400).json({ message: 'Unable to determine restaurant' });
+            return res.status(400).json({ message: 'Unable to determine restaurant from cart items/offers' });
         }
 
-        // Calculate prices
-        const totalItemsPrice = cart.items.reduce((sum, item) => 
-            sum + (item.quantity * item.itemId.price), 0);
-        
-        const totalOffersPrice = cart.offers.reduce((sum, offer) => 
-            sum + (offer.quantity * offer.offerId.price), 0);
+        // Calculate total items price
+        let totalItemsPrice = 0;
+        cart.items.forEach(item => {
+            totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
+        });
 
-        const shippingCost = 50;
-        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
-        const discount = cart.discountFromPoints || 0;
-        
-        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges - discount;
+        // Calculate total offers price
+        let totalOffersPrice = 0;
+        cart.offers.forEach(offer => {
+            totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
+        });
 
-        // Create order
+        // Additional costs
+        const shippingCost = 50; 
+        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; // Calculate import charges as 1/4 of total items price
+
+        // Total price calculation
+        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
+
+        // Create an order
+        // const order = new Order({
+        //     userId: userId,
+        //     restaurantId: restaurantId,
+        //     items: cart.items,
+        //     totalAmount: totalPrice,
+        //     status: 'pending', // Set initial status to pending
+        //     paymentMethod: 'cash' 
+        // });
+
+
         const order = new Order({
-            userId,
-            restaurantId,
+            userId: userId,
+            restaurantId: restaurantId,
             items: cart.items.map(item => ({
                 itemId: item.itemId._id,
                 quantity: item.quantity,
@@ -368,24 +296,16 @@ exports.cashPayment = async (req, res) => {
             })),
             totalAmount: totalPrice,
             status: 'pending',
-            paymentMethod: 'cash',
-            pointsUsed: cart.pointsUsed,
-            discountFromPoints: discount
+            paymentMethod: 'cash' 
         });
 
         await order.save();
 
-        // Update user points if any were used
-        if (cart.pointsUsed > 0) {
-            await User.findByIdAndUpdate(userId, {
-                $inc: { points: -cart.pointsUsed }
-            });
-        }
-
         await updateProductQuantities(cart.items);
+
         
-        await createNotification(
-            userId,
+          await createNotification(
+            req.user._id,
             restaurantId,
             'new_order',
             'New Order Received',
@@ -393,24 +313,15 @@ exports.cashPayment = async (req, res) => {
             order._id
         );
 
+        // Clear the cart after payment
         await Cart.deleteOne({ userId });
 
-        res.status(200).json({ 
-            success: true,
-            message: 'Cash payment successful',
-            orderId: order._id,
-            totalAmount: totalPrice,
-            discountApplied: discount,
-            pointsUsed: cart.pointsUsed,
-            newOrder: order // يمكنك إزالة هذا إذا كنت لا تريدين إرجاع كامل بيانات الطلب
-        });
-        
+        res.status(200).json({ message: 'Cash payment initiated successfully', orderId: order._id });
     } catch (error) {
-        console.error('Cash payment error:', error);
-        res.status(500).json({ 
-            success: false,
-            message: 'Cash payment failed',
-            error: error.message 
-        });
+        res.status(500).json({ message: 'Cash payment failed', error: error.message });
     }
 };
+
+
+
+
