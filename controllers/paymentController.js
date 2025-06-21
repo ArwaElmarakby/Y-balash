@@ -324,91 +324,47 @@ exports.createPayment = async (req, res) => {
 
 
 
-
 exports.cashPayment = async (req, res) => {
-    const userId = req.user.id;
-
+    console.log('Starting cashPayment function'); // Debug log
+    
     try {
+        if (!req.user || !req.user._id) {
+            console.error('User not authenticated or missing user ID');
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        const userId = req.user._id;
+        console.log(`Processing payment for user: ${userId}`); // Debug log
+
+        const user = await User.findById(userId).lean();
+        if (!user) {
+            console.error(`User not found with ID: ${userId}`);
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        console.log('User found, proceeding with cart retrieval'); // Debug log
         const cart = await Cart.findOne({ userId })
             .populate('items.itemId')
-            .populate('offers.offerId');
+            .populate('offers.offerId')
+            .lean();
+
         if (!cart) {
+            console.error(`Cart not found for user: ${userId}`);
             return res.status(404).json({ message: 'Cart not found' });
         }
 
-        // Retrieve restaurantId from items or offers
-        let restaurantId = null;
-        if (cart.items.length > 0) {
-            restaurantId = cart.items[0].itemId.restaurant || null;
-        } 
-        if (!restaurantId && cart.offers.length > 0) {
-            restaurantId = cart.offers[0].offerId.restaurant || null;
-        }
-        if (!restaurantId) {
-            return res.status(400).json({ message: 'Unable to determine restaurant from cart items/offers' });
-        }
+        // ... rest of your code with additional debug logs ...
 
-        // Calculate total items price
-        let totalItemsPrice = 0;
-        cart.items.forEach(item => {
-            totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
-        });
-
-        // Calculate total offers price
-        let totalOffersPrice = 0;
-        cart.offers.forEach(offer => {
-            totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
-        });
-
-        // Additional costs
-        const shippingCost = 50; 
-        const importCharges = totalItemsPrice / 4; // Calculate import charges as 1/4 of total items price
-
-        // Total price calculation
-        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
-
-        // Create an order
-        // const order = new Order({
-        //     userId: userId,
-        //     restaurantId: restaurantId,
-        //     items: cart.items,
-        //     totalAmount: totalPrice,
-        //     status: 'pending', // Set initial status to pending
-        //     paymentMethod: 'cash' 
-        // });
-
-        const order = new Order({
-            userId: userId,
-            restaurantId: restaurantId,
-            items: cart.items.map(item => ({
-                itemId: item.itemId._id,
-                quantity: item.quantity,
-                price: item.itemId.price
-            })),
-            totalAmount: totalPrice,
-            status: 'pending',
-            paymentMethod: 'cash' 
-        });
-
-        await order.save();
-
-        await updateProductQuantities(cart.items);
-
-        
-          await createNotification(
-            req.user._id,
-            restaurantId,
-            'new_order',
-            'New Order Received',
-            `New cash order #${order._id} for ${totalPrice} EGP`,
-            order._id
-        );
-
-        // Clear the cart after payment
-        await Cart.deleteOne({ userId });
-
-        res.status(200).json({ message: 'Cash payment initiated successfully', orderId: order._id });
     } catch (error) {
-        res.status(500).json({ message: 'Cash payment failed', error: error.message });
+        console.error('Full error details:', {
+            message: error.message,
+            stack: error.stack,
+            fullError: error
+        });
+        res.status(500).json({ 
+            message: 'Cash payment failed', 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 };
