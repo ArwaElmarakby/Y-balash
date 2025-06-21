@@ -270,7 +270,7 @@ exports.cashPayment = async (req, res) => {
 
         // Additional costs
         const shippingCost = 0; 
-        const importCharges = totalItemsPrice / 4; // Calculate import charges as 1/4 of total items price
+        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; // Calculate import charges as 1/4 of total items price
 
         // Total price calculation
         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
