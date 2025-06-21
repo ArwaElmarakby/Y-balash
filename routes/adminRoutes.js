@@ -881,4 +881,36 @@ router.get('/total-earnings', authMiddleware, adminMiddleware, async (req, res) 
     }
 });
 
+
+// routes/adminRoutes.js
+router.post('/approve-withdrawal/:requestId', authMiddleware, adminMiddleware, async (req, res) => {
+    const { requestId } = req.params;
+
+    try {
+        const withdrawalRequest = await Restaurant.findOneAndUpdate(
+            { 'withdrawalRequests._id': requestId },
+            { $set: { 'withdrawalRequests.$.status': 'approved' } },
+            { new: true }
+        );
+
+        if (!withdrawalRequest) {
+            return res.status(404).json({ message: 'Withdrawal request not found' });
+        }
+
+        const amount = withdrawalRequest.withdrawalRequests.find(req => req._id.toString() === requestId).amount;
+
+        // Deduct the amount from the restaurant's balance
+        withdrawalRequest.balance -= amount;
+        await withdrawalRequest.save();
+
+        res.status(200).json({
+            message: 'Withdrawal request approved successfully',
+            newBalance: withdrawalRequest.balance
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
 module.exports = router;

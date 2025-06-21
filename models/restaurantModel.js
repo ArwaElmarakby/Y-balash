@@ -22,6 +22,11 @@ const refundSchema = new mongoose.Schema({
   }
 });
 
+const withdrawalRequestSchema = new mongoose.Schema({
+    amount: { type: Number, required: true },
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    createdAt: { type: Date, default: Date.now }
+});
 
 const restaurantSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
@@ -31,7 +36,8 @@ const restaurantSchema = new mongoose.Schema({
   defaultShippingTime: { type: String, default: '30-45 minutes' },
   images: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Image' }],
   balance: { type: Number, default: 0 },
-  pendingWithdrawal: { type: Number, default: 0 },
+  // pendingWithdrawal: { type: Number, default: 0 },
+  withdrawalRequests: [withdrawalRequestSchema] ,
   items: [{
   type: mongoose.Schema.Types.ObjectId,
   ref: 'Image'

@@ -1107,6 +1107,44 @@ router.get('/top-selling-with-payments',
 );
 
 
+// routes/sellerRoutes.js
+router.post('/request-withdrawal', authMiddleware, sellerMiddleware, async (req, res) => {
+    const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+        return res.status(400).json({ message: 'Invalid amount' });
+    }
+
+    const seller = req.user;
+
+    try {
+        const restaurant = await Restaurant.findById(seller.managedRestaurant);
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant not found' });
+        }
+
+        if (amount > restaurant.balance) {
+            return res.status(400).json({ message: 'Insufficient balance' });
+        }
+
+        // Create a withdrawal request
+        const withdrawalRequest = {
+            amount,
+            status: 'pending',
+            createdAt: new Date()
+        };
+
+        restaurant.withdrawalRequests.push(withdrawalRequest);
+        await restaurant.save();
+
+        res.status(200).json({
+            message: 'Withdrawal request submitted successfully',
+            request: withdrawalRequest
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
 
   
 module.exports = router;
