@@ -1753,43 +1753,125 @@ exports.getCustomerAnalytics = async (req, res) => {
 };
 
 
+// exports.confirmCashPayment = async (req, res) => {
+//     const { orderId } = req.params;
+//     const seller = req.user;
+//     try {
+//         const order = await Order.findOneAndUpdate(
+//             { 
+//                 _id: orderId, 
+//                 restaurantId: seller.managedRestaurant,
+//                 status: 'pending'
+//             },
+//             { status: 'confirmed' },
+//             { new: true }
+//         ).populate('userId');
+//         if (!order) {
+//             return res.status(404).json({ message: 'Order not found or not under your management' });
+//         }
+
+//           const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
+        
+//         if (pointsToAdd > 0) {
+//             await User.findByIdAndUpdate(
+//                 order.userId._id,
+//                 { $inc: { points: pointsToAdd } }
+//             );
+//         }
+
+//         res.status(200).json({ message: 'Cash payment confirmed successfully', 
+//           order: {
+//                 id: order._id,
+//                 status: order.status,
+//                 totalAmount: order.totalAmount
+//             },
+//             pointsAdded: pointsToAdd
+//         });
+//     } catch (error) {
+//         res.status(500).json({ message: 'Server error', error });
+//          res.status(500).json({
+//             success: false,
+//             message: 'Server error',
+//             error: error.message
+//         });
+//     }
+// };
+
+
+
 exports.confirmCashPayment = async (req, res) => {
     const { orderId } = req.params;
     const seller = req.user;
+    
     try {
-        const order = await Order.findOneAndUpdate(
-            { 
-                _id: orderId, 
-                restaurantId: seller.managedRestaurant,
-                status: 'pending'
-            },
-            { status: 'confirmed' },
-            { new: true }
-        ).populate('userId');
+        // 1. Find the order
+        const order = await Order.findOne({
+            _id: orderId,
+            restaurantId: seller.managedRestaurant,
+            status: 'pending'
+        }).populate('userId');
+
         if (!order) {
-            return res.status(404).json({ message: 'Order not found or not under your management' });
+            return res.status(404).json({ 
+                success: false,
+                message: 'Order not found or not under your management' 
+            });
         }
 
-          const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
+        // 2. Find the user's cart to get points discount
+        const cart = await Cart.findOne({ userId: order.userId })
+            .populate('items.itemId')
+            .populate('offers.offerId');
+
+        if (!cart) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'Cart not found for this order' 
+            });
+        }
+
+        // 3. Calculate points discount (reuse the logic from pointsController)
+        let discountFromPoints = 0;
+        let pointsUsed = 0;
         
-        if (pointsToAdd > 0) {
-            await User.findByIdAndUpdate(
-                order.userId._id,
-                { $inc: { points: pointsToAdd } }
-            );
+        const user = await User.findById(order.userId);
+        if (user && user.points >= 10) {
+            const possibleDiscounts = Math.floor(user.points / 10);
+            discountFromPoints = possibleDiscounts * 3; // 10 points = 3 EGP
+            pointsUsed = possibleDiscounts * 10;
+            
+            // Deduct points (optional - you may want to do this only after delivery)
+            user.points -= pointsUsed;
+            await user.save();
         }
 
-        res.status(200).json({ message: 'Cash payment confirmed successfully', 
-          order: {
-                id: order._id,
-                status: order.status,
-                totalAmount: order.totalAmount
-            },
-            pointsAdded: pointsToAdd
+        // 4. Calculate the final amount after points discount
+        const finalAmount = order.totalAmount - discountFromPoints;
+
+        // 5. Update order status
+        order.status = 'confirmed';
+        order.finalAmount = finalAmount; // Add this field to your Order model
+        order.pointsUsed = pointsUsed;
+        order.pointsDiscount = discountFromPoints;
+        await order.save();
+
+        // 6. Return the correct price details
+        res.status(200).json({
+            success: true,
+            message: 'Cash payment confirmed successfully',
+            orderDetails: {
+                orderId: order._id,
+                originalAmount: order.totalAmount,
+                pointsUsed: pointsUsed,
+                pointsDiscount: discountFromPoints,
+                finalAmount: finalAmount,
+                currency: "EGP"
+            }
         });
+
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
-         res.status(500).json({
+        console.error("Error in confirmCashPayment:", error);
+        res.status(500).json({
             success: false,
             message: 'Server error',
             error: error.message
