@@ -881,30 +881,4 @@ router.get('/total-earnings', authMiddleware, adminMiddleware, async (req, res) 
     }
 });
 
-
-router.post('/approve-withdrawal', authMiddleware, adminMiddleware, async (req, res) => {
-    const { restaurantId, amount } = req.body;
-
-    try {
-        const restaurant = await Restaurant.findById(restaurantId);
-        if (!restaurant) {
-            return res.status(404).json({ message: 'Restaurant not found' });
-        }
-
-        if (restaurant.pendingWithdrawals < amount) {
-            return res.status(400).json({ message: 'Insufficient pending withdrawal amount' });
-        }
-
-        restaurant.pendingWithdrawals -= amount; // Deduct from pending withdrawals
-        await restaurant.save();
-
-        // Here you would also handle the actual transfer to the seller's account via Stripe
-
-        res.status(200).json({ message: 'Withdrawal approved successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
-    }
-});
-
-
 module.exports = router;
