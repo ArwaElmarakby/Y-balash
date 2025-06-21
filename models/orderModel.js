@@ -21,6 +21,8 @@ const orderSchema = new mongoose.Schema({
         enum: ['cash', 'card'],
         required: true
     },
+    pointsUsed: { type: Number, default: 0 },
+    discountFromPoints: { type: Number, default: 0 },
     notifications: [{
         type: {
             type: String,

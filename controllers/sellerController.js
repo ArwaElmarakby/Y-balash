@@ -1803,7 +1803,6 @@ exports.confirmCashPayment = async (req, res) => {
     const seller = req.user;
     
     try {
-        // البحث عن الطلب وتأكيده
         const order = await Order.findOneAndUpdate(
             { 
                 _id: orderId, 
@@ -1821,11 +1820,9 @@ exports.confirmCashPayment = async (req, res) => {
             });
         }
 
-        // حساب النقاط المضافة بناءً على السعر النهائي بعد الخصم
-        const finalAmount = order.totalAmount - (order.pointsDiscount || 0);
-        const pointsToAdd = Math.floor(finalAmount / 40) * 5;
-
-        // إضافة النقاط إلى المستخدم إذا كانت أكبر من الصفر
+        // Calculate points to add (based on final amount after discount)
+        const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
+        
         if (pointsToAdd > 0) {
             await User.findByIdAndUpdate(
                 order.userId._id,
@@ -1833,29 +1830,26 @@ exports.confirmCashPayment = async (req, res) => {
             );
         }
 
-        // إرجاع البيانات المحدثة
         res.status(200).json({ 
             success: true,
             message: 'Cash payment confirmed successfully', 
             order: {
                 id: order._id,
                 status: order.status,
-                totalAmount: finalAmount,  // السعر النهائي بعد الخصم
-                pointsDiscount: order.pointsDiscount || 0,
-                originalAmount: order.totalAmount
+                totalAmount: order.totalAmount,
+                pointsUsed: order.pointsUsed || 0,
+                discountFromPoints: order.discountFromPoints || 0
             },
             pointsAdded: pointsToAdd
         });
     } catch (error) {
-        console.error("Error in confirmCashPayment:", error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
             message: 'Server error',
             error: error.message
         });
     }
 };
-
 
 exports.getLowStockItems = async (req, res) => {
   try {
