@@ -154,7 +154,7 @@ exports.getCartSummary = async (req, res) => {
             totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
         });
 
-        const shippingCost = 50; 
+        const shippingCost = 0; 
         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; 
 
         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
@@ -206,7 +206,7 @@ exports.applyCoupon = async (req, res) => {
             totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
         });
 
-        const shippingCost = 50; 
+        const shippingCost = 0; 
         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
 
         let totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
