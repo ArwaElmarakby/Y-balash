@@ -104,7 +104,8 @@ const Order = require('../models/orderModel');
 const { createNotification } = require('./notificationController');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
-
+const User = require('../models/user');
+const { updateProductQuantities } = require('./productController');
 // exports.createPayment = async (req, res) => {
 //     const userId = req.user.id; 
 
@@ -332,55 +333,63 @@ exports.cashPayment = async (req, res) => {
     const userId = req.user.id;
 
     try {
-        const user = await User.findById(userId); // أضف هذا السطر لاسترجاع بيانات المستخدم
+        // 1. احصل على بيانات المستخدم أولاً
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // 2. احصل على سلة التسوق
         const cart = await Cart.findOne({ userId })
             .populate('items.itemId')
             .populate('offers.offerId');
+        
         if (!cart) {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
-        // Retrieve restaurantId from items or offers
+        // 3. تحديد المطعم
         let restaurantId = null;
         if (cart.items.length > 0) {
-            restaurantId = cart.items[0].itemId.restaurant || null;
+            restaurantId = cart.items[0].itemId.restaurant;
         } 
         if (!restaurantId && cart.offers.length > 0) {
-            restaurantId = cart.offers[0].offerId.restaurant || null;
+            restaurantId = cart.offers[0].offerId.restaurant;
         }
         if (!restaurantId) {
-            return res.status(400).json({ message: 'Unable to determine restaurant from cart items/offers' });
+            return res.status(400).json({ message: 'Unable to determine restaurant' });
         }
 
-        // Calculate total items price
+        // 4. الحسابات المالية
         let totalItemsPrice = 0;
         cart.items.forEach(item => {
-            totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
+            totalItemsPrice += item.quantity * item.itemId.price;
         });
 
-        // Calculate total offers price
         let totalOffersPrice = 0;
         cart.offers.forEach(offer => {
-            totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
+            totalOffersPrice += offer.quantity * offer.offerId.price;
         });
 
-        // Additional costs
-        const shippingCost = 50; 
+        const shippingCost = 50;
         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
 
-        // احتساب خصم النقاط
+        // 5. خصم النقاط (إذا طُلب)
         let discountFromPoints = 0;
+        let pointsUsed = 0;
+
         if (cart.usePoints && user.points >= 10) {
             const possibleDiscounts = Math.floor(user.points / 10);
             discountFromPoints = possibleDiscounts * 3;
+            pointsUsed = possibleDiscounts * 10;
         }
 
-        // Total price calculation مع تطبيق الخصم
         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges - discountFromPoints;
 
+        // 6. إنشاء الطلب
         const order = new Order({
-            userId: userId,
-            restaurantId: restaurantId,
+            userId,
+            restaurantId,
             items: cart.items.map(item => ({
                 itemId: item.itemId._id,
                 quantity: item.quantity,
@@ -389,38 +398,46 @@ exports.cashPayment = async (req, res) => {
             totalAmount: totalPrice,
             status: 'pending',
             paymentMethod: 'cash',
-            pointsUsed: cart.pointsUsed || 0, // حفظ النقاط المستخدمة
-            discountFromPoints: discountFromPoints // حفظ قيمة الخصم
+            pointsUsed,
+            discountFromPoints
         });
 
         await order.save();
+
+        // 7. تحديث الكميات وخصم النقاط
         await updateProductQuantities(cart.items);
-
-        await createNotification(
-            req.user._id,
-            restaurantId,
-            'new_order',
-            'New Order Received',
-            `New cash order #${order._id} for ${totalPrice} EGP (${discountFromPoints} EGP points discount)`,
-            order._id
-        );
-
-        // خصم النقاط من رصيد المستخدم إذا تم استخدامها
-        if (cart.usePoints && user.points >= 10) {
-            user.points -= cart.pointsUsed;
+        
+        if (pointsUsed > 0) {
+            user.points -= pointsUsed;
             await user.save();
         }
 
-        // Clear the cart after payment
+        // 8. الإشعارات
+        await createNotification(
+            userId,
+            restaurantId,
+            'new_order',
+            'New Order Received',
+            `New cash order #${order._id} for ${totalPrice} EGP`,
+            order._id
+        );
+
+        // 9. مسح السلة
         await Cart.deleteOne({ userId });
 
         res.status(200).json({ 
-            message: 'Cash payment initiated successfully', 
+            message: 'Cash payment successful', 
             orderId: order._id,
             totalAmount: totalPrice,
-            discountFromPoints: discountFromPoints
+            discountFromPoints,
+            pointsUsed
         });
+
     } catch (error) {
-        res.status(500).json({ message: 'Cash payment failed', error: error.message });
+        console.error('Payment error:', error);
+        res.status(500).json({ 
+            message: 'Cash payment failed', 
+            error: error.message 
+        });
     }
 };
