@@ -21,9 +21,6 @@ const orderSchema = new mongoose.Schema({
         enum: ['cash', 'card'],
         required: true
     },
-    finalAmount: { type: Number }, // السعر النهائي بعد الخصم
-pointsUsed: { type: Number, default: 0 }, // النقاط المستخدمة
-pointsDiscount: { type: Number, default: 0 }, // قيمة الخصم من النقاط
     notifications: [{
         type: {
             type: String,
