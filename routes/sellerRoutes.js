@@ -12,7 +12,6 @@ const jwt = require('jsonwebtoken');
 const { confirmCashPayment } = require('../controllers/sellerController');
 const { addReturn, getReturnsSummary } = require('../controllers/returnController');
 const { getCurrentMonthOrdersCount } = require('../controllers/sellerController');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 
 
@@ -1107,101 +1106,6 @@ router.get('/top-selling-with-payments',
   sellerController.getTopSellingProductsWithPaymentMethods
 );
 
-
-
-router.post('/setup-stripe', authMiddleware, sellerMiddleware, async (req, res) => {
-  try {
-    const seller = req.user;
-    const restaurant = await Restaurant.findById(seller.managedRestaurant);
-    
-    if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
-    }
-
-    // إنشاء حساب Stripe
-    const account = await stripe.accounts.create({
-      type: 'express',
-      email: seller.email,
-      business_type: 'individual',
-      capabilities: {
-        transfers: { requested: true },
-      },
-    });
-
-    restaurant.stripeAccountId = account.id;
-    await restaurant.save();
-
-    res.status(200).json({
-      message: 'Stripe account created successfully',
-      accountId: account.id
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating Stripe account', error });
-  }
-});
-
-// طلب سحب الأموال
-router.post('/request-withdrawal', authMiddleware, sellerMiddleware, async (req, res) => {
-  try {
-    const { amount } = req.body;
-    const seller = req.user;
-    const restaurant = await Restaurant.findById(seller.managedRestaurant);
-
-    if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
-    }
-
-    if (amount > restaurant.availableBalance) {
-      return res.status(400).json({ message: 'Insufficient balance' });
-    }
-
-    restaurant.pendingWithdrawals.push({
-      amount,
-      status: 'pending'
-    });
-    restaurant.availableBalance -= amount;
-    await restaurant.save();
-
-    res.status(200).json({
-      message: 'Withdrawal request submitted',
-      newBalance: restaurant.availableBalance
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error requesting withdrawal', error });
-  }
-});
-
-// الموافقة على السحب (للمشرف)
-router.post('/approve-withdrawal/:requestId', authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const { requestId } = req.params;
-    const seller = await User.findById(req.body.sellerId);
-    const restaurant = await Restaurant.findById(seller.managedRestaurant);
-
-    const withdrawal = restaurant.pendingWithdrawals.id(requestId);
-    if (!withdrawal) {
-      return res.status(404).json({ message: 'Withdrawal request not found' });
-    }
-
-    // تحويل الأموال عبر Stripe
-    const transfer = await stripe.transfers.create({
-      amount: withdrawal.amount * 100, // تحويل إلى سنتات
-      currency: 'egp',
-      destination: restaurant.stripeAccountId,
-    });
-
-    withdrawal.status = 'approved';
-    withdrawal.processedAt = new Date();
-    await restaurant.save();
-
-    res.status(200).json({
-      message: 'Withdrawal approved and processed',
-      transferId: transfer.id
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error approving withdrawal', error });
-  }
-});
 
 
   
