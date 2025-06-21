@@ -327,6 +327,11 @@ exports.cashPayment = async (req, res) => {
     const userId = req.user.id;
 
     try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User  not found' });
+        }
+
         const cart = await Cart.findOne({ userId })
             .populate('items.itemId')
             .populate('offers.offerId');
@@ -334,7 +339,6 @@ exports.cashPayment = async (req, res) => {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
-        // Retrieve restaurantId from items or offers
         let restaurantId = null;
         if (cart.items.length > 0) {
             restaurantId = cart.items[0].itemId.restaurant || null;
@@ -346,26 +350,34 @@ exports.cashPayment = async (req, res) => {
             return res.status(400).json({ message: 'Unable to determine restaurant from cart items/offers' });
         }
 
-        // Calculate total items price
         let totalItemsPrice = 0;
         cart.items.forEach(item => {
             totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
         });
 
-        // Calculate total offers price
         let totalOffersPrice = 0;
         cart.offers.forEach(offer => {
             totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
         });
 
-        // Additional costs
         const shippingCost = 50; 
         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
 
-        // Total price calculation
-        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
+        // حساب الخصم التلقائي من النقاط
+        let discountFromPoints = 0;
+        let pointsUsed = 0;
+        
+        if (user.points >= 10) {
+            const possibleDiscounts = Math.floor(user.points / 10);
+            discountFromPoints = possibleDiscounts * 3; // 10 نقاط = 3 جنيه
+            pointsUsed = possibleDiscounts * 10;
 
-        // Create an order
+            user.points -= pointsUsed; // خصم النقاط من المستخدم
+            await user.save();
+        }
+
+        let totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges - discountFromPoints;
+
         const order = new Order({
             userId: userId,
             restaurantId: restaurantId,
@@ -376,7 +388,7 @@ exports.cashPayment = async (req, res) => {
             })),
             totalAmount: totalPrice,
             status: 'pending',
-            paymentMethod: 'cash' 
+            paymentMethod: 'cash'
         });
 
         await order.save();
@@ -391,17 +403,15 @@ exports.cashPayment = async (req, res) => {
             order._id
         );
 
-        // Clear the cart after payment
         await Cart.deleteOne({ userId });
 
-        // Return response with discountFromPoints set to 0 for cash payment
         res.status(200).json({
             success: true,
             message: 'Cash payment initiated successfully',
             orderId: order._id,
-            pointsUsed: 0, // No points used in cash payment
-            discountFromPoints: 0, // No discount from points in cash payment
-            remainingPoints: req.user.points, // Current user points
+            pointsUsed: pointsUsed,
+            discountFromPoints: discountFromPoints,
+            remainingPoints: user.points,
             cartSummary: {
                 totalItems: cart.items.length,
                 totalOffers: cart.offers.length,
@@ -409,7 +419,7 @@ exports.cashPayment = async (req, res) => {
                 totalOffersPrice: totalOffersPrice.toFixed(2),
                 shippingCost: shippingCost.toFixed(2),
                 importCharges: importCharges.toFixed(2),
-                discountFromPoints: "0.00", // Explicitly showing no discount
+                discountFromPoints: discountFromPoints.toFixed(2),
                 totalPrice: totalPrice.toFixed(2)
             }
         });
@@ -420,5 +430,6 @@ exports.cashPayment = async (req, res) => {
         });
     }
 };
+
 
 
