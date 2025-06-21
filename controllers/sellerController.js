@@ -1280,51 +1280,82 @@ exports.getBalance = async (req, res) => {
 
 
 
+// exports.requestWithdrawal = async (req, res) => {
+//   try {
+//     const { amount, method, accountDetails } = req.body;
+//     const seller = req.user;
+
+//     if (!seller.managedRestaurant) {
+//       return res.status(400).json({ success: false, message: 'No restaurant assigned' });
+//     }
+
+//     const restaurant = await Restaurant.findById(seller.managedRestaurant);
+
+//     if (amount > restaurant.balance) {
+//       return res.status(400).json({ success: false, message: 'Insufficient balance' });
+//     }
+
+
+//     restaurant.balance -= amount;
+//     restaurant.pendingWithdrawals += amount;
+//     await restaurant.save();
+
+
+//     const transaction = {
+//       amount,
+//       method,
+//       status: 'pending',
+//       reference: `WDR-${Date.now()}`
+//     };
+
+//     await User.findByIdAndUpdate(seller._id, {
+//       $push: { transactions: transaction }
+//     });
+
+//     res.status(200).json({ 
+//       success: true,
+//       message: 'Withdrawal request submitted',
+//       newBalance: restaurant.balance
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({ 
+//       success: false,
+//       message: 'Withdrawal request failed'
+//     });
+//   }
+// };
+
+
+
 exports.requestWithdrawal = async (req, res) => {
-  try {
-    const { amount, method, accountDetails } = req.body;
+    const { amount } = req.body; // Amount to withdraw
     const seller = req.user;
 
     if (!seller.managedRestaurant) {
-      return res.status(400).json({ success: false, message: 'No restaurant assigned' });
+        return res.status(400).json({ message: 'No restaurant assigned to this seller' });
     }
 
     const restaurant = await Restaurant.findById(seller.managedRestaurant);
-
-    if (amount > restaurant.balance) {
-      return res.status(400).json({ success: false, message: 'Insufficient balance' });
+    if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurant not found' });
     }
 
+    if (amount > restaurant.balance) {
+        return res.status(400).json({ message: 'Insufficient balance' });
+    }
 
-    restaurant.balance -= amount;
-    restaurant.pendingWithdrawals += amount;
+    // Create a withdrawal request (you can create a new model for this if needed)
+    restaurant.balance -= amount; // Deduct the amount from the restaurant's balance
+    restaurant.pendingWithdrawals += amount; // Add to pending withdrawals
     await restaurant.save();
 
-
-    const transaction = {
-      amount,
-      method,
-      status: 'pending',
-      reference: `WDR-${Date.now()}`
-    };
-
-    await User.findByIdAndUpdate(seller._id, {
-      $push: { transactions: transaction }
+    res.status(200).json({
+        message: 'Withdrawal request submitted successfully',
+        newBalance: restaurant.balance
     });
-
-    res.status(200).json({ 
-      success: true,
-      message: 'Withdrawal request submitted',
-      newBalance: restaurant.balance
-    });
-
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      message: 'Withdrawal request failed'
-    });
-  }
 };
+
 
 
 
