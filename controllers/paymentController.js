@@ -327,13 +327,11 @@ exports.createPayment = async (req, res) => {
 
 exports.cashPayment = async (req, res) => {
     const userId = req.user.id;
-    const { usePoints } = req.body; // إضافة هذا الحقل لمعرفة إذا كان المستخدم يريد استخدام النقاط
 
     try {
-        // البحث عن المستخدم لمعرفة النقاط المتاحة
         const user = await User.findById(userId);
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ message: 'User  not found' });
         }
 
         const cart = await Cart.findOne({ userId })
@@ -341,21 +339,6 @@ exports.cashPayment = async (req, res) => {
             .populate('offers.offerId');
         if (!cart) {
             return res.status(404).json({ message: 'Cart not found' });
-        }
-
-        // حساب الخصم من النقاط
-        let discountFromPoints = 0;
-        let pointsUsed = 0;
-
-        if (usePoints && user.points >= 10) {
-            // 10 points = 3 EGP
-            const possibleDiscounts = Math.floor(user.points / 10);
-            discountFromPoints = possibleDiscounts * 3;
-            pointsUsed = possibleDiscounts * 10;
-
-            // تطبيق الخصم
-            user.points -= pointsUsed;
-            await user.save();
         }
 
         // Retrieve restaurantId from items or offers
@@ -384,9 +367,18 @@ exports.cashPayment = async (req, res) => {
 
         // Additional costs
         const shippingCost = 50; 
-        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
+        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; // Calculate import charges as 10% of total items price
 
-        // Total price calculation with discount
+        // Calculate discount from points
+        let discountFromPoints = 0;
+        if (user.points >= 10) {
+            const possibleDiscounts = Math.floor(user.points / 10);
+            discountFromPoints = possibleDiscounts * 3; // 10 points = 3 EGP
+            user.points -= possibleDiscounts * 10; // Deduct used points
+            await user.save(); // Save updated user points
+        }
+
+        // Total price calculation
         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges - discountFromPoints;
 
         // Create an order
@@ -400,33 +392,25 @@ exports.cashPayment = async (req, res) => {
             })),
             totalAmount: totalPrice,
             status: 'pending',
-            paymentMethod: 'cash',
-            pointsUsed: pointsUsed, // إضافة النقاط المستخدمة
-            discountFromPoints: discountFromPoints // إضافة قيمة الخصم
+            paymentMethod: 'cash' 
         });
 
         await order.save();
         await updateProductQuantities(cart.items);
-        
+
         await createNotification(
             req.user._id,
             restaurantId,
             'new_order',
             'New Order Received',
-            `New cash order #${order._id} for ${totalPrice} EGP (Discount: ${discountFromPoints} EGP from points)`,
+            `New cash order #${order._id} for ${totalPrice} EGP`,
             order._id
         );
 
         // Clear the cart after payment
         await Cart.deleteOne({ userId });
 
-        res.status(200).json({ 
-            message: 'Cash payment initiated successfully', 
-            orderId: order._id,
-            pointsUsed: pointsUsed,
-            discountFromPoints: discountFromPoints,
-            remainingPoints: user.points
-        });
+        res.status(200).json({ message: 'Cash payment initiated successfully', orderId: order._id });
     } catch (error) {
         res.status(500).json({ message: 'Cash payment failed', error: error.message });
     }
