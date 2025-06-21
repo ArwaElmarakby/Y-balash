@@ -4,6 +4,7 @@ const User = require('../models/userModel');
 const { authMiddleware } = require('./authRoutes');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+const Order = require('../models/orderModel');
 
 // Cloudinary Configuration
 cloudinary.config({
@@ -258,6 +259,27 @@ router.get('/welcome', authMiddleware, (req, res) => {
         res.status(200).json(response);
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
+router.post('/get-points', authMiddleware, async (req, res) => {
+    const { orderId } = req.body;
+    try {
+        // Find the order by ID
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        // Find the user by ID
+        const user = await User.findById(req.user._id).select('points');
+        if (!user) {
+            return res.status(404).json({ message: 'User  not found' });
+        }
+        // Return the user's points
+        res.status(200).json({ points: user.points });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 

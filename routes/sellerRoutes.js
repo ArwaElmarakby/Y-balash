@@ -1106,25 +1106,6 @@ router.get('/top-selling-with-payments',
   sellerController.getTopSellingProductsWithPaymentMethods
 );
 
-router.post('/get-points', authMiddleware, sellerMiddleware, async (req, res) => {
-  const { orderId } = req.body;
-
-  try {
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
-
-    const points = await User.findById(req.user._id).select('points');
-    if (!points) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.status(200).json({ points: points.points });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
-  }
-});
 
 
   
