@@ -1797,24 +1797,35 @@ exports.getCustomerAnalytics = async (req, res) => {
 //     }
 // };
 
+
 exports.confirmCashPayment = async (req, res) => {
     const { orderId } = req.params;
     const seller = req.user;
+    
     try {
-        // البحث عن الطلب مع معلومات المستخدم والخصم
-        const order = await Order.findOne({
-            _id: orderId, 
-            restaurantId: seller.managedRestaurant,
-            status: 'pending'
-        }).populate('userId');
-        
+        // البحث عن الطلب وتأكيده
+        const order = await Order.findOneAndUpdate(
+            { 
+                _id: orderId, 
+                restaurantId: seller.managedRestaurant,
+                status: 'pending'
+            },
+            { status: 'confirmed' },
+            { new: true }
+        ).populate('userId');
+
         if (!order) {
-            return res.status(404).json({ message: 'Order not found or not under your management' });
+            return res.status(404).json({ 
+                success: false,
+                message: 'Order not found or not under your management' 
+            });
         }
 
-        // حساب النقاط بناءً على totalAmount بعد الخصم
-        const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
-        
+        // حساب النقاط المضافة بناءً على السعر النهائي بعد الخصم
+        const finalAmount = order.totalAmount - (order.pointsDiscount || 0);
+        const pointsToAdd = Math.floor(finalAmount / 40) * 5;
+
+        // إضافة النقاط إلى المستخدم إذا كانت أكبر من الصفر
         if (pointsToAdd > 0) {
             await User.findByIdAndUpdate(
                 order.userId._id,
@@ -1822,27 +1833,29 @@ exports.confirmCashPayment = async (req, res) => {
             );
         }
 
-        // تحديث حالة الطلب إلى "confirmed"
-        order.status = 'confirmed';
-        await order.save();
-
+        // إرجاع البيانات المحدثة
         res.status(200).json({ 
+            success: true,
             message: 'Cash payment confirmed successfully', 
             order: {
                 id: order._id,
                 status: order.status,
-                totalAmount: order.totalAmount, // هذا هو المبلغ بعد الخصم
-                pointsAdded: pointsToAdd
-            }
+                totalAmount: finalAmount,  // السعر النهائي بعد الخصم
+                pointsDiscount: order.pointsDiscount || 0,
+                originalAmount: order.totalAmount
+            },
+            pointsAdded: pointsToAdd
         });
     } catch (error) {
-        res.status(500).json({
+        console.error("Error in confirmCashPayment:", error);
+        res.status(500).json({ 
             success: false,
             message: 'Server error',
             error: error.message
         });
     }
 };
+
 
 exports.getLowStockItems = async (req, res) => {
   try {
