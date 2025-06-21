@@ -147,46 +147,6 @@ exports.changePassword = async (req, res) => {
 };
 
 
-exports.getOrderPoints = async (req, res) => {
-    const { orderId } = req.body;
-
-    try {
-        // البحث عن الطلب
-        const order = await Order.findById(orderId);
-        if (!order) {
-            return res.status(404).json({ 
-                success: false,
-                message: 'Order not found' 
-            });
-        }
-
-        // التأكد من أن المستخدم هو صاحب الطلب
-        if (order.userId.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ 
-                success: false,
-                message: 'Unauthorized access to this order' 
-            });
-        }
-
-        // حساب النقاط (نفس الحساب المستخدم عند تأكيد الطلب)
-        const pointsEarned = Math.floor(order.totalAmount / 40) * 5;
-
-        res.status(200).json({
-            success: true,
-            orderId: order._id,
-            pointsEarned,
-            message: 'Points retrieved successfully'
-        });
-
-    } catch (error) {
-        console.error("Error in getOrderPoints:", error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch order points',
-            error: error.message
-        });
-    }
-};
 
 
 
