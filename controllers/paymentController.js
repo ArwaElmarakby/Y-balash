@@ -324,7 +324,6 @@ exports.createPayment = async (req, res) => {
 
 
 
-
 exports.cashPayment = async (req, res) => {
     const userId = req.user.id;
 
@@ -332,46 +331,36 @@ exports.cashPayment = async (req, res) => {
         const cart = await Cart.findOne({ userId })
             .populate('items.itemId')
             .populate('offers.offerId');
+        
         if (!cart) {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
-        // Retrieve restaurantId from items or offers
-        let restaurantId = null;
-        if (cart.items.length > 0) {
-            restaurantId = cart.items[0].itemId.restaurant || null;
-        } 
-        if (!restaurantId && cart.offers.length > 0) {
-            restaurantId = cart.offers[0].offerId.restaurant || null;
-        }
+        // Retrieve restaurantId
+        let restaurantId = cart.items[0]?.itemId?.restaurant || 
+                         cart.offers[0]?.offerId?.restaurant;
+        
         if (!restaurantId) {
-            return res.status(400).json({ message: 'Unable to determine restaurant from cart items/offers' });
+            return res.status(400).json({ message: 'Unable to determine restaurant' });
         }
 
-        // Calculate total items price
-        let totalItemsPrice = 0;
-        cart.items.forEach(item => {
-            totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
-        });
+        // Calculate prices
+        const totalItemsPrice = cart.items.reduce((sum, item) => 
+            sum + (item.quantity * item.itemId.price), 0);
+        
+        const totalOffersPrice = cart.offers.reduce((sum, offer) => 
+            sum + (offer.quantity * offer.offerId.price), 0);
 
-        // Calculate total offers price
-        let totalOffersPrice = 0;
-        cart.offers.forEach(offer => {
-            totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
-        });
-
-        // Additional costs
-        const shippingCost = 50; 
+        const shippingCost = 50;
         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
+        const discount = cart.discountFromPoints || 0;
+        
+        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges - discount;
 
-        // Total price calculation with discount
-        const discountFromPoints = cart.discountFromPoints || 0;
-        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges - discountFromPoints;
-
-        // Create an order
+        // Create order
         const order = new Order({
-            userId: userId,
-            restaurantId: restaurantId,
+            userId,
+            restaurantId,
             items: cart.items.map(item => ({
                 itemId: item.itemId._id,
                 quantity: item.quantity,
@@ -380,25 +369,23 @@ exports.cashPayment = async (req, res) => {
             totalAmount: totalPrice,
             status: 'pending',
             paymentMethod: 'cash',
-            pointsUsed: cart.pointsUsed || 0,
-            discountFromPoints: discountFromPoints
+            pointsUsed: cart.pointsUsed,
+            discountFromPoints: discount
         });
 
         await order.save();
 
-        // Update user points if points were used
-        if (cart.pointsUsed && cart.pointsUsed > 0) {
-            const user = await User.findById(userId);
-            if (user) {
-                user.points -= cart.pointsUsed;
-                await user.save();
-            }
+        // Update user points if any were used
+        if (cart.pointsUsed > 0) {
+            await User.findByIdAndUpdate(userId, {
+                $inc: { points: -cart.pointsUsed }
+            });
         }
 
         await updateProductQuantities(cart.items);
         
         await createNotification(
-            req.user._id,
+            userId,
             restaurantId,
             'new_order',
             'New Order Received',
@@ -406,16 +393,24 @@ exports.cashPayment = async (req, res) => {
             order._id
         );
 
-        // Clear the cart after payment
         await Cart.deleteOne({ userId });
 
         res.status(200).json({ 
-            message: 'Cash payment initiated successfully', 
+            success: true,
+            message: 'Cash payment successful',
             orderId: order._id,
-            pointsUsed: order.pointsUsed,
-            discountApplied: order.discountFromPoints
+            totalAmount: totalPrice,
+            discountApplied: discount,
+            pointsUsed: cart.pointsUsed,
+            newOrder: order // يمكنك إزالة هذا إذا كنت لا تريدين إرجاع كامل بيانات الطلب
         });
+        
     } catch (error) {
-        res.status(500).json({ message: 'Cash payment failed', error: error.message });
+        console.error('Cash payment error:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Cash payment failed',
+            error: error.message 
+        });
     }
 };

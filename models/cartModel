@@ -9,6 +9,8 @@ const cartSchema = new mongoose.Schema({
             quantity: { type: Number, required: true, default: 1 }
         }
     ],
+      pointsUsed: { type: Number, default: 0 },
+  discountFromPoints: { type: Number, default: 0 },
     offers: [
         {
             offerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Offer' }, 
