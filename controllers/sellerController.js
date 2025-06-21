@@ -1818,8 +1818,8 @@ exports.confirmCashPayment = async (req, res) => {
             return res.status(404).json({ message: 'Order not found or not under your management' });
         }
 
-        // حساب النقاط المضافة بناءً على المبلغ الإجمالي
-        const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
+        // حساب النقاط المضافة بناءً على المبلغ الإجمالي بعد الخصم
+        const pointsToAdd = Math.floor((order.totalAmount - (order.pointsDiscount || 0)) / 40) * 5;
         
         // تحديث نقاط المستخدم إذا كانت هناك نقاط لإضافتها
         if (pointsToAdd > 0) {
@@ -1829,10 +1829,6 @@ exports.confirmCashPayment = async (req, res) => {
             );
         }
 
-        // حساب السعر بعد خصم النقاط (إذا كان هناك خصم للنقاط)
-        const pointsDiscount = order.pointsUsed ? order.pointsUsed * 0.1 : 0; // افترضنا أن كل نقطة = 0.1 جنيه
-        const finalAmount = order.totalAmount - pointsDiscount;
-
         res.status(200).json({ 
             message: 'Cash payment confirmed successfully', 
             order: {
@@ -1840,8 +1836,8 @@ exports.confirmCashPayment = async (req, res) => {
                 status: order.status,
                 originalAmount: order.totalAmount, // السعر الأصلي قبل الخصم
                 pointsUsed: order.pointsUsed || 0, // النقاط المستخدمة
-                pointsDiscount: pointsDiscount, // قيمة الخصم من النقاط
-                finalAmount: finalAmount, // السعر النهائي بعد الخصم
+                pointsDiscount: order.pointsDiscount || 0, // قيمة الخصم من النقاط
+                finalAmount: order.totalAmount - (order.pointsDiscount || 0), // السعر النهائي بعد الخصم
                 pointsAdded: pointsToAdd // النقاط المضافة
             }
         });
