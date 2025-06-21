@@ -1753,52 +1753,6 @@ exports.getCustomerAnalytics = async (req, res) => {
 };
 
 
-// exports.confirmCashPayment = async (req, res) => {
-//     const { orderId } = req.params;
-//     const seller = req.user;
-//     try {
-//         const order = await Order.findOneAndUpdate(
-//             { 
-//                 _id: orderId, 
-//                 restaurantId: seller.managedRestaurant,
-//                 status: 'pending'
-//             },
-//             { status: 'confirmed' },
-//             { new: true }
-//         ).populate('userId');
-//         if (!order) {
-//             return res.status(404).json({ message: 'Order not found or not under your management' });
-//         }
-
-//           const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
-        
-//         if (pointsToAdd > 0) {
-//             await User.findByIdAndUpdate(
-//                 order.userId._id,
-//                 { $inc: { points: pointsToAdd } }
-//             );
-//         }
-
-//         res.status(200).json({ message: 'Cash payment confirmed successfully', 
-//           order: {
-//                 id: order._id,
-//                 status: order.status,
-//                 totalAmount: order.totalAmount
-//             },
-//             pointsAdded: pointsToAdd
-//         });
-//     } catch (error) {
-//         res.status(500).json({ message: 'Server error', error });
-//          res.status(500).json({
-//             success: false,
-//             message: 'Server error',
-//             error: error.message
-//         });
-//     }
-// };
-
-
-
 exports.confirmCashPayment = async (req, res) => {
     const { orderId } = req.params;
     const seller = req.user;
@@ -1815,11 +1769,14 @@ exports.confirmCashPayment = async (req, res) => {
         ).populate('userId');
         
         if (!order) {
-            return res.status(404).json({ message: 'Order not found or not under your management' });
+            return res.status(404).json({ 
+                success: false,
+                message: 'Order not found or not under your management' 
+            });
         }
 
-        // حساب النقاط المضافة بناءً على المبلغ الإجمالي بعد الخصم
-        const pointsToAdd = Math.floor((order.totalAmount - (order.pointsDiscount || 0)) / 40) * 5;
+        // حساب النقاط المضافة (5 نقاط لكل 40 جنيه)
+        const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
         
         // تحديث نقاط المستخدم إذا كانت هناك نقاط لإضافتها
         if (pointsToAdd > 0) {
@@ -1829,27 +1786,32 @@ exports.confirmCashPayment = async (req, res) => {
             );
         }
 
+        // حساب السعر بعد خصم النقاط (إذا كان هناك خصم للنقاط)
+        const pointsDiscount = order.pointsUsed ? (order.pointsUsed * 0.5) : 0; // افترضنا أن كل نقطة = 0.5 جنيه
+        const finalAmount = order.totalAmount - pointsDiscount;
+
         res.status(200).json({ 
+            success: true,
             message: 'Cash payment confirmed successfully', 
             order: {
                 id: order._id,
                 status: order.status,
                 originalAmount: order.totalAmount, // السعر الأصلي قبل الخصم
                 pointsUsed: order.pointsUsed || 0, // النقاط المستخدمة
-                pointsDiscount: order.pointsDiscount || 0, // قيمة الخصم من النقاط
-                finalAmount: order.totalAmount - (order.pointsDiscount || 0), // السعر النهائي بعد الخصم
-                pointsAdded: pointsToAdd // النقاط المضافة
+                pointsDiscount: pointsDiscount, // قيمة الخصم من النقاط
+                finalAmount: finalAmount, // السعر النهائي بعد الخصم
+                pointsAdded: pointsToAdd // النقاط المضافة لهذه العملية
             }
         });
     } catch (error) {
-        res.status(500).json({
+        console.error("Error in confirmCashPayment:", error);
+        res.status(500).json({ 
             success: false,
             message: 'Server error',
             error: error.message
         });
     }
 };
-
 
 exports.getLowStockItems = async (req, res) => {
   try {
