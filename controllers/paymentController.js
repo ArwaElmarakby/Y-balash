@@ -327,7 +327,7 @@ exports.createPayment = async (req, res) => {
 
 // في controllers/paymentController.js
 exports.cashPayment = async (req, res) => {
-    const userId = req.user._id; // استخدام _id بدلاً من id
+    const userId = req.user.id; // استخدام _id بدلاً من id
 
     try {
         // 1. الحصول على سلة التسوق
