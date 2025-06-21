@@ -104,7 +104,7 @@ const Order = require('../models/orderModel');
 const { createNotification } = require('./notificationController');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
-
+const User = require('../models/user');
 // exports.createPayment = async (req, res) => {
 //     const userId = req.user.id; 
 
