@@ -1798,32 +1798,30 @@ exports.getCustomerAnalytics = async (req, res) => {
 // };
 
 
+
 exports.confirmCashPayment = async (req, res) => {
     const { orderId } = req.params;
     const seller = req.user;
-    
     try {
-        // 1. العثور على الطلب
-        const order = await Order.findById(orderId)
-            .populate('userId');
+        // البحث عن الطلب وتحديث حالته
+        const order = await Order.findOneAndUpdate(
+            { 
+                _id: orderId, 
+                restaurantId: seller.managedRestaurant,
+                status: 'pending'
+            },
+            { status: 'confirmed' },
+            { new: true }
+        ).populate('userId');
         
-        if (!order || order.restaurantId.toString() !== seller.managedRestaurant.toString()) {
+        if (!order) {
             return res.status(404).json({ message: 'Order not found or not under your management' });
         }
 
-        if (order.status !== 'pending') {
-            return res.status(400).json({ message: 'Order is not in a pending state' });
-        }
-
-        // 2. حساب النقاط الممنوحة بناءً على إجمالي الطلب بعد الخصم (إن وجد)
-        const totalAfterDiscount = order.totalAmount - (order.discountFromPoints || 0);
-        const pointsToAdd = Math.floor(totalAfterDiscount / 40) * 5;
-
-        // 3. تحديث حالة الطلب
-        order.status = 'confirmed';
-        await order.save();
-
-        // 4. تحديث نقاط المستخدم إذا كانت هناك نقاط مكتسبة
+        // حساب النقاط المضافة بناءً على المبلغ الإجمالي
+        const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
+        
+        // تحديث نقاط المستخدم إذا كانت هناك نقاط لإضافتها
         if (pointsToAdd > 0) {
             await User.findByIdAndUpdate(
                 order.userId._id,
@@ -1831,34 +1829,23 @@ exports.confirmCashPayment = async (req, res) => {
             );
         }
 
-        // 5. إعداد الرد
-        const response = {
-            success: true,
+        // حساب السعر بعد خصم النقاط (إذا كان هناك خصم للنقاط)
+        const pointsDiscount = order.pointsUsed ? order.pointsUsed * 0.1 : 0; // افترضنا أن كل نقطة = 0.1 جنيه
+        const finalAmount = order.totalAmount - pointsDiscount;
+
+        res.status(200).json({ 
+            message: 'Cash payment confirmed successfully', 
             order: {
                 id: order._id,
                 status: order.status,
-                totalAmount: order.totalAmount,
-                discountFromPoints: order.discountFromPoints || 0,
-                finalAmount: totalAfterDiscount,
-                items: order.items.map(item => ({
-                    itemId: item.itemId,
-                    quantity: item.quantity,
-                    price: item.price,
-                    subtotal: item.price * item.quantity
-                })),
-                paymentMethod: order.paymentMethod,
-                createdAt: order.createdAt
-            },
-            points: {
-                added: pointsToAdd,
-                newBalance: (order.userId.points || 0) + pointsToAdd
+                originalAmount: order.totalAmount, // السعر الأصلي قبل الخصم
+                pointsUsed: order.pointsUsed || 0, // النقاط المستخدمة
+                pointsDiscount: pointsDiscount, // قيمة الخصم من النقاط
+                finalAmount: finalAmount, // السعر النهائي بعد الخصم
+                pointsAdded: pointsToAdd // النقاط المضافة
             }
-        };
-
-        res.status(200).json(response);
-        
+        });
     } catch (error) {
-        console.error("Error in confirmCashPayment:", error);
         res.status(500).json({
             success: false,
             message: 'Server error',
