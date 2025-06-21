@@ -104,7 +104,6 @@ const Order = require('../models/orderModel');
 const { createNotification } = require('./notificationController');
 const Restaurant = require('../models/restaurantModel');
 const Image = require('../models/imageModel');
-const User = require('../models/userModel');
 
 // exports.createPayment = async (req, res) => {
 //     const userId = req.user.id; 
@@ -270,8 +269,8 @@ exports.cashPayment = async (req, res) => {
         });
 
         // Additional costs
-        const shippingCost = 0; 
-        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;// Calculate import charges as 1/4 of total items price
+        const shippingCost = 50; 
+        const importCharges = totalItemsPrice / 4; // Calculate import charges as 1/4 of total items price
 
         // Total price calculation
         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
