@@ -1753,56 +1753,9 @@ exports.getCustomerAnalytics = async (req, res) => {
 };
 
 
-// exports.confirmCashPayment = async (req, res) => {
-//     const { orderId } = req.params;
-//     const seller = req.user;
-//     try {
-//         const order = await Order.findOneAndUpdate(
-//             { 
-//                 _id: orderId, 
-//                 restaurantId: seller.managedRestaurant,
-//                 status: 'pending'
-//             },
-//             { status: 'confirmed' },
-//             { new: true }
-//         ).populate('userId');
-//         if (!order) {
-//             return res.status(404).json({ message: 'Order not found or not under your management' });
-//         }
-
-//           const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
-        
-//         if (pointsToAdd > 0) {
-//             await User.findByIdAndUpdate(
-//                 order.userId._id,
-//                 { $inc: { points: pointsToAdd } }
-//             );
-//         }
-
-//         res.status(200).json({ message: 'Cash payment confirmed successfully', 
-//           order: {
-//                 id: order._id,
-//                 status: order.status,
-//                 totalAmount: order.totalAmount
-//             },
-//             pointsAdded: pointsToAdd
-//         });
-//     } catch (error) {
-//         res.status(500).json({ message: 'Server error', error });
-//          res.status(500).json({
-//             success: false,
-//             message: 'Server error',
-//             error: error.message
-//         });
-//     }
-// };
-
-
-
 exports.confirmCashPayment = async (req, res) => {
     const { orderId } = req.params;
     const seller = req.user;
-    
     try {
         const order = await Order.findOneAndUpdate(
             { 
@@ -1813,17 +1766,11 @@ exports.confirmCashPayment = async (req, res) => {
             { status: 'confirmed' },
             { new: true }
         ).populate('userId');
-        
         if (!order) {
-            return res.status(404).json({ 
-                success: false,
-                message: 'Order not found or not under your management' 
-            });
+            return res.status(404).json({ message: 'Order not found or not under your management' });
         }
 
-        // Calculate points to add based on the original total before points discount
-        const amountForPoints = order.originalTotal || order.totalAmount;
-        const pointsToAdd = Math.floor(amountForPoints / 40) * 5;
+          const pointsToAdd = Math.floor(order.totalAmount / 40) * 5;
         
         if (pointsToAdd > 0) {
             await User.findByIdAndUpdate(
@@ -1832,21 +1779,17 @@ exports.confirmCashPayment = async (req, res) => {
             );
         }
 
-        res.status(200).json({ 
-            success: true,
-            message: 'Cash payment confirmed successfully', 
-            order: {
+        res.status(200).json({ message: 'Cash payment confirmed successfully', 
+          order: {
                 id: order._id,
                 status: order.status,
-                originalTotal: order.originalTotal,
-                pointsDiscount: order.pointsDiscount,
-                finalTotal: order.totalAmount
+                totalAmount: order.totalAmount
             },
             pointsAdded: pointsToAdd
         });
     } catch (error) {
-        console.error("Error confirming cash payment:", error);
-        res.status(500).json({
+        res.status(500).json({ message: 'Server error', error });
+         res.status(500).json({
             success: false,
             message: 'Server error',
             error: error.message
