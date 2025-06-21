@@ -75,46 +75,20 @@ exports.addItemToCategory = async (req, res) => {
 
 
 
-// exports.getCategoryItems = async (req, res) => {
-//   const { categoryId } = req.body; 
-
-//   try {
-//     const category = await Category.findById(categoryId).populate('items');
-//     if (!category) {
-//       return res.status(404).json({ message: 'Category not found' });
-//     }
-
-//     res.status(200).json(category.items);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Server error', error });
-//   }
-// };
-
-
-
 exports.getCategoryItems = async (req, res) => {
   const { categoryId } = req.body; 
 
   try {
-    const category = await Category.findById(categoryId).populate('items', 'originalPrice discountedPrice'); // Populate with specific fields
+    const category = await Category.findById(categoryId).populate('items');
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    // Map through items to include originalPrice and discountedPrice
-    const itemsWithPrices = category.items.map(item => ({
-      id: item._id,
-      originalPrice: item.originalPrice,
-      discountedPrice: item.discountedPrice,
-      // Include any other fields you want to return
-    }));
-
-    res.status(200).json(itemsWithPrices);
+    res.status(200).json(category.items);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
 };
-
 
 
 exports.removeItemFromCategory = async (req, res) => {
