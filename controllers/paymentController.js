@@ -232,8 +232,6 @@ exports.createPayment = async (req, res) => {
 };
 
 
-const pointsUsed = req.body.pointsUsed || 0; // يجب أن تأتي هذه القيمة من الطلب
-const pointsDiscount = pointsUsed * 0.1;
 
 exports.cashPayment = async (req, res) => {
     const userId = req.user.id;
@@ -275,7 +273,7 @@ exports.cashPayment = async (req, res) => {
         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; // Calculate import charges as 1/4 of total items price
 
         // Total price calculation
-        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges - pointsDiscount;
+        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
         // Create an order
         // const order = new Order({
@@ -298,17 +296,13 @@ exports.cashPayment = async (req, res) => {
             })),
             totalAmount: totalPrice,
             status: 'pending',
-            paymentMethod: 'cash' ,
-            pointsUsed: pointsUsed,
-            pointsDiscount: pointsDiscount
+            paymentMethod: 'cash' 
         });
 
         await order.save();
 
-
         await updateProductQuantities(cart.items);
 
-        await User.findByIdAndUpdate(userId, { $inc: { points: -pointsUsed } });
         
           await createNotification(
             req.user._id,
