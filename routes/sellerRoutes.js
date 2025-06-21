@@ -12,7 +12,7 @@ const jwt = require('jsonwebtoken');
 const { confirmCashPayment } = require('../controllers/sellerController');
 const { addReturn, getReturnsSummary } = require('../controllers/returnController');
 const { getCurrentMonthOrdersCount } = require('../controllers/sellerController');
-
+const { requestWithdrawal } = require('../controllers/sellerController');
 
 
 router.post('/promote-to-seller', authMiddleware, sellerMiddleware, async (req, res) => {
@@ -1107,6 +1107,6 @@ router.get('/top-selling-with-payments',
 );
 
 
-
+router.post('/request-withdrawal', authMiddleware, sellerMiddleware, requestWithdrawal);
   
 module.exports = router;
