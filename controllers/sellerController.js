@@ -1783,7 +1783,9 @@ exports.confirmCashPayment = async (req, res) => {
           order: {
                 id: order._id,
                 status: order.status,
-                totalAmount: order.totalAmount
+                 originalAmount: order.originalAmount, // السعر قبل الخصم
+                pointsDiscount: order.pointsDiscount, // قيمة الخصم
+                finalAmount: order.totalAmount 
             },
             pointsAdded: pointsToAdd
         });

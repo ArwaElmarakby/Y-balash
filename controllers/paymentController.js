@@ -295,11 +295,14 @@ exports.cashPayment = async (req, res) => {
                 price: item.itemId.price
             })),
             totalAmount: totalPrice,
+            originalAmount: totalPrice, // حفظ السعر الأصلي
+            pointsDiscount: req.body.pointsDiscount || 0,
             status: 'pending',
             paymentMethod: 'cash' 
         });
 
         await order.save();
+        order.totalAmount = totalPrice - (req.body.pointsDiscount || 0);
 
         await updateProductQuantities(cart.items);
 
