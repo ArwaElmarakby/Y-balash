@@ -275,6 +275,11 @@ exports.cashPayment = async (req, res) => {
         // Total price calculation
         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
+         const pointsToAdd = Math.floor(totalPrice / 40) * 5;
+        
+        // Apply points to total price
+        totalPrice -= pointsToAdd / 10;
+        
         // Create an order
         // const order = new Order({
         //     userId: userId,
