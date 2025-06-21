@@ -75,21 +75,47 @@ exports.addItemToCategory = async (req, res) => {
 
 
 
+// exports.getCategoryItems = async (req, res) => {
+//   const { categoryId } = req.body; 
+
+//   try {
+//     const category = await Category.findById(categoryId).populate('items');
+//     if (!category) {
+//       return res.status(404).json({ message: 'Category not found' });
+//     }
+
+//     res.status(200).json(category.items);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
+
 exports.getCategoryItems = async (req, res) => {
-  const { categoryId } = req.body; 
+  const { categoryId } = req.body;
 
   try {
-    const category = await Category.findById(categoryId).populate('items');
+    const category = await Category.findById(categoryId).populate({
+      path: 'items',
+      select: 'title description imageUrl originalPrice discountedPrice tags' // تضمين الحقول المطلوبة
+    });
+
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    res.status(200).json(category.items);
+    res.status(200).json({
+      success: true,
+      items: category.items
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: error.message 
+    });
   }
 };
-
 
 exports.removeItemFromCategory = async (req, res) => {
   const { categoryId, itemId } = req.body;
