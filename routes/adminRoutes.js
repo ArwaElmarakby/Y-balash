@@ -881,6 +881,4 @@ router.get('/total-earnings', authMiddleware, adminMiddleware, async (req, res) 
     }
 });
 
-router.delete('/users/:userId', authMiddleware, adminMiddleware, deleteUser );
-
 module.exports = router;
