@@ -325,7 +325,6 @@ exports.createPayment = async (req, res) => {
 
 
 
-
 exports.cashPayment = async (req, res) => {
     const userId = req.user._id; // استخدام req.user._id بدلاً من req.user.id
 
@@ -366,16 +365,13 @@ exports.cashPayment = async (req, res) => {
 
         const pointsData = await pointsResponse.json();
 
+        let discount = 0; // Initialize discount
         if (pointsData.success) {
-            const discount = pointsData.discountFromPoints; // Get discount from points
+            discount = pointsData.discountFromPoints; // Get discount from points
             totalPrice -= discount; // Apply discount
         }
 
-        // 4. تحديث سعر السلة في قاعدة البيانات (اختياري)
-        cart.totalPrice = totalPrice;
-        await cart.save();
-
-        // 5. إنشاء order
+        // 4. إنشاء order
         const order = new Order({
             userId: userId,
             restaurantId: cart.items[0].itemId.restaurant, // Assuming all items belong to the same restaurant
@@ -408,4 +404,3 @@ exports.cashPayment = async (req, res) => {
         });
     }
 };
-
