@@ -355,9 +355,21 @@ exports.cashPayment = async (req, res) => {
         let totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
         // 3. حساب الخصم من النقاط
-        const pointsUsed = req.body.usePoints ? Math.floor(totalPrice / 40) * 10 : 0; // Assuming 10 points = 1 EGP
-        const discount = pointsUsed; // Total discount from points
-        totalPrice -= discount; // Apply discount
+        const pointsResponse = await fetch('https://y-balash.vercel.app/api/points/use-points', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${req.headers.authorization.split(' ')[1]}` // Use the same token
+            },
+            body: JSON.stringify({ usePoints: true })
+        });
+
+        const pointsData = await pointsResponse.json();
+
+        if (pointsData.success) {
+            const discount = pointsData.discountFromPoints; // Get discount from points
+            totalPrice -= discount; // Apply discount
+        }
 
         // 4. تحديث سعر السلة في قاعدة البيانات (اختياري)
         cart.totalPrice = totalPrice;
@@ -396,3 +408,4 @@ exports.cashPayment = async (req, res) => {
         });
     }
 };
+
