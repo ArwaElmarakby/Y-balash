@@ -244,7 +244,7 @@ exports.cashPayment = async (req, res) => {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
-        // Retrieve restauantId from items or offers
+        // Retrieve restaurantId from items or offers
         let restaurantId = null;
         if (cart.items.length > 0) {
             restaurantId = cart.items[0].itemId.restaurant || null;
