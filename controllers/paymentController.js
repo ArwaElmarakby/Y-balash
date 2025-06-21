@@ -324,7 +324,6 @@ exports.createPayment = async (req, res) => {
 
 
 
-
 exports.cashPayment = async (req, res) => {
     const userId = req.user.id;
 
@@ -336,7 +335,7 @@ exports.cashPayment = async (req, res) => {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
-        // Retrieve restaurantId
+        // Retrieve restaurantId from items or offers
         let restaurantId = null;
         if (cart.items.length > 0) {
             restaurantId = cart.items[0].itemId.restaurant || null;
@@ -345,46 +344,36 @@ exports.cashPayment = async (req, res) => {
             restaurantId = cart.offers[0].offerId.restaurant || null;
         }
         if (!restaurantId) {
-            return res.status(400).json({ message: 'Unable to determine restaurant' });
+            return res.status(400).json({ message: 'Unable to determine restaurant from cart items/offers' });
         }
 
-        // Calculate totals
+        // Calculate total items price
         let totalItemsPrice = 0;
         cart.items.forEach(item => {
             totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
         });
 
+        // Calculate total offers price
         let totalOffersPrice = 0;
         cart.offers.forEach(offer => {
             totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
         });
 
+        // Additional costs
         const shippingCost = 50; 
-        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
+        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1; // Calculate import charges as 1/4 of total items price
 
-        // Calculate total before points discount
-        let totalBeforeDiscount = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
+        // Total price calculation
+        let totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
-        // Apply points discount if any
-        const user = await User.findById(userId);
-        let pointsDiscount = 0;
-        let pointsUsed = 0;
+        // Calculate discount from points
+        const pointsUsed = req.body.usePoints ? 10 : 0; // Assuming 10 points are used for discount
+        const discountFromPoints = Math.floor(pointsUsed / 10) * 3; // 10 points = 3 EGP discount
 
-        if (user.points >= 10) {
-            // 10 points = 3 EGP discount
-            const possibleDiscounts = Math.floor(user.points / 10);
-            pointsDiscount = possibleDiscounts * 3;
-            pointsUsed = possibleDiscounts * 10;
+        // Adjust total price by discount
+        totalPrice -= discountFromPoints;
 
-            // Update user points
-            user.points -= pointsUsed;
-            await user.save();
-        }
-
-        // Final total after discount
-        const finalTotal = totalBeforeDiscount - pointsDiscount;
-
-        // Create order with the final total
+        // Create an order
         const order = new Order({
             userId: userId,
             restaurantId: restaurantId,
@@ -393,33 +382,33 @@ exports.cashPayment = async (req, res) => {
                 quantity: item.quantity,
                 price: item.itemId.price
             })),
-            totalAmount: finalTotal, // This now includes the points discount
+            totalAmount: totalPrice,
             status: 'pending',
             paymentMethod: 'cash',
-            pointsUsed: pointsUsed,
-            pointsDiscount: pointsDiscount
+            discountFromPoints: discountFromPoints // Store the discount in the order
         });
 
         await order.save();
 
-        // Update product quantities
         await updateProductQuantities(cart.items);
 
-        // Clear the cart
+        await createNotification(
+            req.user._id,
+            restaurantId,
+            'new_order',
+            'New Order Received',
+            `New cash order #${order._id} for ${totalPrice} EGP`,
+            order._id
+        );
+
+        // Clear the cart after payment
         await Cart.deleteOne({ userId });
 
-        res.status(200).json({ 
-            message: 'Cash payment initiated successfully', 
-            orderId: order._id,
-            totalAmount: finalTotal, // Make sure to send this
-            pointsUsed: pointsUsed,
-            pointsDiscount: pointsDiscount
-        });
-
+        res.status(200).json({ message: 'Cash payment initiated successfully', orderId: order._id });
     } catch (error) {
-        res.status(500).json({ 
-            message: 'Cash payment failed', 
-            error: error.message 
-        });
+        res.status(500).json({ message: 'Cash payment failed', error: error.message });
     }
 };
+
+
+
