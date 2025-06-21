@@ -4,6 +4,7 @@ const User = require('../models/userModel');
 const { authMiddleware } = require('./authRoutes');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+const { getOrderPoints } = require('../controllers/authController');
 
 // Cloudinary Configuration
 cloudinary.config({
@@ -262,5 +263,7 @@ router.get('/welcome', authMiddleware, (req, res) => {
 });
 
 
+
+router.post('/order-points', authMiddleware, getOrderPoints);
 
 module.exports = router;

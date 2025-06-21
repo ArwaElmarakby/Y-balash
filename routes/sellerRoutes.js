@@ -878,12 +878,6 @@ router.get('/my-restaurant',
     }
 });
 
-router.post('/verify-token-order', 
-    authMiddleware,
-    sellerMiddleware,
-    sellerController.verifyTokenAndOrder
-);
-
 
 router.post('/confirm-cash-payment/:orderId', authMiddleware, sellerMiddleware, confirmCashPayment);
 

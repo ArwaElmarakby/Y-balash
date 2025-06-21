@@ -1753,62 +1753,6 @@ exports.getCustomerAnalytics = async (req, res) => {
 };
 
 
-exports.verifyTokenAndOrder = async (req, res) => {
-    const { orderId } = req.body;
-
-    try {
-        // تحقق من صحة التوكن
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.id);
-        
-        if (!user) {
-            return res.status(404).json({ 
-                success: false,
-                message: 'User not found' 
-            });
-        }
-
-        // تحقق من وجود الطلب
-        const order = await Order.findById(orderId);
-        if (!order) {
-            return res.status(404).json({ 
-                success: false,
-                message: 'Order not found' 
-            });
-        }
-
-        // تأكد أن الطلب خاص بهذا المستخدم
-        if (order.userId.toString() !== user._id.toString()) {
-            return res.status(403).json({ 
-                success: false,
-                message: 'This order does not belong to this user' 
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            user: {
-                id: user._id,
-                email: user.email
-            },
-            order: {
-                id: order._id,
-                totalAmount: order.totalAmount
-            }
-        });
-
-    } catch (error) {
-        console.error("Error in verifyTokenAndOrder:", error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
-    }
-};
-
-
-
 exports.confirmCashPayment = async (req, res) => {
     const { orderId } = req.params;
     const seller = req.user;
