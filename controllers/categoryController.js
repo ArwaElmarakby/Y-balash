@@ -75,16 +75,40 @@ exports.addItemToCategory = async (req, res) => {
 
 
 
+// exports.getCategoryItems = async (req, res) => {
+//   const { categoryId } = req.body; 
+
+//   try {
+//     const category = await Category.findById(categoryId).populate('items');
+//     if (!category) {
+//       return res.status(404).json({ message: 'Category not found' });
+//     }
+
+//     res.status(200).json(category.items);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
+
 exports.getCategoryItems = async (req, res) => {
-  const { categoryId } = req.body; 
+  const { categoryId } = req.params; // تغيير من req.body إلى req.params لأفضل ممارسات REST API
 
   try {
-    const category = await Category.findById(categoryId).populate('items');
+    const category = await Category.findById(categoryId).populate({
+      path: 'items',
+      select: '-__v', // استثناء حقل __v إذا كنت لا تريدينه
+      // يمكنك إضافة المزيد من الخيارات هنا إذا لزم الأمر
+    });
+
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    res.status(200).json(category.items);
+    res.status(200).json({
+      message: 'Category items retrieved successfully',
+      items: category.items
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
@@ -124,50 +148,14 @@ exports.removeItemFromCategory = async (req, res) => {
 };
 
 
-// exports.getCategories = async (req, res) => {
-//     try {
-//       const categories = await Category.find();
-//       res.status(200).json(categories);
-//     } catch (error) {
-//       res.status(500).json({ message: 'Server error', error });
-//     }
-//   };
-
-
 exports.getCategories = async (req, res) => {
-  try {
-    const categories = await Category.find().populate({
-      path: 'items',
-      select: 'name imageUrl price discount quantity description',
-    });
-
-    const categoriesWithFullData = categories.map(category => {
-      const itemsWithPrices = category.items.map(item => {
-        const originalPrice = parseFloat(item.price);
-        const discountPercentage = item.discount?.percentage || 0;
-        const discountedPrice = originalPrice * (1 - (discountPercentage / 100));
-        
-        return {
-          ...item.toObject(),
-          originalPrice: originalPrice.toFixed(2),
-          discountedPrice: discountedPrice.toFixed(2)
-        };
-      });
-
-      return {
-        ...category.toObject(),
-        items: itemsWithPrices
-      };
-    });
-
-    res.status(200).json(categoriesWithFullData);
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'Server error', 
-      error: error.message 
-    });
-  }
-};
+    try {
+      const categories = await Category.find();
+      res.status(200).json(categories);
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+    }
+  };
 
 
   exports.deleteCategory = async (req, res) => {
