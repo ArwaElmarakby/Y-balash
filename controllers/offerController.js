@@ -49,20 +49,21 @@ const upload = multer({ storage: storage }).single("image"); // Use single file 
 
 
    exports.addOffer = async (req, res) => {
-       const { title, subject, description, price, imageUrl } = req.body;
+    const { title, subject, description, price } = req.body; // تأكد من أنك تستخرج الحقول بشكل صحيح
 
-       if (!title || !subject || !description || !price || !imageUrl) {
-           return res.status(400).json({ message: "All fields are required" });
-       }
+    if (!title || !subject || !description || !price || !req.file) { // تأكد من أن جميع الحقول موجودة
+        return res.status(400).json({ message: "All fields are required" });
+    }
 
-       try {
-           const newOffer = new Offer({ title, subject, description, price, imageUrl });
-           await newOffer.save();
-           res.status(201).json({ message: 'Offer added successfully', offer: newOffer });
-       } catch (error) {
-           res.status(500).json({ message: 'Server error', error });
-       }
-   };
+    try {
+        const newOffer = new Offer({ title, subject, description, price, imageUrl: req.file.path });
+        await newOffer.save();
+        res.status(201).json({ message: 'Offer added successfully', offer: newOffer });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
    
 
 // Get All Offers
