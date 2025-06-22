@@ -51,7 +51,7 @@ const upload = multer({ storage: storage }).single("image"); // Use single file 
    exports.addOffer = async (req, res) => {
     const { title, subject, description, price } = req.body; // تأكد من أنك تستخرج الحقول بشكل صحيح
 
-    if (!title || !subject || !description || !price || !req.file) { // تأكد من أن جميع الحقول موجودة
+    if (!title || !subject || !description || !price) { // تأكد من أن جميع الحقول موجودة
         return res.status(400).json({ message: "All fields are required" });
     }
 
