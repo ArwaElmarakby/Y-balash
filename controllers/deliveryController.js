@@ -111,16 +111,19 @@ exports.addAddress = async (req, res) => {
 
 exports.getUserAddresses = async (req, res) => {
   try {
-    const addresses = await Address.find({ userId: req.user._id }); 
+    console.log('Fetching addresses for user:', req.user._id);
+    const addresses = await Address.find({ userId: req.user._id });
+    console.log('Found addresses:', addresses);
+    
     if (!addresses || addresses.length === 0) {
       return res.status(404).json({ message: 'No addresses found for this user' });
     }
     res.status(200).json(addresses);
   } catch (error) {
+    console.error('Error fetching addresses:', error);
     res.status(500).json({ message: 'Server error', error });
   }
 };
-
 
 
 exports.updateAddress = async (req, res) => {
