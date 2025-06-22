@@ -186,19 +186,3 @@ exports.deleteAddress = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
-
-
-exports.getDeliveryData = async (req, res) => {
-  try {
-   
-    const deliveryData = await Delivery.find({});
-    
-    if (!deliveryData || deliveryData.length === 0) {
-      return res.status(404).json({ message: 'No delivery data found' });
-    }
-    
-    res.status(200).json(deliveryData);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
-  }
-};
