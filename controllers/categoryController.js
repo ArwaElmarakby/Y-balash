@@ -91,6 +91,41 @@ exports.addItemToCategory = async (req, res) => {
 // };
 
 
+// exports.getCategoryItems = async (req, res) => {
+//   const { categoryId } = req.body; 
+
+//   try {
+//     const category = await Category.findById(categoryId).populate({
+//       path: 'items',
+//       transform: (doc) => {
+//         if (doc && doc.discount) {
+//           const originalPrice = parseFloat(doc.price);
+//           const discountPercentage = doc.discount.percentage;
+//           const discountedPrice = (originalPrice * (1 - discountPercentage / 100)).toFixed(2);
+          
+//           return {
+//             ...doc.toObject(),
+//             originalPrice: originalPrice.toFixed(2),
+//             discountedPrice
+//           };
+//         }
+//         return doc;
+//       }
+//     });
+    
+//     if (!category) {
+//       return res.status(404).json({ message: 'Category not found' });
+//     }
+
+//     res.status(200).json(category.items);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
+
+
+
 exports.getCategoryItems = async (req, res) => {
   const { categoryId } = req.body; 
 
@@ -101,12 +136,17 @@ exports.getCategoryItems = async (req, res) => {
         if (doc && doc.discount) {
           const originalPrice = parseFloat(doc.price);
           const discountPercentage = doc.discount.percentage;
-          const discountedPrice = (originalPrice * (1 - discountPercentage / 100)).toFixed(2);
+          
+          // حساب السعر بعد الخصم بدقة أكبر
+          const discountedPrice = (originalPrice * (1 - discountPercentage / 100));
+          
+          // تقريب الأرقام إلى منزلتين عشريتين بشكل صحيح
+          const formatPrice = (num) => parseFloat(num.toFixed(2));
           
           return {
             ...doc.toObject(),
-            originalPrice: originalPrice.toFixed(2),
-            discountedPrice
+            originalPrice: formatPrice(originalPrice),
+            discountedPrice: formatPrice(discountedPrice)
           };
         }
         return doc;
@@ -122,6 +162,7 @@ exports.getCategoryItems = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
+
 
 
 exports.removeItemFromCategory = async (req, res) => {
