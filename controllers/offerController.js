@@ -123,3 +123,50 @@ exports.getOfferById = async (req, res) => {
       res.status(500).json({ message: 'Server error', error });
   }
 };
+
+
+exports.addNewOffer = async (req, res) => {
+  upload(req, res, async (err) => {
+    if (err) {
+      return res.status(500).json({ 
+        success: false,
+        message: "Image upload failed", 
+        error: err.message 
+      });
+    }
+
+    const { title, subject, description, price } = req.body;
+    const imageUrl = req.file ? req.file.path : null;
+
+    if (!title || !subject || !description || !price || !imageUrl) {
+      return res.status(400).json({ 
+        success: false,
+        message: "All fields are required (title, subject, description, price, image)" 
+      });
+    }
+
+    try {
+      const newOffer = new Offer({ 
+        title, 
+        subject, 
+        description, 
+        price,
+        imageUrl 
+      });
+
+      await newOffer.save();
+
+      res.status(201).json({ 
+        success: true,
+        message: 'Offer added successfully',
+        offer: newOffer
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        success: false,
+        message: 'Server error',
+        error: error.message 
+      });
+    }
+  });
+};
