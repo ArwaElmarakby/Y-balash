@@ -882,47 +882,45 @@ router.get('/total-earnings', authMiddleware, adminMiddleware, async (req, res) 
 });
 
 
-router.post('/withdraw-funds', async (req, res) => {
-    const { userId, amount, reason } = req.body;
+
+
+
+// Route to withdraw amount from a seller's account
+router.post('/withdraw', authMiddleware, adminMiddleware, async (req, res) => {
+    const { sellerId, amount } = req.body;
+
+    if (!sellerId || !amount) {
+        return res.status(400).json({ message: 'Seller ID and amount are required' });
+    }
 
     try {
-        // 1. التحقق من وجود المستخدم
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+        const seller = await User.findById(sellerId);
+        if (!seller || !seller.managedRestaurant) {
+            return res.status(404).json({ message: 'Seller not found or not assigned to a restaurant' });
         }
 
-        // 2. إنشاء سجل للسحب في جدول الطلبات
-        const withdrawalOrder = new Order({
-            userId: userId,
-            restaurantId: null, // لا يرتبط بمطعم
-            items: [], // لا توجد عناصر
-            totalAmount: amount,
-            status: 'completed', // مكتمل تلقائياً
-            paymentMethod: 'admin_withdrawal',
-            metadata: {
-                type: 'admin_withdrawal',
-                reason: reason || 'Administrative withdrawal'
-            }
+        const restaurant = await Restaurant.findById(seller.managedRestaurant);
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant not found' });
+        }
+
+        if (restaurant.balance < amount) {
+            return res.status(400).json({ message: 'Insufficient balance for withdrawal' });
+        }
+
+        // Deduct the amount from the restaurant's balance
+        restaurant.balance -= amount;
+        await restaurant.save();
+
+        res.status(200).json({ 
+            message: 'Withdrawal successful', 
+            newBalance: restaurant.balance 
         });
-
-        await withdrawalOrder.save();
-
-        // 3. إرجاع الاستجابة
-        res.status(200).json({
-            success: true,
-            message: `Successfully withdrew ${amount} EGP from user ${user.email}`,
-            withdrawalRecord: withdrawalOrder
-        });
-
     } catch (error) {
-        console.error('Error in admin withdrawal:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to process withdrawal',
-            error: error.message
-        });
+        console.error("Error during withdrawal:", error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+
 
 module.exports = router;
