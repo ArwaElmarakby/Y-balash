@@ -12,7 +12,6 @@ const jwt = require('jsonwebtoken');
 const { confirmCashPayment } = require('../controllers/sellerController');
 const { addReturn, getReturnsSummary } = require('../controllers/returnController');
 const { getCurrentMonthOrdersCount } = require('../controllers/sellerController');
-const adminMiddleware = require("../middleware/adminMiddleware");
 
 
 
@@ -1108,77 +1107,6 @@ router.get('/top-selling-with-payments',
 );
 
 
-// API: سحب أموال من البائع (مخصص للمسؤولين فقط)
-router.post("/withdraw-from-seller", authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const { sellerId, amount, reason } = req.body;
 
-    // التحقق من وجود `sellerId` والمبلغ
-    if (!sellerId || !amount || amount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "يجب تحديد معرف البائع والمبلغ الصحيح",
-      });
-    }
-
-    // ١. جلب بيانات البائع
-    const seller = await User.findById(sellerId);
-    if (!seller || !seller.isSeller) {
-      return res.status(404).json({
-        success: false,
-        message: "البائع غير موجود أو ليس لديه صلاحية",
-      });
-    }
-
-    // ٢. جلب المطعم المرتبط بالبائع
-    const restaurant = await Restaurant.findById(seller.managedRestaurant);
-    if (!restaurant) {
-      return res.status(400).json({
-        success: false,
-        message: "المطعم المرتبط بالبائع غير موجود",
-      });
-    }
-
-    // ٣. التحقق من أن رصيد المطعم كافي للسحب
-    if (restaurant.balance < amount) {
-      return res.status(400).json({
-        success: false,
-        message: "رصيد البائع غير كافٍ للسحب",
-        currentBalance: restaurant.balance,
-      });
-    }
-
-    // ٤. سحب المبلغ من رصيد المطعم
-    restaurant.balance -= amount;
-    await restaurant.save();
-
-    // ٥. تسجيل عملية السحب في السجلات (اختياري)
-    // يمكنك إضافة هذا في نموذج `Restaurant` أو `Transaction` إن وُجد
-    restaurant.withdrawals.push({
-      amount,
-      withdrawnAt: new Date(),
-      reason: reason || "سحب رصيد بواسطة الإدارة",
-      adminId: req.user._id,
-    });
-    await restaurant.save();
-
-    // ٦. إرسال (webhook/email/notification) للبائع لإعلامه (اختياري)
-
-    res.status(200).json({
-      success: true,
-      message: `تم سحب ${amount} جنيه بنجاح من رصيد البائع`,
-      remainingBalance: restaurant.balance,
-      sellerId: seller._id,
-    });
-  } catch (error) {
-    console.error("خطأ أثناء سحب الأموال من البائع:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل في السحب – حدث خطأ داخلي",
-      error: error.message,
-    });
-  }
-});
-
-
+  
 module.exports = router;
