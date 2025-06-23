@@ -1107,6 +1107,10 @@ router.get('/top-selling-with-payments',
 );
 
 
-
+router.post('/deduct-earnings', 
+    authMiddleware,
+    sellerMiddleware,
+    sellerController.deductFromEarnings
+);
   
 module.exports = router;

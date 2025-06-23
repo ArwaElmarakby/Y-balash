@@ -2583,3 +2583,50 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
 };
 
 
+
+exports.deductFromEarnings = async (req, res) => {
+    try {
+        const { sellerId, amount } = req.body;
+
+        if (!sellerId || !amount) {
+            return res.status(400).json({
+                success: false,
+                message: 'Seller ID and amount are required'
+            });
+        }
+
+        const seller = await User.findById(sellerId);
+        if (!seller || !seller.managedRestaurant) {
+            return res.status(404).json({
+                success: false,
+                message: 'Seller not found or no restaurant assigned'
+            });
+        }
+
+        const restaurant = await Restaurant.findById(seller.managedRestaurant);
+        if (!restaurant) {
+            return res.status(404).json({
+                success: false,
+                message: 'Restaurant not found'
+            });
+        }
+
+        // الخصم مباشرة دون التحقق من الرصيد
+        restaurant.balance -= parseFloat(amount);
+        await restaurant.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Amount deducted successfully',
+            newBalance: restaurant.balance
+        });
+
+    } catch (error) {
+        console.error('Error deducting from earnings:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to deduct from earnings',
+            error: error.message
+        });
+    }
+};
