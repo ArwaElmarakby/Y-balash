@@ -10,6 +10,6 @@ router.get('/all', getOffers); // Get All Offers
 router.get('/:id', getOfferById); // Get a single offer by ID
 router.put('/update/:id', authMiddleware, adminMiddleware, updateOffer); // Update Offer
 router.delete('/delete/:id', authMiddleware, adminMiddleware, deleteOffer); // Delete Offer
-router.post('/add-new', authMiddleware, adminMiddleware, addNewOffer);
+router.post('/addnew', authMiddleware, adminMiddleware, addNewOffer);
 
 module.exports = router;
