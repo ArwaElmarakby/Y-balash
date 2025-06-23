@@ -6,6 +6,7 @@ const { authMiddleware } = require('./authRoutes');
 const adminMiddleware = require('../middleware/adminMiddleware');
 
 router.post('/add', authMiddleware, adminMiddleware, addOffer); // Add Today's Offer
+
 router.get('/all', getOffers); // Get All Offers
 router.get('/:id', getOfferById); // Get a single offer by ID
 router.put('/update/:id', authMiddleware, adminMiddleware, updateOffer); // Update Offer
