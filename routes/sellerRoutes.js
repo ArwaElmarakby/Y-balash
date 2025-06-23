@@ -1108,12 +1108,5 @@ router.get('/top-selling-with-payments',
 
 
 
-router.post('/simplified-monthly-earningss', 
-    authMiddleware, 
-    sellerMiddleware, 
-    sellerController.simplifiedMonthlyEarnings
-);
-
-
   
 module.exports = router;
