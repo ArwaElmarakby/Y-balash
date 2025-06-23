@@ -881,46 +881,4 @@ router.get('/total-earnings', authMiddleware, adminMiddleware, async (req, res) 
     }
 });
 
-
-
-
-
-// Route to withdraw amount from a seller's account
-router.post('/withdraw', authMiddleware, adminMiddleware, async (req, res) => {
-    const { sellerId, amount } = req.body;
-
-    if (!sellerId || !amount) {
-        return res.status(400).json({ message: 'Seller ID and amount are required' });
-    }
-
-    try {
-        const seller = await User.findById(sellerId);
-        if (!seller || !seller.managedRestaurant) {
-            return res.status(404).json({ message: 'Seller not found or not assigned to a restaurant' });
-        }
-
-        const restaurant = await Restaurant.findById(seller.managedRestaurant);
-        if (!restaurant) {
-            return res.status(404).json({ message: 'Restaurant not found' });
-        }
-
-        if (restaurant.balance < amount) {
-            return res.status(400).json({ message: 'Insufficient balance for withdrawal' });
-        }
-
-        // Deduct the amount from the restaurant's balance
-        restaurant.balance -= amount;
-        await restaurant.save();
-
-        res.status(200).json({ 
-            message: 'Withdrawal successful', 
-            newBalance: restaurant.balance 
-        });
-    } catch (error) {
-        console.error("Error during withdrawal:", error);
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-});
-
-
 module.exports = router;
