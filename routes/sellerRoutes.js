@@ -1106,6 +1106,34 @@ router.get('/top-selling-with-payments',
   sellerController.getTopSellingProductsWithPaymentMethods
 );
 
+router.post('/reduce-earnings/:sellerId', authMiddleware, adminMiddleware, async (req, res) => {
+    const { amount } = req.body; // Amount to reduce
+    const { sellerId } = req.params; // Seller ID from the URL
+
+    try {
+        const seller = await User.findById(sellerId);
+        if (!seller) {
+            return res.status(404).json({ message: 'Seller not found' });
+        }
+
+        // Reduce the seller's earnings
+        const restaurant = await Restaurant.findById(seller.managedRestaurant);
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant not found' });
+        }
+
+        restaurant.balance -= amount; // Reduce the balance by the specified amount
+        await restaurant.save();
+
+        res.status(200).json({
+            message: 'Earnings reduced successfully',
+            newBalance: restaurant.balance
+        });
+    } catch (error) {
+        console.error("Error reducing earnings:", error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
 
 
   
