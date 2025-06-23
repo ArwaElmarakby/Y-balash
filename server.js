@@ -751,7 +751,7 @@
 // app.post("/reset-password", async (req, res) => {
 //   const { newPassword, confirmNewPassword } = req.body;
 
-
+  
 //   if (!newPassword || !confirmNewPassword) {
 //     return res.status(400).json({ message: "Both fields are required" });
 //   }
@@ -765,17 +765,17 @@
 //   }
 
 //   try {
-
+    
 //     const user = await User.findOne({ email: userEmail });
 //     if (!user) {
 //       return res.status(404).json({ message: "User not found" });
 //     }
 
-
+    
 //     user.password = newPassword;
 //     await user.save();
 
-
+    
 //     generatedOTP = null;
 //     userEmail = null;
 
@@ -856,9 +856,9 @@ const User = require('./models/userModel');
 const cors = require('cors');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
-const cartRoutes = require('./routes/cartRoutes');
-const favoriteRoutes = require('./routes/favoriteRoutes');
-const offerRoutes = require('./routes/offerRoutes');
+const cartRoutes = require('./routes/cartRoutes'); 
+const favoriteRoutes = require('./routes/favoriteRoutes'); 
+const offerRoutes = require('./routes/offerRoutes'); 
 const deliveryRoutes = require('./routes/deliveryRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const locationRoutes = require('./routes/locationRoutes');
@@ -896,7 +896,7 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "uploads",
+    folder: "uploads", 
     allowedFormats: ["jpg", "jpeg", "png"],
   },
 });
@@ -911,7 +911,7 @@ app.post("/upload", upload.single("image"), (req, res) => {
 
   res.status(200).json({
     message: "The image has been uploaded successfully",
-    imageUrl: req.file.path,
+    imageUrl: req.file.path, 
   });
 });
 
@@ -919,9 +919,9 @@ app.post("/upload", upload.single("image"), (req, res) => {
 // Middleware
 app.use(bodyParser.json());
 app.use(session({
-  secret: "secret",
-  resave: false,
-  saveUninitialized: true,
+    secret: "secret",
+    resave: false,
+    saveUninitialized: true,
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -956,12 +956,12 @@ let otpStorage = {};
 
 // Passport Google Strategy
 passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: "https://y-balash.vercel.app/auth/google/callback",
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: "https://y-balash.vercel.app/auth/google/callback",
 }, (accessToken, refreshToken, profile, done) => {
-  // You can save user profile to database here
-  return done(null, profile);
+    // You can save user profile to database here
+    return done(null, profile);
 }));
 
 passport.serializeUser((user, done) => done(null, user));
@@ -969,10 +969,10 @@ passport.deserializeUser((user, done) => done(null, user));
 
 // Routes
 app.get("/", (req, res) => {
-  res.send("<a href='/auth/google'>Login with Google</a>");
+    res.send("<a href='/auth/google'>Login with Google</a>");
 });
 
-app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+app.get("/auth/google", passport.authenticate("google", {scope: ["profile", "email"]}));
 
 // app.get("/auth/google/callback", passport.authenticate('google', {failureRedirect: "/"}), (req, res) => {
 //     res.redirect('/profile');
@@ -1008,8 +1008,8 @@ const jwt = require('jsonwebtoken');
 // });
 
 
-app.get("/auth/google/callback",
-  passport.authenticate('google', { failureRedirect: "/" }),
+app.get("/auth/google/callback", 
+  passport.authenticate('google', { failureRedirect: "/" }), 
   (req, res) => {
 
     const token = jwt.sign({
@@ -1020,27 +1020,27 @@ app.get("/auth/google/callback",
 
 
     const deepLink = `myapp://auth/callback?token=${encodeURIComponent(token)}&email=${encodeURIComponent(req.user.emails[0].value)}&displayName=${encodeURIComponent(req.user.displayName)}`;
-
+    
 
     res.redirect(deepLink);
   }
 );
 
 app.get("/profile", (req, res) => {
-  if (!req.user) {
-    return res.redirect('/');
-  }
-  res.send(`Welcome ${req.user.displayName}`);
+    if (!req.user) {
+        return res.redirect('/');
+    }
+    res.send(`Welcome ${req.user.displayName}`);
 });
 
 app.get("/logout", (req, res) => {
-  req.logout(() => {
-    res.redirect("/");
-  });
+    req.logout(() => {
+        res.redirect("/");
+    });
 });
 
-let generatedOTP;
-let userEmail;
+let generatedOTP; 
+let userEmail; 
 
 
 app.post("/send-otp", async (req, res) => {
@@ -1050,7 +1050,7 @@ app.post("/send-otp", async (req, res) => {
     return res.status(400).json({ message: "Please enter your email" });
   }
 
-  generatedOTP = Math.floor(100000 + Math.random() * 900000);
+  generatedOTP = Math.floor(100000 + Math.random() * 900000); 
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -1091,12 +1091,12 @@ app.post("/verify-otp", (req, res) => {
 });
 
 app.post("/api/request-seller", async (req, res) => {
-  const { email, message, phone } = req.body;
+  const { email, message, phone } = req.body; 
 
   if (!email) {
-    return res.status(400).json({
+    return res.status(400).json({ 
       success: false,
-      message: "Email is required"
+      message: "Email is required" 
     });
   }
 
@@ -1131,16 +1131,16 @@ app.post("/api/request-seller", async (req, res) => {
 
     await transporter.sendMail(userMailOptions);
 
-    res.status(200).json({
+    res.status(200).json({ 
       success: true,
-      message: "Seller request submitted successfully"
+      message: "Seller request submitted successfully" 
     });
   } catch (error) {
     console.error("Error:", error);
-    res.status(500).json({
+    res.status(500).json({ 
       success: false,
       message: "Failed to process request",
-      error: error.message
+      error: error.message 
     });
   }
 });
@@ -1148,16 +1148,16 @@ app.post("/api/request-seller", async (req, res) => {
 // Custom API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
-app.use('/api/images', imageRoutes);
+app.use('/api/images', imageRoutes); 
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/cart', cartRoutes);
+app.use('/api/cart', cartRoutes); 
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/purchases', paymentRoutes);
 app.use('/api/coupons', couponRoutes);
-app.use('/api/location', locationRoutes);
+app.use('/api/location', locationRoutes); 
 app.use('/api', statsRoutes);
 app.get('/api/total-categories', getTotalCategories);
 app.get('/api/total-restaurants', getTotalRestaurants);
@@ -1166,7 +1166,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', sellerRoutes);
-app.use('/api', sellerRoutes);
+app.use('/api', sellerRoutes); 
 app.use('/api/addresses', clientAddressRoutes);
 app.use('/api/client-info', clientInfoRoutes);
 app.use('/api/payment', paymentRoutes);
@@ -1177,7 +1177,7 @@ app.use('/api/payment', paymentRoutes);
 app.post("/reset-password", async (req, res) => {
   const { newPassword, confirmNewPassword } = req.body;
 
-
+  
   if (!newPassword || !confirmNewPassword) {
     return res.status(400).json({ message: "Both fields are required" });
   }
@@ -1191,17 +1191,17 @@ app.post("/reset-password", async (req, res) => {
   }
 
   try {
-
+    
     const user = await User.findOne({ email: userEmail });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-
+    
     user.password = newPassword;
     await user.save();
 
-
+    
     generatedOTP = null;
     userEmail = null;
 
@@ -1215,14 +1215,12 @@ app.post("/reset-password", async (req, res) => {
 // add origin
 app.use(cors());
 
-app.get('/arwa', (req, res) => {
-  res.send('arwa');
-});
+
 
 
 // Fallback route
 app.get('*', (req, res) => {
-  res.status(404).send('Page not found');
+    res.status(404).send('Page not found');
 });
 
 // Start server
