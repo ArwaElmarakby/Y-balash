@@ -875,7 +875,7 @@ const clientInfoRoutes = require('./routes/clientInfoRoutes');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const sellerEarningsRoutes = require('./routes/sellerEarningsRoutes');
+
 
 
 // Initialize app
@@ -1170,7 +1170,7 @@ app.use('/api', sellerRoutes);
 app.use('/api/addresses', clientAddressRoutes);
 app.use('/api/client-info', clientInfoRoutes);
 app.use('/api/payment', paymentRoutes);
-app.use('/api/seller', sellerEarningsRoutes);
+
 
 
 
