@@ -1180,8 +1180,5 @@ router.post("/withdraw-from-seller", authMiddleware, adminMiddleware, async (req
   }
 });
 
-module.exports = router;
 
-
-  
 module.exports = router;
