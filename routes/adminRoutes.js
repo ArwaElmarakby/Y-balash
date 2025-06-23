@@ -881,4 +881,48 @@ router.get('/total-earnings', authMiddleware, adminMiddleware, async (req, res) 
     }
 });
 
+
+router.post('/withdraw-funds', async (req, res) => {
+    const { userId, amount, reason } = req.body;
+
+    try {
+        // 1. التحقق من وجود المستخدم
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // 2. إنشاء سجل للسحب في جدول الطلبات
+        const withdrawalOrder = new Order({
+            userId: userId,
+            restaurantId: null, // لا يرتبط بمطعم
+            items: [], // لا توجد عناصر
+            totalAmount: amount,
+            status: 'completed', // مكتمل تلقائياً
+            paymentMethod: 'admin_withdrawal',
+            metadata: {
+                type: 'admin_withdrawal',
+                reason: reason || 'Administrative withdrawal'
+            }
+        });
+
+        await withdrawalOrder.save();
+
+        // 3. إرجاع الاستجابة
+        res.status(200).json({
+            success: true,
+            message: `Successfully withdrew ${amount} EGP from user ${user.email}`,
+            withdrawalRecord: withdrawalOrder
+        });
+
+    } catch (error) {
+        console.error('Error in admin withdrawal:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to process withdrawal',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
