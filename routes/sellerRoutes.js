@@ -1107,6 +1107,35 @@ router.get('/top-selling-with-payments',
 );
 
 
+router.post('/deduct-monthly-earnings', authMiddleware, sellerMiddleware, async (req, res) => {
+    const { deductionAmount } = req.body;
+
+    if (!deductionAmount || deductionAmount <= 0) {
+        return res.status(400).json({ message: 'Deduction amount must be a positive number.' });
+    }
+
+    try {
+        const restaurant = await Restaurant.findById(req.user.managedRestaurant);
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant not found.' });
+        }
+
+        // Deduct the amount from the restaurant's balance
+        if (restaurant.balance < deductionAmount) {
+            return res.status(400).json({ message: 'Insufficient balance to deduct this amount.' });
+        }
+
+        restaurant.balance -= deductionAmount;
+        await restaurant.save();
+
+        res.status(200).json({
+            message: 'Deduction successful.',
+            newBalance: restaurant.balance
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
 
   
 module.exports = router;
