@@ -23,46 +23,21 @@ const storage = new CloudinaryStorage({
 const upload = multer({ storage: storage }).single("image"); // Use single file upload
 
 // Add Today's Offer
-// exports.addOffer = async (req, res) => {
-//   upload(req, res, async (err) => {
-//     if (err) {
-//       return res.status(500).json({ message: "Image upload failed", error: err });
-//     }
-
-//     const { title, subject, description } = req.body;
-//     const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
-
-//     if (!title || !subject || !description || !imageUrl) {
-//       return res.status(400).json({ message: "All fields are required" });
-//     }
-
-//     try {
-//       const newOffer = new Offer({ title, subject, description, imageUrl });
-//       await newOffer.save();
-//       res.status(201).json({ message: 'Offer added successfully', offer: newOffer });
-//     } catch (error) {
-//       res.status(500).json({ message: 'Server error', error });
-//     }
-//   });
-// };
-
-
-// controllers/offerController.js
 exports.addOffer = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
       return res.status(500).json({ message: "Image upload failed", error: err });
     }
 
-    const { title, subject, description, price } = req.body; // Add price here
-    const imageUrl = req.file ? req.file.path : null;
+    const { title, subject, description } = req.body;
+    const imageUrl = req.file ? req.file.path : null; // Get Cloudinary image URL
 
-    if (!title || !subject || !description || !imageUrl || !price) { // Add price check
+    if (!title || !subject || !description || !imageUrl) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     try {
-      const newOffer = new Offer({ title, subject, description, imageUrl, price }); // Add price here
+      const newOffer = new Offer({ title, subject, description, imageUrl });
       await newOffer.save();
       res.status(201).json({ message: 'Offer added successfully', offer: newOffer });
     } catch (error) {
