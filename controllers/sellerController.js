@@ -2583,3 +2583,55 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
 };
 
 
+
+
+// في sellerController.js
+exports.simplifiedMonthlyEarnings = async (req, res) => {
+    try {
+        const seller = req.user;
+
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        // الحصول على إجمالي الأرباح
+        const totalEarningsResult = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        const totalEarnings = totalEarningsResult[0]?.total || 0;
+
+        // الحصول على الرقم المدخل من الطلب
+        const { deduction } = req.body; // الرقم الذي سيتم خصمه
+
+        // تقليل الأرباح
+        const newTotalEarnings = totalEarnings - deduction;
+
+        res.status(200).json({
+            success: true,
+            totalEarnings: newTotalEarnings,
+            percentageChange: ((newTotalEarnings / totalEarnings) * 100).toFixed(2) + '%'
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch earnings',
+            error: error.message
+        });
+    }
+};
