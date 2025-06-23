@@ -28,4 +28,40 @@ router.post('/add-image', addImageToRestaurant);
 router.delete('/remove-image', removeImageFromRestaurant);
 
 
+router.get('/:id/earnings', authMiddleware, sellerMiddleware, async (req, res) => {
+    const { id } = req.params; // Get restaurant ID from the URL
+    try {
+        const totalEarnings = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: id,
+                    status: { $ne: 'cancelled' } // Exclude cancelled orders
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        const earnings = totalEarnings[0]?.total || 0; // Get total earnings
+
+        res.status(200).json({
+            success: true,
+            totalEarnings: earnings,
+            currency: 'EGP' // Specify the currency
+        });
+    } catch (error) {
+        console.error("Error fetching total earnings:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch total earnings',
+            error: error.message
+        });
+    }
+});
+
+
 module.exports = router;
