@@ -1165,7 +1165,7 @@ app.use('/api/points', pointsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/notifications', notificationRoutes);
-// app.use('/api/admin', sellerRoutes);
+app.use('/api/admin', sellerRoutes);
 app.use('/api', sellerRoutes); 
 app.use('/api/addresses', clientAddressRoutes);
 app.use('/api/client-info', clientInfoRoutes);

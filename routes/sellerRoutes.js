@@ -1106,36 +1106,6 @@ router.get('/top-selling-with-payments',
   sellerController.getTopSellingProductsWithPaymentMethods
 );
 
-router.post('/deduct-earnings', authMiddleware, sellerMiddleware, async (req, res) => {
-  try {
-    const { amount } = req.body;
-    const seller = req.user;
-
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ message: 'No restaurant assigned to this seller' });
-    }
-
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: 'Invalid amount' });
-    }
-
-    const restaurant = await Restaurant.findById(seller.managedRestaurant);
-    if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
-    }
-
-    if (restaurant.balance < amount) {
-      return res.status(400).json({ message: 'Insufficient balance' });
-    }
-
-    restaurant.balance -= amount;
-    await restaurant.save();
-
-    res.status(200).json({ message: 'Earnings deducted successfully', newBalance: restaurant.balance });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
-  }
-});
 
 
   
