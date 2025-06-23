@@ -27,6 +27,12 @@ const restaurantSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   imageUrl: { type: String, required: true },
   description: { type: String, required: true },
+  withdrawals: [{
+    amount: { type: Number, required: true },
+    withdrawnAt: { type: Date, default: Date.now },
+    reason: String,
+    adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  }],
   location: { type: String, required: true },
   defaultShippingTime: { type: String, default: '30-45 minutes' },
   images: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Image' }],
