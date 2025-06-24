@@ -1278,53 +1278,208 @@ exports.getBalance = async (req, res) => {
 };
 
 
+exports.getSimplifiedMonthlyEarnings = async (req, res) => {
+    try {
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        const now = new Date();
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+        // Get current month earnings (from orders)
+        const currentMonthStats = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    createdAt: { $gte: currentMonthStart },
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        const currentTotalEarnings = currentMonthStats[0]?.totalEarnings || 0;
+
+        // Get total payouts that were paid this month
+        const restaurant = await Restaurant.findById(seller.managedRestaurant);
+        const currentMonthPaidPayouts = restaurant.payouts.filter(payout => {
+            return payout.status === 'paid' && payout.date >= currentMonthStart;
+        });
+
+        const totalPaidPayouts = currentMonthPaidPayouts.reduce((acc, payout) => acc + payout.amount, 0);
+
+        const netEarnings = currentTotalEarnings - totalPaidPayouts;
+
+        res.status(200).json({
+            success: true,
+            totalEarnings: currentTotalEarnings,  // الاجمالي قبل خصم السحوبات
+            totalWithdrawn: totalPaidPayouts,     // السحوبات المدفوعة خلال الشهر
+            netEarnings: netEarnings < 0 ? 0 : netEarnings  // الصافي بعد الخصم
+        });
+
+    } catch (error) {
+        console.error("Error in getSimplifiedMonthlyEarnings:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch monthly earnings',
+            error: error.message
+        });
+    }
+};
 
 
 exports.requestWithdrawal = async (req, res) => {
-  try {
-    const { amount, method, accountDetails } = req.body;
-    const seller = req.user;
+    try {
+        const seller = req.user;
+        const { amount } = req.body;
 
-    if (!seller.managedRestaurant) {
-      return res.status(400).json({ success: false, message: 'No restaurant assigned' });
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ message: 'No restaurant assigned to this seller' });
+        }
+
+        const restaurant = await Restaurant.findById(seller.managedRestaurant);
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant not found' });
+        }
+        if (amount <= 0) {
+            return res.status(400).json({ message: 'Withdrawal amount must be greater than zero' });
+        }
+
+        restaurant.payouts.push({
+            amount: amount,
+            paymentMethod: 'pending',
+            status: 'pending'
+        });
+
+        await restaurant.save();
+
+        res.status(200).json({ message: 'Withdrawal request submitted successfully' , restaurantId: restaurant._id , payoutId: restaurant.payouts[restaurant.payouts.length - 1]._id });
+
+    } catch (error) {
+        console.error("Error in requestWithdrawal:", error);
+        res.status(500).json({ message: 'Withdrawal request failed', error: error.message });
     }
-
-    const restaurant = await Restaurant.findById(seller.managedRestaurant);
-
-    if (amount > restaurant.balance) {
-      return res.status(400).json({ success: false, message: 'Insufficient balance' });
-    }
-
-
-    restaurant.balance -= amount;
-    restaurant.pendingWithdrawals += amount;
-    await restaurant.save();
-
-
-    const transaction = {
-      amount,
-      method,
-      status: 'pending',
-      reference: `WDR-${Date.now()}`
-    };
-
-    await User.findByIdAndUpdate(seller._id, {
-      $push: { transactions: transaction }
-    });
-
-    res.status(200).json({ 
-      success: true,
-      message: 'Withdrawal request submitted',
-      newBalance: restaurant.balance
-    });
-
-  } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      message: 'Withdrawal request failed'
-    });
-  }
 };
+
+exports.confirmWithdrawal = async (req, res) => {
+    try {
+        const { restaurantId, payoutId } = req.body;
+
+        const restaurant = await Restaurant.findById(restaurantId);
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant not found' });
+        }
+
+        const payout = restaurant.payouts.id(payoutId);
+        if (!payout) {
+            return res.status(404).json({ message: 'Payout not found' });
+        }
+
+        if (payout.status !== 'pending') {
+            return res.status(400).json({ message: 'Payout already processed' });
+        }
+
+        // نحسب أرباحه الحالية من ال Orders
+        const totalEarningsAggregation = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: restaurant._id,
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        const totalEarnings = totalEarningsAggregation[0]?.totalEarnings || 0;
+
+        // نجمع إجمالي اللي تم سحبه فعلاً سابقاً
+        const totalPaidPayouts = restaurant.payouts
+            .filter(p => p.status === 'paid')
+            .reduce((sum, p) => sum + p.amount, 0);
+
+        const availableToWithdraw = totalEarnings - totalPaidPayouts;
+
+        if (payout.amount > availableToWithdraw) {
+            return res.status(400).json({ message: 'Not enough earnings to approve this payout' });
+        }
+
+        // خلاص موافقة: نخصم من balance
+        restaurant.balance -= payout.amount;
+        payout.status = 'paid';
+        payout.paymentMethod = 'bank transfer';
+
+        await restaurant.save();
+
+        res.status(200).json({ message: 'Withdrawal confirmed and processed successfully' });
+
+    } catch (error) {
+        console.error("Error in confirmWithdrawal:", error);
+        res.status(500).json({ message: 'Withdrawal confirmation failed', error: error.message });
+    }
+};
+
+// exports.requestWithdrawal = async (req, res) => {
+//   try {
+//     const { amount, method, accountDetails } = req.body;
+//     const seller = req.user;
+
+//     if (!seller.managedRestaurant) {
+//       return res.status(400).json({ success: false, message: 'No restaurant assigned' });
+//     }
+
+//     const restaurant = await Restaurant.findById(seller.managedRestaurant);
+
+//     if (amount > restaurant.balance) {
+//       return res.status(400).json({ success: false, message: 'Insufficient balance' });
+//     }
+
+
+//     restaurant.balance -= amount;
+//     restaurant.pendingWithdrawals += amount;
+//     await restaurant.save();
+
+
+//     const transaction = {
+//       amount,
+//       method,
+//       status: 'pending',
+//       reference: `WDR-${Date.now()}`
+//     };
+
+//     await User.findByIdAndUpdate(seller._id, {
+//       $push: { transactions: transaction }
+//     });
+
+//     res.status(200).json({ 
+//       success: true,
+//       message: 'Withdrawal request submitted',
+//       newBalance: restaurant.balance
+//     });
+
+//   } catch (error) {
+//     res.status(500).json({ 
+//       success: false,
+//       message: 'Withdrawal request failed'
+//     });
+//   }
+// };
 
 
 
@@ -2040,81 +2195,84 @@ exports.getOrdersStats = async (req, res) => {
 // };
 
 
-exports.getSimplifiedMonthlyEarnings = async (req, res) => {
-    try {
-        const seller = req.user;
+// exports.getSimplifiedMonthlyEarnings = async (req, res) => {
+//     try {
+//         const seller = req.user;
         
-        if (!seller.managedRestaurant) {
-            return res.status(400).json({ 
-                success: false,
-                message: 'No restaurant assigned to this seller' 
-            });
-        }
+//         if (!seller.managedRestaurant) {
+//             return res.status(400).json({ 
+//                 success: false,
+//                 message: 'No restaurant assigned to this seller' 
+//             });
+//         }
 
-        const now = new Date();
-        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+//         const now = new Date();
+//         const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+//         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-        // Get current month earnings
-        const currentMonthStats = await Order.aggregate([
-            {
-                $match: {
-                    restaurantId: seller.managedRestaurant,
-                    createdAt: { $gte: currentMonthStart },
-                    status: { $ne: 'cancelled' }
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalEarnings: { $sum: "$totalAmount" }
-                }
-            }
-        ]);
+//         // Get current month earnings
+//         const currentMonthStats = await Order.aggregate([
+//             {
+//                 $match: {
+//                     restaurantId: seller.managedRestaurant,
+//                     createdAt: { $gte: currentMonthStart },
+//                     status: { $ne: 'cancelled' }
+//                 }
+//             },
+//             {
+//                 $group: {
+//                     _id: null,
+//                     totalEarnings: { $sum: "$totalAmount" }
+//                 }
+//             }
+//         ]);
 
-        // Get last month earnings for comparison
-        const lastMonthStats = await Order.aggregate([
-            {
-                $match: {
-                    restaurantId: seller.managedRestaurant,
-                    createdAt: { $gte: lastMonthStart, $lt: currentMonthStart },
-                    status: { $ne: 'cancelled' }
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalEarnings: { $sum: "$totalAmount" }
-                }
-            }
-        ]);
+//         // Get last month earnings for comparison
+//         const lastMonthStats = await Order.aggregate([
+//             {
+//                 $match: {
+//                     restaurantId: seller.managedRestaurant,
+//                     createdAt: { $gte: lastMonthStart, $lt: currentMonthStart },
+//                     status: { $ne: 'cancelled' }
+//                 }
+//             },
+//             {
+//                 $group: {
+//                     _id: null,
+//                     totalEarnings: { $sum: "$totalAmount" }
+//                 }
+//             }
+//         ]);
 
-        const current = currentMonthStats[0] || { totalEarnings: 0 };
-        const last = lastMonthStats[0] || { totalEarnings: 0 };
+//         const current = currentMonthStats[0] || { totalEarnings: 0 };
+//         const last = lastMonthStats[0] || { totalEarnings: 0 };
 
-        // Calculate percentage change
-        let percentageChange = "0.00%";
-        if (last.totalEarnings > 0) {
-            percentageChange = ((current.totalEarnings - last.totalEarnings) / last.totalEarnings * 100).toFixed(2) + "%";
-        } else if (current.totalEarnings > 0) {
-            percentageChange = "100.00%";
-        }
+//         // Calculate percentage change
+//         let percentageChange = "0.00%";
+//         if (last.totalEarnings > 0) {
+//             percentageChange = ((current.totalEarnings - last.totalEarnings) / last.totalEarnings * 100).toFixed(2) + "%";
+//         } else if (current.totalEarnings > 0) {
+//             percentageChange = "100.00%";
+//         }
 
-        res.status(200).json({
-            success: true,
-            totalEarnings: current.totalEarnings,
-            percentageChange: percentageChange
-        });
+//         res.status(200).json({
+//             success: true,
+//             totalEarnings: current.totalEarnings,
+//             percentageChange: percentageChange
+//         });
 
-    } catch (error) {
-        console.error("Error in getSimplifiedMonthlyEarnings:", error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch monthly earnings',
-            error: error.message
-        });
-    }
-};
+//     } catch (error) {
+//         console.error("Error in getSimplifiedMonthlyEarnings:", error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Failed to fetch monthly earnings',
+//             error: error.message
+//         });
+//     }
+// };
+
+
+
 
 
 
