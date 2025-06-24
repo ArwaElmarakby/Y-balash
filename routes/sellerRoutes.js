@@ -962,7 +962,14 @@ router.get('/orders/stats',
 // );
 
 
-router.get('/simplified-monthly-earnings',
+// router.get('/simplified-monthly-earnings',
+//     authMiddleware,
+//     sellerMiddleware,
+//     sellerController.getSimplifiedMonthlyEarnings
+// );
+
+
+router.get('/simplified-monthly-earnings', 
     authMiddleware,
     sellerMiddleware,
     sellerController.getSimplifiedMonthlyEarnings
