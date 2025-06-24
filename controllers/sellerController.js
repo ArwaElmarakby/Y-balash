@@ -1357,7 +1357,7 @@ exports.getTransactionHistory = async (req, res) => {
 exports.getSalesAnalytics = async (req, res) => {
   try {
     const seller = req.user;
-    const { period } = req.query; // 'week' أو 'month'
+    const { period } = req.query; 
 
     if (!seller.managedRestaurant) {
       return res.status(200).json({
@@ -1401,7 +1401,7 @@ exports.getSalesAnalytics = async (req, res) => {
       { $sort: { '_id': 1 } }
     ]);
 
-    // حساب نسبة التغير
+
     const currentPeriodSales = salesData.reduce((sum, item) => sum + item.totalSales, 0);
     const previousPeriodSales = await getPreviousPeriodSales(seller.managedRestaurant, startDate, period);
 
@@ -1811,12 +1811,12 @@ exports.getLowStockItems = async (req, res) => {
 
     const LOW_STOCK_THRESHOLD = 7;
     
-    // الحصول على جميع العناصر أولاً
+
     const allItems = await Image.find({
       restaurant: seller.managedRestaurant
     }).select('name quantity price imageUrl category');
 
-    // تصفية العناصر يدويًا حيث أن quantity مخزنة كـ string
+
     const lowStockItems = allItems.filter(item => {
       const quantity = parseFloat(item.quantity);
       return quantity <= LOW_STOCK_THRESHOLD;
@@ -1838,7 +1838,7 @@ exports.getLowStockItems = async (req, res) => {
 };
 
 
-// في ملف الـ controller
+
 exports.getOutOfStockItems = async (req, res) => {
   try {
     const seller = req.user;
@@ -1850,12 +1850,12 @@ exports.getOutOfStockItems = async (req, res) => {
       });
     }
     
-    // الحصول على جميع العناصر أولاً
+
     const allItems = await Image.find({
       restaurant: seller.managedRestaurant
     }).select('name quantity price imageUrl category');
 
-    // تصفية العناصر التي كمية المخزون الخاصة بها تساوي 0
+
     const outOfStockItems = allItems.filter(item => {
       const quantity = parseFloat(item.quantity);
       return quantity === 0;
@@ -1884,7 +1884,7 @@ exports.getOrdersStats = async (req, res) => {
             return res.status(400).json({ message: 'No restaurant assigned' });
         }
 
-        // احصل على الإجمالي فقط بدون التقسيم
+
         const stats = await Order.aggregate([
             {
                 $match: {
@@ -1893,7 +1893,7 @@ exports.getOrdersStats = async (req, res) => {
             },
             {
                 $group: {
-                    _id: null, // تجميع كل شيء معًا
+                    _id: null, 
                     totalOrders: { $sum: 1 },
                     totalRevenue: { $sum: "$totalAmount" },
                     avgOrderValue: { $avg: "$totalAmount" }
@@ -2181,7 +2181,7 @@ exports.getTotalCashEarnings = async (req, res) => {
                 $match: {
                     restaurantId: seller.managedRestaurant,
                     status: { $ne: 'cancelled' },
-                    paymentMethod: 'cash' // شرط لفلترة المدفوعات النقدية فقط
+                    paymentMethod: 'cash' 
                 }
             },
             {
@@ -2236,7 +2236,7 @@ exports.getLast7DaysPaidOrders = async (req, res) => {
             {
                 $project: {
                     _id: 1,
-                    date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, // تنسيق التاريخ
+                    date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, 
                     totalAmount: 1,
                     paymentMethod: 1,
                     status: 1
@@ -2273,7 +2273,7 @@ exports.getMonthlyRefunds = async (req, res) => {
             });
         }
 
-        const currentMonthStart = new Date(); // بداية الشهر الحالي
+        const currentMonthStart = new Date(); 
         currentMonthStart.setDate(1);
         currentMonthStart.setHours(0, 0, 0, 0);
 
@@ -2282,14 +2282,14 @@ exports.getMonthlyRefunds = async (req, res) => {
                 $match: {
                     restaurantId: seller.managedRestaurant,
                     createdAt: { $gte: currentMonthStart },
-                    status: 'refunded' // فقط الطلبات المرتجعة
+                    status: 'refunded' 
                 }
             },
             {
                 $group: {
                     _id: null,
-                    totalRefundedAmount: { $sum: "$totalAmount" }, // إجمالي المبالغ المرتجعة
-                    totalRefundedItems: { $sum: { $size: "$items" } } // عدد العناصر المرتجعة
+                    totalRefundedAmount: { $sum: "$totalAmount" }, 
+                    totalRefundedItems: { $sum: { $size: "$items" } } 
                 }
             }
         ]);
@@ -2329,19 +2329,19 @@ exports.getCurrentMonthOrdersCount = async (req, res) => {
         }
 
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); // أول يوم في الشهر الحالي
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); 
 
         const totalOrders = await Order.countDocuments({
             restaurantId: seller.managedRestaurant,
             createdAt: { $gte: startOfMonth, $lte: now },
-            status: { $ne: 'cancelled' } // استبعاد الطلبات الملغاة إذا أردت
+            status: { $ne: 'cancelled' } 
         });
 
         res.status(200).json({
             success: true,
             message: 'Total orders count for current month retrieved successfully',
             data: {
-                month: now.toLocaleString('default', { month: 'long' }), // اسم الشهر (باللغة الإنجليزية)
+                month: now.toLocaleString('default', { month: 'long' }), 
                 year: now.getFullYear(),
                 totalOrders
             }
@@ -2445,42 +2445,42 @@ exports.getBuyerEmailsCount = async (req, res) => {
             });
         }
 
-        // التواريخ المطلوبة
+
         const now = new Date();
         const startOfCurrentWeek = new Date(now.setDate(now.getDate() - now.getDay()));
         const startOfLastWeek = new Date(new Date(startOfCurrentWeek).setDate(startOfCurrentWeek.getDate() - 7));
 
-        // الحصول على الطلبات للأسبوع الحالي
+
         const currentWeekOrders = await Order.find({ 
             restaurantId: seller.managedRestaurant,
             createdAt: { $gte: startOfCurrentWeek },
             status: { $ne: 'cancelled' }
         }).select('userId');
 
-        // الحصول على الطلبات للأسبوع الماضي
+
         const lastWeekOrders = await Order.find({ 
             restaurantId: seller.managedRestaurant,
             createdAt: { $gte: startOfLastWeek, $lt: startOfCurrentWeek },
             status: { $ne: 'cancelled' }
         }).select('userId');
 
-        // حساب المشترين الفريدين للأسبوع الحالي
+
         const currentWeekBuyers = [...new Set(currentWeekOrders.map(order => order.userId.toString()))];
         
-        // حساب المشترين الفريدين للأسبوع الماضي
+
         const lastWeekBuyers = [...new Set(lastWeekOrders.map(order => order.userId.toString()))];
 
-        // الحصول على إيميلات المشترين الحاليين
+
         const currentWeekUsers = await User.find({ 
             _id: { $in: currentWeekBuyers }
         }).select('email');
 
-        // حساب نسبة التغير
+
         let percentageChange = 0;
         if (lastWeekBuyers.length > 0) {
             percentageChange = ((currentWeekBuyers.length - lastWeekBuyers.length) / lastWeekBuyers.length) * 100;
         } else if (currentWeekBuyers.length > 0) {
-            percentageChange = 100; // إذا لم يكن هناك مشترين الأسبوع الماضي ولكن هناك مشترين هذا الأسبوع
+            percentageChange = 100; 
         }
 
         res.status(200).json({
@@ -2514,7 +2514,7 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
       });
     }
 
-    // الحصول على أفضل 3 منتجات مبيعًا
+
     const topProducts = await Order.aggregate([
       { 
         $match: { 

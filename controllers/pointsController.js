@@ -128,7 +128,7 @@ exports.getPointsValue = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // تحويل النقاط إلى جنيه (10 نقاط = 3 جنيه)
+
         const pointsToEgp = (user.points / 10) * 3;
 
         res.status(200).json({ 

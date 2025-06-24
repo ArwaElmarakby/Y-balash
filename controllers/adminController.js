@@ -327,10 +327,10 @@ exports.approveSeller = async (req, res) => {
 
 exports.getLowStockItems = async (req, res) => {
     try {
-        // يمكن جعل الـ threshold قابل للتعديل عبر query parameter
-        const threshold = parseInt(req.query.threshold) || 2; // Default: 7
 
-        // البحث عن المنتجات التي كميتها أقل من أو تساوي threshold
+        const threshold = parseInt(req.query.threshold) || 2; 
+
+
         const lowStockItems = await Image.find({ 
             quantity: { $lte: threshold }
         }).populate('category', 'name');
@@ -342,7 +342,7 @@ exports.getLowStockItems = async (req, res) => {
             });
         }
 
-        // تنسيق البيانات للإرجاع (الحد الأدنى من الحقول)
+
         const simplifiedItems = lowStockItems.map(item => ({
             name: item.name,
             category: item.category ? item.category.name : 'Uncategorized',

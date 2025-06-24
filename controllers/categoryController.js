@@ -137,10 +137,10 @@ exports.getCategoryItems = async (req, res) => {
           const originalPrice = parseFloat(doc.price);
           const discountPercentage = doc.discount.percentage;
           
-          // حساب السعر بعد الخصم بدقة أكبر
+
           const discountedPrice = (originalPrice * (1 - discountPercentage / 100));
           
-          // تقريب الأرقام إلى منزلتين عشريتين بشكل صحيح
+
           const formatPrice = (num) => parseFloat(num.toFixed(2));
           
           return {

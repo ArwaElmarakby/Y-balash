@@ -293,7 +293,7 @@ exports.getImages = async (req, res) => {
   try {
     const images = await Image.find();
     
-    // إضافة الحقول المطلوبة لكل صورة
+
     const imagesWithPrices = images.map(image => ({
       ...image.toObject(),
       originalPrice: image.price / (1 - (image.discount?.percentage || 0) / 100),
@@ -315,7 +315,7 @@ exports.getItemDetails = async (req, res) => {
       return res.status(404).json({ message: 'Item not found' });
     }
 
-    // حساب السعر الأصلي بناءً على السعر المخفض ونسبة الخصم
+
     const originalPrice = item.price / (1 - (item.discount?.percentage || 0) / 100);
     
     res.status(200).json({
@@ -427,7 +427,7 @@ exports.getItemDetails = async (req, res) => {
       const updateData = { name, price, quantity };
       if (imageUrl) updateData.imageUrl = imageUrl;
 
-      // تحديث الفئة إذا تم تقديم اسم جديد
+
       if (categoryName) {
         const category = await Category.findOne({ name: categoryName });
         if (!category) {
@@ -436,7 +436,7 @@ exports.getItemDetails = async (req, res) => {
         updateData.category = category._id;
       }
 
-      // تحديث المطعم إذا تم تقديم اسم جديد
+
       if (restaurantName) {
         const restaurant = await Restaurant.findOne({ name: restaurantName });
         if (!restaurant) {

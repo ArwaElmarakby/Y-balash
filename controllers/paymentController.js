@@ -162,7 +162,7 @@ async function updateProductQuantities(items) {
         const currentQuantity = parseInt(product.quantity);
         const newQuantity = currentQuantity - item.quantity;
         
-        // تأكد من عدم وجود كمية سالبة
+
         product.quantity = Math.max(0, newQuantity).toString();
         await product.save();
       }
@@ -175,10 +175,10 @@ async function updateProductQuantities(items) {
 
 
 exports.createPayment = async (req, res) => {
-    const userId = req.user._id; // استخدام req.user._id بدلاً من req.user.id
+    const userId = req.user._id; 
 
     try {
-        // 1. احصلي على سلة التسوق مع العناصر والعروض
+
         const cart = await Cart.findOne({ userId })
             .populate('items.itemId')
             .populate('offers.offerId');
@@ -202,12 +202,12 @@ exports.createPayment = async (req, res) => {
         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
-        // 3. تحديث سعر السلة في قاعدة البيانات (اختياري)
+
         cart.totalPrice = totalPrice;
         await cart.save();
 
-        // 4. إنشاء paymentIntent في Stripe بنفس السعر
-        const amount = Math.round(totalPrice * 100); // تحويل السعر إلى سنتات
+
+        const amount = Math.round(totalPrice * 100); 
         const paymentIntent = await stripe.paymentIntents.create({
             amount: amount,
             currency: 'egp',
@@ -220,7 +220,7 @@ exports.createPayment = async (req, res) => {
 
         res.status(200).json({ 
             clientSecret: paymentIntent.client_secret,
-            totalPrice: totalPrice // إرسال السعر للواجهة الأمامية للتأكيد
+            totalPrice: totalPrice 
         });
     } catch (error) {
         console.error("Error in createPayment:", error);

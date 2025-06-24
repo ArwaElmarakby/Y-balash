@@ -992,9 +992,9 @@ router.get('/earnings/breakdown',
                 },
                 {
                     $group: {
-                        _id: "$paymentMethod", // تجميع حسب طريقة الدفع
+                        _id: "$paymentMethod", 
                         total: { $sum: "$totalAmount" },
-                        count: { $sum: 1 } // عدد الطلبات لكل نوع
+                        count: { $sum: 1 } 
                     }
                 },
                 {
@@ -1007,7 +1007,7 @@ router.get('/earnings/breakdown',
                 }
             ]);
 
-            // التنسيق النهائي للرد
+
             const response = {
                 success: true,
                 currency: "EGP",
