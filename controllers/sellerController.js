@@ -2583,3 +2583,75 @@ exports.getTopSellingProductsWithPaymentMethods = async (req, res) => {
 };
 
 
+
+
+exports.subtractFromEarnings = async (req, res) => {
+    try {
+        const { amountToSubtract } = req.body;
+        const seller = req.user;
+        
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        if (!amountToSubtract || isNaN(amountToSubtract)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Valid amount to subtract is required'
+            });
+        }
+
+        const numericAmount = parseFloat(amountToSubtract);
+
+        // احصل على إجمالي الأرباح الشهرية
+        const now = new Date();
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        
+        const earningsResult = await Order.aggregate([
+            {
+                $match: {
+                    restaurantId: seller.managedRestaurant,
+                    createdAt: { $gte: currentMonthStart },
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        const totalEarnings = earningsResult[0]?.totalEarnings || 0;
+        
+        if (numericAmount > totalEarnings) {
+            return res.status(400).json({
+                success: false,
+                message: 'Amount to subtract exceeds total earnings'
+            });
+        }
+
+        const remainingAmount = totalEarnings - numericAmount;
+
+        res.status(200).json({
+            success: true,
+            originalEarnings: totalEarnings,
+            amountSubtracted: numericAmount,
+            remainingAmount: remainingAmount,
+            currency: "EGP"
+        });
+
+    } catch (error) {
+        console.error("Error in subtractFromEarnings:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to subtract from earnings',
+            error: error.message
+        });
+    }
+};
+
