@@ -159,24 +159,25 @@ exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const restaurant = await Restaurant.findById(id).populate({
+    const restaurant = await Restaurant.findById(id).lean().populate({
       path: 'images',
       transform: (doc) => {
         if (!doc) return null;
         
-        // حساب الأسعار بنفس طريقة المثال
-        const originalPrice = doc.discount 
-          ? parseFloat(doc.price) / (1 - doc.discount.percentage / 100)
-          : parseFloat(doc.price);
-        
-        const discountedPrice = doc.discount 
-          ? parseFloat(doc.price)
-          : parseFloat(doc.price);
+        // حساب الأسعار بنفس طريقة المثال المطلوب
+        let originalPrice, discountedPrice;
+        if (doc.discount && doc.discount.percentage) {
+          originalPrice = parseFloat(doc.price) / (1 - doc.discount.percentage / 100);
+          discountedPrice = parseFloat(doc.price);
+        } else {
+          originalPrice = parseFloat(doc.price);
+          discountedPrice = parseFloat(doc.price);
+        }
 
         return {
-          ...doc.toObject(),
-          originalPrice: originalPrice, // بدون تقريب لإظهار القيمة الدقيقة كما في المثال
-          discountedPrice: discountedPrice.toString() // كنص كما في المثال
+          ...doc,
+          originalPrice: originalPrice, // سيظهر بالضبط كما في المثال (مثال: 70.21052631578948)
+          discountedPrice: discountedPrice.toString() // سيظهر كنص كما في المثال (مثال: "66.7")
         };
       }
     });
@@ -185,14 +186,22 @@ exports.getRestaurantById = async (req, res) => {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // تصفية العناصر الفارغة
-    const validImages = restaurant.images.filter(image => image !== null);
+    // تصفية العناصر الفارغة وتأكد من إضافة الأسعار
+    restaurant.images = restaurant.images
+      .filter(image => image !== null)
+      .map(image => {
+        if (!image.originalPrice) {
+          image.originalPrice = parseFloat(image.price);
+        }
+        if (!image.discountedPrice) {
+          image.discountedPrice = image.price.toString();
+        }
+        return image;
+      });
 
-    res.status(200).json({
-      ...restaurant.toObject(),
-      images: validImages
-    });
+    res.status(200).json(restaurant);
   } catch (error) {
+    console.error("Error in getRestaurantById:", error);
     res.status(500).json({ 
       message: 'Server error',
       error: error.message 
