@@ -420,19 +420,56 @@ exports.getItemDetails = async (req, res) => {
   }
 };
 
-  exports.deleteImage = async (req, res) => {
+  // exports.deleteImage = async (req, res) => {
+  //   const { id } = req.params;
+  
+  //   try {
+  //     const image = await Image.findByIdAndDelete(id);
+  //     if (!image) {
+  //       return res.status(404).json({ message: 'Image not found' });
+  //     }
+  //     res.status(200).json({ message: 'Item deleted successfully' });
+  //   } catch (error) {
+  //     res.status(500).json({ message: 'Server error', error });
+  //   }
+  // };
+
+
+  // In imageController.js
+exports.deleteImage = async (req, res) => {
     const { id } = req.params;
   
     try {
-      const image = await Image.findByIdAndDelete(id);
-      if (!image) {
-        return res.status(404).json({ message: 'Image not found' });
-      }
-      res.status(200).json({ message: 'Item deleted successfully' });
+        // First find the image to get its restaurant reference
+        const image = await Image.findById(id);
+        if (!image) {
+            return res.status(404).json({ message: 'Image not found' });
+        }
+
+        // Delete the image
+        await Image.findByIdAndDelete(id);
+
+        // Remove the image reference from its restaurant
+        if (image.restaurant) {
+            await Restaurant.findByIdAndUpdate(
+                image.restaurant,
+                { $pull: { images: id } }
+            );
+        }
+
+        // Also remove from any categories
+        if (image.category) {
+            await Category.findByIdAndUpdate(
+                image.category,
+                { $pull: { items: id } }
+            );
+        }
+
+        res.status(200).json({ message: 'Item deleted successfully' });
     } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ message: 'Server error', error });
     }
-  };
+};
 
   // exports.updateImage = async (req, res) => {
   //   upload(req, res, async (err) => {
