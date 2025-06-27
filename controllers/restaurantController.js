@@ -162,34 +162,34 @@ exports.getRestaurantById = async (req, res) => {
     const restaurant = await Restaurant.findById(id)
       .populate({
         path: 'images',
-        select: 'name price imageUrl discount quantity views description'
+        select: 'name sku description price productionDate expiryDate quantity imageUrl views flagged discount category restaurant lastStockStatus createdAt updatedAt'
       });
 
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // تنسيق المنتجات بنفس طريقة bestSelling
-    const formattedProducts = restaurant.images.map(image => {
-      const imageObj = image.toObject();
-      const originalPrice = image.price / (1 - (image.discount?.percentage || 0) / 100);
+    // تنسيق المنتجات مع حساب الأسعار
+    const formattedProducts = restaurant.images.map(product => {
+      const productObj = product.toObject();
+      
+      // حساب السعر الأصلي والسعر المخفض
+      const originalPrice = product.discount?.percentage 
+        ? (parseFloat(product.price) / (1 - product.discount.percentage / 100)).toFixed(2)
+        : product.price;
       
       return {
-        ...imageObj,
-        originalPrice: originalPrice.toFixed(2),
-        discountedPrice: image.price,
-        inStock: image.quantity > 0
+        ...productObj,
+        originalPrice: originalPrice,
+        discountedPrice: product.price,
+        inStock: parseInt(product.quantity) > 0
       };
     });
 
-    // إرجاع بيانات المطعم مع المنتجات المنسقة
+    // إعداد الرد النهائي
     const response = {
-      _id: restaurant._id,
-      name: restaurant.name,
-      imageUrl: restaurant.imageUrl,
-      description: restaurant.description,
-      location: restaurant.location,
-      products: formattedProducts,
+      ...restaurant.toObject(),
+      images: formattedProducts,
       totalProducts: formattedProducts.length
     };
 
