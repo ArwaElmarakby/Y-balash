@@ -207,13 +207,13 @@ exports.addImage = async (req, res) => {
     }
 
     try {
-      // 1. تحقق من وجود المطعم
-      const restaurant = await Restaurant.findById(restaurantId);
-      if (!restaurant) {
+      // 1. التحقق من وجود المطعم باستخدام lean() للحصول على كائن عادي
+      const restaurantExists = await Restaurant.findById(restaurantId).lean();
+      if (!restaurantExists) {
         return res.status(404).json({ message: 'Restaurant not found' });
       }
 
-      // 2. تحقق من وجود الفئة
+      // 2. التحقق من وجود الفئة
       const category = await Category.findById(categoryId);
       if (!category) {
         return res.status(404).json({ message: 'Category not found' });
@@ -250,18 +250,16 @@ exports.addImage = async (req, res) => {
 
       await newImage.save();
 
-      // 5. تحديث المطعم بإضافة الصورة (الطريقة المؤكدة)
-      await Restaurant.findByIdAndUpdate(
-        restaurantId,
-        { $addToSet: { images: newImage._id } }, // يستخدم $addToSet لتجنب التكرار
-        { new: true }
+      // 5. تحديث المطعم باستخدام updateOne مباشرة (أكثر موثوقية)
+      await Restaurant.updateOne(
+        { _id: restaurantId },
+        { $addToSet: { images: newImage._id } }
       );
 
-      // 6. تحديث الفئة بإضافة العنصر
-      await Category.findByIdAndUpdate(
-        categoryId,
-        { $addToSet: { items: newImage._id } },
-        { new: true }
+      // 6. تحديث الفئة
+      await Category.updateOne(
+        { _id: categoryId },
+        { $addToSet: { items: newImage._id } }
       );
 
       // 7. تسجيل النشاط
@@ -270,15 +268,17 @@ exports.addImage = async (req, res) => {
         productId: newImage._id
       });
 
-      // 8. إرسال الاستجابة مع بيانات محدثة
-      const updatedRestaurant = await Restaurant.findById(restaurantId).populate('images');
-      
+      // 8. جلب بيانات المطعم المحدثة مع populate
+      const updatedRestaurant = await Restaurant.findById(restaurantId)
+        .populate('images')
+        .lean();
+
       res.status(201).json({ 
         message: 'Item added successfully and linked to restaurant', 
         image: newImage,
         originalPrice: price, 
         discountedPrice: discountedPrice,
-        restaurant: updatedRestaurant // إرسال بيانات المطعم المحدثة
+        restaurant: updatedRestaurant
       });
     } catch (error) {
       if (error.code === 11000 && error.keyPattern.sku) {
@@ -288,11 +288,14 @@ exports.addImage = async (req, res) => {
         });
       }
       console.error("Error in addImage:", error);
-      res.status(500).json({ message: 'Server error', error: error.message });
+      res.status(500).json({ 
+        message: 'Server error', 
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   });
 };
-
 
 // exports.addImage = async (req, res) => {
 //   upload(req, res, async (err) => {
