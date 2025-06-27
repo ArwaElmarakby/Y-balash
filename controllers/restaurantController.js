@@ -270,32 +270,3 @@ exports.getRestaurantBalance = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
-
-
-
-exports.getProductsByRestaurantName = async (req, res) => {
-    const { name } = req.params;
-
-    try {
-        // Find the restaurant by name
-        const restaurant = await Restaurant.findOne({ name: { $regex: name, $options: 'i' } });
-        
-        if (!restaurant) {
-            return res.status(404).json({ message: 'Restaurant not found' });
-        }
-
-        // Find all products associated with the restaurant
-        const products = await Image.find({ restaurant: restaurant._id })
-            .select('name price imageUrl quantity')
-            .populate('category', 'name'); // Assuming you want to populate category name
-
-        res.status(200).json({
-            success: true,
-            restaurant: restaurant.name,
-            products
-        });
-    } catch (error) {
-        console.error("Error fetching products by restaurant name:", error);
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-};
