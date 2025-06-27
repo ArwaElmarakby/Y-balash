@@ -140,20 +140,69 @@ exports.getRestaurants = async (req, res) => {
 
 
 
+// exports.getRestaurantById = async (req, res) => {
+//   const { id } = req.params;
+
+//   try {
+//       const restaurant = await Restaurant.findById(id);
+//       if (!restaurant) {
+//           return res.status(404).json({ message: 'Restaurant not found' });
+//       }
+//       res.status(200).json(restaurant);
+//   } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
+
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
-      const restaurant = await Restaurant.findById(id);
-      if (!restaurant) {
-          return res.status(404).json({ message: 'Restaurant not found' });
+    const restaurant = await Restaurant.findById(id).populate({
+      path: 'images',
+      transform: (doc) => {
+        if (!doc) return null;
+        
+        if (doc.discount) {
+          const originalPrice = parseFloat(doc.price) / (1 - doc.discount.percentage / 100);
+          const discountedPrice = parseFloat(doc.price);
+          
+          return {
+            ...doc.toObject(),
+            originalPrice: parseFloat(originalPrice.toFixed(2)),
+            discountedPrice: parseFloat(discountedPrice.toFixed(2))
+          };
+        }
+        return doc;
       }
-      res.status(200).json(restaurant);
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    // تصفية العناصر الفارغة وتنسيق البيانات
+    const formattedImages = restaurant.images
+      .filter(image => image !== null)
+      .map(image => ({
+        ...image,
+        originalPrice: image.originalPrice || parseFloat(image.price),
+        discountedPrice: image.discountedPrice || parseFloat(image.price)
+      }));
+
+    res.status(200).json({
+      ...restaurant.toObject(),
+      images: formattedImages
+    });
   } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+    console.error("Error in getRestaurantById:", error);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
-
 
 exports.addImageToRestaurant = async (req, res) => {
   const { restaurantId, imageId } = req.body; 
