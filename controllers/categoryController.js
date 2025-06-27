@@ -126,72 +126,134 @@ exports.addItemToCategory = async (req, res) => {
 
 
 
+// exports.getCategoryItems = async (req, res) => {
+//   const { categoryId } = req.body; 
+
+//   try {
+//     const category = await Category.findById(categoryId).populate({
+//       path: 'items',
+//       transform: (doc) => {
+//         if (doc && doc.discount) {
+//           const originalPrice = parseFloat(doc.price);
+//           const discountPercentage = doc.discount.percentage;
+          
+
+//           const discountedPrice = (originalPrice * (1 - discountPercentage / 100));
+          
+
+//           const formatPrice = (num) => parseFloat(num.toFixed(2));
+          
+//           return {
+//             ...doc.toObject(),
+//             originalPrice: formatPrice(originalPrice),
+//             discountedPrice: formatPrice(discountedPrice)
+//           };
+//         }
+//         return doc;
+//       }
+//     });
+    
+//     if (!category) {
+//       return res.status(404).json({ message: 'Category not found' });
+//     }
+
+//     res.status(200).json(category.items);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
+
 exports.getCategoryItems = async (req, res) => {
-  const { categoryId } = req.body; 
+  const { categoryId } = req.body;
 
   try {
     const category = await Category.findById(categoryId).populate({
       path: 'items',
+      match: { _id: { $exists: true } }, // تأكد من وجود العنصر في DB
+      options: { lean: true }, // تحسين الأداء
       transform: (doc) => {
-        if (doc && doc.discount) {
+        if (!doc) return null;
+        
+        if (doc.discount) {
           const originalPrice = parseFloat(doc.price);
-          const discountPercentage = doc.discount.percentage;
-          
-
-          const discountedPrice = (originalPrice * (1 - discountPercentage / 100));
-          
-
-          const formatPrice = (num) => parseFloat(num.toFixed(2));
+          const discountedPrice = originalPrice * (1 - doc.discount.percentage / 100);
           
           return {
-            ...doc.toObject(),
-            originalPrice: formatPrice(originalPrice),
-            discountedPrice: formatPrice(discountedPrice)
+            ...doc,
+            originalPrice: parseFloat(originalPrice.toFixed(2)),
+            discountedPrice: parseFloat(discountedPrice.toFixed(2))
           };
         }
         return doc;
       }
     });
-    
+
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    res.status(200).json(category.items);
+    // تصفية جميع القيم null والمكررة
+    const uniqueItems = category.items
+      .filter(item => item !== null)
+      .filter((item, index, self) => 
+        self.findIndex(i => i._id.toString() === item._id.toString()) === index
+      );
+
+    res.status(200).json(uniqueItems);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
 };
 
 
+// exports.removeItemFromCategory = async (req, res) => {
+//   const { categoryId, itemId } = req.body;
+
+//   try {
+
+//     const category = await Category.findById(categoryId);
+//     if (!category) {
+//       return res.status(404).json({ message: 'Category not found' });
+//     }
+
+
+//     const item = await Image.findById(itemId);
+//     if (!item) {
+//       return res.status(404).json({ message: 'Item not found' });
+//     }
+
+
+//     category.items = category.items.filter(
+//       (item) => item.toString() !== itemId
+//     );
+//     await category.save();
+
+
+//     item.category = null;
+//     await item.save();
+
+//     res.status(200).json({ message: 'Item removed from category successfully', category });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
 
 exports.removeItemFromCategory = async (req, res) => {
   const { categoryId, itemId } = req.body;
 
   try {
-
-    const category = await Category.findById(categoryId);
-    if (!category) {
-      return res.status(404).json({ message: 'Category not found' });
-    }
-
-
-    const item = await Image.findById(itemId);
-    if (!item) {
-      return res.status(404).json({ message: 'Item not found' });
-    }
-
-
-    category.items = category.items.filter(
-      (item) => item.toString() !== itemId
+    // حل أكثر قوة باستخدام $pull مباشرة في MongoDB
+    await Category.findByIdAndUpdate(
+      categoryId,
+      { $pull: { items: itemId } },
+      { new: true }
     );
-    await category.save();
 
+    await Image.findByIdAndUpdate(itemId, { $unset: { category: "" } });
 
-    item.category = null;
-    await item.save();
-
-    res.status(200).json({ message: 'Item removed from category successfully', category });
+    res.status(200).json({ message: 'Item removed successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
