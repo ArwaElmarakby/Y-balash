@@ -174,26 +174,22 @@ exports.getRestaurantById = async (req, res) => {
       const productObj = product.toObject();
       
       // حساب السعر الأصلي والسعر المخفض
-      const originalPrice = product.discount?.percentage 
-        ? (parseFloat(product.price) / (1 - product.discount.percentage / 100)).toFixed(2)
+      const priceNum = parseFloat(product.price);
+      const discountPercentage = product.discount?.percentage || 0;
+      const originalPrice = discountPercentage > 0 
+        ? (priceNum / (1 - discountPercentage / 100)).toFixed(2)
         : product.price;
       
       return {
         ...productObj,
-        originalPrice: originalPrice,
+        originalPrice: parseFloat(originalPrice),
         discountedPrice: product.price,
         inStock: parseInt(product.quantity) > 0
       };
     });
 
-    // إعداد الرد النهائي
-    const response = {
-      ...restaurant.toObject(),
-      images: formattedProducts,
-      totalProducts: formattedProducts.length
-    };
-
-    res.status(200).json(response);
+    // إرجاع قائمة المنتجات فقط كما في المثال المطلوب
+    res.status(200).json(formattedProducts);
   } catch (error) {
     console.error("Error in getRestaurantById:", error);
     res.status(500).json({ 
