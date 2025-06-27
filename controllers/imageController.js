@@ -143,9 +143,9 @@ exports.addImage = async (req, res) => {
         stock: quantity
       };
 
-      // if (!restaurantId) {
-      //   return res.status(400).json({ message: "Restaurant ID is required" });
-      // }
+      if (!restaurantId) {
+        return res.status(400).json({ message: "Restaurant ID is required" });
+      }
 
       const newImage = new Image({ 
         name, 
@@ -163,18 +163,8 @@ exports.addImage = async (req, res) => {
 
       await newImage.save();
 
-      const restaurant = await Restaurant.findById(restaurantId);
-if (!restaurant) {
-  return res.status(404).json({ message: 'Restaurant not found' });
-}
-
-restaurant.images.push(newImage._id);
-restaurant.items.push(newImage._id); // لو بتستخدم items برضو
-await restaurant.save();
-
       category.items.push(newImage._id);
       await category.save();
-
 
       await logActivity('product_added', req.user._id, {
     productName: name,
