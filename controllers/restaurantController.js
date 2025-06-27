@@ -140,64 +140,20 @@ exports.getRestaurants = async (req, res) => {
 
 
 
-// exports.getRestaurantById = async (req, res) => {
-//   const { id } = req.params;
-
-//   try {
-//       const restaurant = await Restaurant.findById(id);
-//       if (!restaurant) {
-//           return res.status(404).json({ message: 'Restaurant not found' });
-//       }
-//       res.status(200).json(restaurant);
-//   } catch (error) {
-//       res.status(500).json({ message: 'Server error', error });
-//   }
-// };
-
-
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const restaurant = await Restaurant.findById(id)
-      .populate({
-        path: 'images',
-        select: 'name sku description price productionDate expiryDate quantity imageUrl views flagged discount category restaurant lastStockStatus createdAt updatedAt'
-      });
-
-    if (!restaurant) {
-      return res.status(404).json({ message: 'Restaurant not found' });
-    }
-
-    // تنسيق المنتجات مع حساب الأسعار
-    const formattedProducts = restaurant.images.map(product => {
-      const productObj = product.toObject();
-      
-      // حساب السعر الأصلي والسعر المخفض
-      const priceNum = parseFloat(product.price);
-      const discountPercentage = product.discount?.percentage || 0;
-      const originalPrice = discountPercentage > 0 
-        ? (priceNum / (1 - discountPercentage / 100)).toFixed(2)
-        : product.price;
-      
-      return {
-        ...productObj,
-        originalPrice: parseFloat(originalPrice),
-        discountedPrice: product.price,
-        inStock: parseInt(product.quantity) > 0
-      };
-    });
-
-    // إرجاع قائمة المنتجات فقط كما في المثال المطلوب
-    res.status(200).json(formattedProducts);
+      const restaurant = await Restaurant.findById(id);
+      if (!restaurant) {
+          return res.status(404).json({ message: 'Restaurant not found' });
+      }
+      res.status(200).json(restaurant);
   } catch (error) {
-    console.error("Error in getRestaurantById:", error);
-    res.status(500).json({ 
-      message: 'Server error',
-      error: error.message
-    });
+      res.status(500).json({ message: 'Server error', error });
   }
 };
+
 
 exports.addImageToRestaurant = async (req, res) => {
   const { restaurantId, imageId } = req.body; 
