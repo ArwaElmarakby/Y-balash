@@ -270,3 +270,35 @@ exports.getRestaurantBalance = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
+
+exports.getRestaurantProducts = async (req, res) => {
+    try {
+        const seller = req.user;
+
+        if (!seller.managedRestaurant) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'No restaurant assigned to this seller' 
+            });
+        }
+
+        const products = await Image.find({ 
+            restaurant: seller.managedRestaurant 
+        })
+        .select('name price imageUrl quantity') // حدد الحقول التي تريد إرجاعها
+        .populate('category', 'name'); // إذا كنت تريد إرجاع اسم الفئة أيضًا
+
+        res.status(200).json({
+            success: true,
+            count: products.length,
+            products
+        });
+    } catch (error) {
+        console.error("Error fetching restaurant products:", error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
+};
