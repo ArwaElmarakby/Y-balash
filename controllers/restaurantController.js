@@ -155,6 +155,7 @@ exports.getRestaurants = async (req, res) => {
 // };
 
 
+
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
@@ -162,24 +163,24 @@ exports.getRestaurantById = async (req, res) => {
     const restaurant = await Restaurant.findById(id)
       .populate({
         path: 'images',
-        select: 'name price discount imageUrl views quantity description sku productionDate expiryDate category restaurant'
+        select: 'name description price productionDate expiryDate quantity imageUrl views flagged discount category restaurant lastStockStatus createdAt updatedAt __v'
       })
-      .lean(); // استخدام lean() للحصول على object عادي بدلاً من mongoose document
+      .lean(); // استخدام lean() للحصول على object عادي
 
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // تعديل الصور لإضافة الحقول الجديدة
+    // تعديل كل صورة في المطعم
     if (restaurant.images && restaurant.images.length > 0) {
       restaurant.images = restaurant.images.map(image => {
         const imageObj = { ...image };
         
-        // حساب السعر الأصلي
+        // حساب السعر الأصلي إذا كان هناك خصم
         if (image.discount?.percentage) {
-          imageObj.originalPrice = (image.price / (1 - image.discount.percentage / 100)).toFixed(2);
+          imageObj.originalPrice = image.price / (1 - image.discount.percentage / 100);
         } else {
-          imageObj.originalPrice = image.price.toFixed(2);
+          imageObj.originalPrice = image.price;
         }
         
         // تأكيد أن discountedPrice هو string
