@@ -140,17 +140,57 @@ exports.getRestaurants = async (req, res) => {
 
 
 
+// exports.getRestaurantById = async (req, res) => {
+//   const { id } = req.params;
+
+//   try {
+//       const restaurant = await Restaurant.findById(id);
+//       if (!restaurant) {
+//           return res.status(404).json({ message: 'Restaurant not found' });
+//       }
+//       res.status(200).json(restaurant);
+//   } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
+
+
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
-      const restaurant = await Restaurant.findById(id);
-      if (!restaurant) {
-          return res.status(404).json({ message: 'Restaurant not found' });
-      }
-      res.status(200).json(restaurant);
+    const restaurant = await Restaurant.findById(id).populate('images');
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    // تحويل الصور بنفس تنسيق المثال (Basbousa)
+    const formattedImages = restaurant.images.map(image => {
+      const imageObj = image.toObject();
+      
+      // حساب السعر الأصلي إذا كان هناك خصم
+      const originalPrice = image.discount?.percentage 
+        ? image.price / (1 - image.discount.percentage / 100)
+        : image.price;
+
+      return {
+        ...imageObj,
+        originalPrice: originalPrice, // يُحسب بنفس الطريقة
+        discountedPrice: image.price.toString(), // كنص كما في المثال
+        price: image.price.toString(), // للتأكد من أن price أيضًا نص (اختياري)
+      };
+    });
+
+    // إعادة هيكلة بيانات المطعم مع الصور المعدلة
+    const formattedRestaurant = {
+      ...restaurant.toObject(),
+      images: formattedImages
+    };
+
+    res.status(200).json(formattedRestaurant);
   } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: 'Server error', error });
   }
 };
 
