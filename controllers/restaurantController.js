@@ -140,20 +140,68 @@ exports.getRestaurants = async (req, res) => {
 
 
 
+// exports.getRestaurantById = async (req, res) => {
+//   const { id } = req.params;
+
+//   try {
+//       const restaurant = await Restaurant.findById(id);
+//       if (!restaurant) {
+//           return res.status(404).json({ message: 'Restaurant not found' });
+//       }
+//       res.status(200).json(restaurant);
+//   } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
+
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
-      const restaurant = await Restaurant.findById(id);
-      if (!restaurant) {
-          return res.status(404).json({ message: 'Restaurant not found' });
-      }
-      res.status(200).json(restaurant);
+    const restaurant = await Restaurant.findById(id)
+      .populate({
+        path: 'images',
+        select: 'name sku description price productionDate expiryDate quantity imageUrl views flagged discount category restaurant lastStockStatus createdAt updatedAt'
+      });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    // تنسيق المنتجات مع حساب الأسعار
+    const formattedProducts = restaurant.images.map(product => {
+      const productObj = product.toObject();
+      
+      // حساب السعر الأصلي والسعر المخفض
+      const originalPrice = product.discount?.percentage 
+        ? (parseFloat(product.price) / (1 - product.discount.percentage / 100)).toFixed(2)
+        : product.price;
+      
+      return {
+        ...productObj,
+        originalPrice: originalPrice,
+        discountedPrice: product.price,
+        inStock: parseInt(product.quantity) > 0
+      };
+    });
+
+    // إعداد الرد النهائي
+    const response = {
+      ...restaurant.toObject(),
+      images: formattedProducts,
+      totalProducts: formattedProducts.length
+    };
+
+    res.status(200).json(response);
   } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+    console.error("Error in getRestaurantById:", error);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
-
 
 exports.addImageToRestaurant = async (req, res) => {
   const { restaurantId, imageId } = req.body; 
