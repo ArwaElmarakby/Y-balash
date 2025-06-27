@@ -510,13 +510,33 @@ exports.incrementViews = async (req, res) => {
 
 
 
+// exports.getBestSelling = async (req, res) => {
+//     try {
+//         const bestSelling = await Image.find().sort({ views: -1 }).limit(4); 
+//         res.status(200).json(bestSelling);
+//     } catch (error) {
+//         res.status(500).json({ message: 'Server error', error });
+//     }
+// };
+
+
 exports.getBestSelling = async (req, res) => {
-    try {
-        const bestSelling = await Image.find().sort({ views: -1 }).limit(4); 
-        res.status(200).json(bestSelling);
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
-    }
+  try {
+    const bestSelling = await Image.find().sort({ views: -1 }).limit(4);
+    
+    const formattedBestSelling = bestSelling.map(image => {
+      const imageObj = image.toObject();
+      return {
+        ...imageObj,
+        originalPrice: image.price / (1 - (image.discount?.percentage || 0) / 100),
+        discountedPrice: image.price.toString() 
+      };
+    });
+    
+    res.status(200).json(formattedBestSelling);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
 };
 
 
