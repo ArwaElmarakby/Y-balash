@@ -162,29 +162,34 @@ exports.getRestaurantById = async (req, res) => {
     const restaurant = await Restaurant.findById(id)
       .populate({
         path: 'images',
-        select: 'name price discount imageUrl views quantity description'
+        select: 'name price discount imageUrl views quantity description sku productionDate expiryDate category restaurant'
       });
 
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // تعديل الصور لتشمل السعر الأصلي والمخفض
-    const formattedImages = restaurant.images.map(image => {
-      const imageObj = image.toObject();
-      return {
-        ...imageObj,
-        originalPrice: image.price / (1 - (image.discount?.percentage || 0) / 100),
-        discountedPrice: image.price.toString()
-      };
-    });
+    // تحويل restaurant إلى object قابل للتعديل
+    const restaurantObj = restaurant.toObject();
 
-    const formattedRestaurant = {
-      ...restaurant.toObject(),
-      images: formattedImages
-    };
+    // تعديل كل صورة لإضافة الحقول المطلوبة
+    if (restaurantObj.images && restaurantObj.images.length > 0) {
+      restaurantObj.images = restaurantObj.images.map(image => {
+        // حساب السعر الأصلي إذا كان هناك خصم
+        const originalPrice = image.discount?.percentage 
+          ? image.price / (1 - image.discount.percentage / 100)
+          : image.price;
+        
+        return {
+          ...image,
+          originalPrice: originalPrice.toFixed(2), // تقريب إلى منزلتين عشريتين
+          discountedPrice: image.price.toString(),
+          // يمكنك إضافة أي حقول إضافية هنا
+        };
+      });
+    }
 
-    res.status(200).json(formattedRestaurant);
+    res.status(200).json(restaurantObj);
   } catch (error) {
     console.error("Error in getRestaurantById:", error);
     res.status(500).json({ 
