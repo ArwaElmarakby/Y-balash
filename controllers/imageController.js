@@ -167,10 +167,11 @@ exports.addImage = async (req, res) => {
       await category.save();
 
 
-      const restaurant = await Restaurant.findById(restaurantId);
+    const restaurant = await Restaurant.findById(restaurantId);
 if (!restaurant) {
   return res.status(404).json({ message: 'Restaurant not found' });
 }
+
 restaurant.images.push(newImage._id);
 await restaurant.save();
 
