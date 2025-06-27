@@ -192,6 +192,7 @@ function calculateDiscountPercentage(originalPrice, discountedPrice) {
 
 
 
+
 exports.addImage = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
@@ -206,17 +207,19 @@ exports.addImage = async (req, res) => {
     }
 
     try {
-      // التحقق من وجود المطعم
+      // 1. تحقق من وجود المطعم
       const restaurant = await Restaurant.findById(restaurantId);
       if (!restaurant) {
         return res.status(404).json({ message: 'Restaurant not found' });
       }
 
+      // 2. تحقق من وجود الفئة
       const category = await Category.findById(categoryId);
       if (!category) {
         return res.status(404).json({ message: 'Category not found' });
       }
 
+      // 3. حساب السعر بعد الخصم
       const discountedPrice = await exports.calculateDiscountedPrice(
         productionDate,
         expiryDate,
@@ -230,6 +233,7 @@ exports.addImage = async (req, res) => {
         stock: quantity
       };
 
+      // 4. إنشاء الصورة الجديدة
       const newImage = new Image({ 
         name, 
         sku, 
@@ -246,27 +250,35 @@ exports.addImage = async (req, res) => {
 
       await newImage.save();
 
-      // إضافة الصورة إلى المطعم
-      if (!restaurant.images.includes(newImage._id)) { 
-        restaurant.images.push(newImage._id);
-        await restaurant.save();
-      }
+      // 5. تحديث المطعم بإضافة الصورة (الطريقة المؤكدة)
+      await Restaurant.findByIdAndUpdate(
+        restaurantId,
+        { $addToSet: { images: newImage._id } }, // يستخدم $addToSet لتجنب التكرار
+        { new: true }
+      );
 
-      // إضافة العنصر إلى الفئة
-      category.items.push(newImage._id);
-      await category.save();
+      // 6. تحديث الفئة بإضافة العنصر
+      await Category.findByIdAndUpdate(
+        categoryId,
+        { $addToSet: { items: newImage._id } },
+        { new: true }
+      );
 
+      // 7. تسجيل النشاط
       await logActivity('product_added', req.user._id, {
         productName: name,
         productId: newImage._id
       });
 
+      // 8. إرسال الاستجابة مع بيانات محدثة
+      const updatedRestaurant = await Restaurant.findById(restaurantId).populate('images');
+      
       res.status(201).json({ 
         message: 'Item added successfully and linked to restaurant', 
         image: newImage,
         originalPrice: price, 
         discountedPrice: discountedPrice,
-        restaurant: restaurant
+        restaurant: updatedRestaurant // إرسال بيانات المطعم المحدثة
       });
     } catch (error) {
       if (error.code === 11000 && error.keyPattern.sku) {
@@ -275,7 +287,8 @@ exports.addImage = async (req, res) => {
           error: 'Duplicate SKU' 
         });
       }
-      res.status(500).json({ message: 'Server error', error });
+      console.error("Error in addImage:", error);
+      res.status(500).json({ message: 'Server error', error: error.message });
     }
   });
 };
