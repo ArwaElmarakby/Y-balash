@@ -129,11 +129,6 @@ exports.addImage = async (req, res) => {
         return res.status(404).json({ message: 'Category not found' });
       }
 
-      const restaurant = await Restaurant.findOne({ name: restaurantName });
-      if (!restaurant) {
-        return res.status(404).json({ message: 'Restaurant not found' });
-      }
-
       
       const discountedPrice = await exports.calculateDiscountedPrice(
         productionDate,
@@ -148,9 +143,9 @@ exports.addImage = async (req, res) => {
         stock: quantity
       };
 
-      // if (!restaurantId) {
-      //   return res.status(400).json({ message: "Restaurant ID is required" });
-      // }
+      if (!restaurantId) {
+        return res.status(400).json({ message: "Restaurant ID is required" });
+      }
 
       const newImage = new Image({ 
         name, 
@@ -170,9 +165,6 @@ exports.addImage = async (req, res) => {
 
       category.items.push(newImage._id);
       await category.save();
-
-      restaurant.images.push(newImage._id);
-      await restaurant.save();
 
       await logActivity('product_added', req.user._id, {
     productName: name,
