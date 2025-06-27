@@ -163,17 +163,18 @@ exports.addImage = async (req, res) => {
 
       await newImage.save();
 
-      category.items.push(newImage._id);
-      await category.save();
-
-
-    const restaurant = await Restaurant.findById(restaurantId);
+      const restaurant = await Restaurant.findById(restaurantId);
 if (!restaurant) {
   return res.status(404).json({ message: 'Restaurant not found' });
 }
 
 restaurant.images.push(newImage._id);
+restaurant.items.push(newImage._id); // لو بتستخدم items برضو
 await restaurant.save();
+
+      category.items.push(newImage._id);
+      await category.save();
+
 
       await logActivity('product_added', req.user._id, {
     productName: name,
