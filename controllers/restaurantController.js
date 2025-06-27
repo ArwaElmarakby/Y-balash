@@ -140,6 +140,20 @@ exports.getRestaurants = async (req, res) => {
 
 
 
+// exports.getRestaurantById = async (req, res) => {
+//   const { id } = req.params;
+
+//   try {
+//       const restaurant = await Restaurant.findById(id);
+//       if (!restaurant) {
+//           return res.status(404).json({ message: 'Restaurant not found' });
+//       }
+//       res.status(200).json(restaurant);
+//   } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
@@ -147,24 +161,35 @@ exports.getRestaurantById = async (req, res) => {
     const restaurant = await Restaurant.findById(id)
       .populate({
         path: 'images',
-        select: 'name price imageUrl quantity description discount',
+        select: 'name price imageUrl quantity description discount category',
         populate: {
           path: 'category',
           select: 'name'
         }
+      })
+      .populate({
+        path: 'items',
+        select: 'name price imageUrl'
       });
 
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // تحويل البيانات لإظهار السعر الأصلي والسعر المخفض
+    // دمج العناصر من images و items مع تجنب التكرار
+    const allProducts = [...restaurant.images];
+    restaurant.items.forEach(item => {
+      if (!allProducts.some(prod => prod._id.equals(item._id))) {
+        allProducts.push(item);
+      }
+    });
+
     const formattedRestaurant = {
       ...restaurant.toObject(),
-      images: restaurant.images.map(image => ({
-        ...image.toObject(),
-        originalPrice: image.price / (1 - (image.discount?.percentage || 0) / 100),
-        discountedPrice: image.price
+      images: allProducts.map(product => ({
+        ...product.toObject(),
+        originalPrice: product.price / (1 - (product.discount?.percentage || 0) / 100),
+        discountedPrice: product.price
       }))
     };
 
@@ -173,7 +198,6 @@ exports.getRestaurantById = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
-
 
 exports.addImageToRestaurant = async (req, res) => {
   const { restaurantId, imageId } = req.body; 
