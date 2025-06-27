@@ -163,33 +163,33 @@ exports.getRestaurantById = async (req, res) => {
       .populate({
         path: 'images',
         select: 'name price discount imageUrl views quantity description sku productionDate expiryDate category restaurant'
-      });
+      })
+      .lean(); // استخدام lean() للحصول على object عادي بدلاً من mongoose document
 
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // تحويل restaurant إلى object قابل للتعديل
-    const restaurantObj = restaurant.toObject();
-
-    // تعديل كل صورة لإضافة الحقول المطلوبة
-    if (restaurantObj.images && restaurantObj.images.length > 0) {
-      restaurantObj.images = restaurantObj.images.map(image => {
-        // حساب السعر الأصلي إذا كان هناك خصم
-        const originalPrice = image.discount?.percentage 
-          ? image.price / (1 - image.discount.percentage / 100)
-          : image.price;
+    // تعديل الصور لإضافة الحقول الجديدة
+    if (restaurant.images && restaurant.images.length > 0) {
+      restaurant.images = restaurant.images.map(image => {
+        const imageObj = { ...image };
         
-        return {
-          ...image,
-          originalPrice: originalPrice.toFixed(2), // تقريب إلى منزلتين عشريتين
-          discountedPrice: image.price.toString(),
-          // يمكنك إضافة أي حقول إضافية هنا
-        };
+        // حساب السعر الأصلي
+        if (image.discount?.percentage) {
+          imageObj.originalPrice = (image.price / (1 - image.discount.percentage / 100)).toFixed(2);
+        } else {
+          imageObj.originalPrice = image.price.toFixed(2);
+        }
+        
+        // تأكيد أن discountedPrice هو string
+        imageObj.discountedPrice = image.price.toString();
+        
+        return imageObj;
       });
     }
 
-    res.status(200).json(restaurantObj);
+    res.status(200).json(restaurant);
   } catch (error) {
     console.error("Error in getRestaurantById:", error);
     res.status(500).json({ 
