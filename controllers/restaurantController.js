@@ -155,13 +155,14 @@ exports.getRestaurants = async (req, res) => {
 // };
 
 
+
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
     const restaurant = await Restaurant.findById(id).populate({
       path: 'images',
-      select: 'name price imageUrl discount views quantity description' // اختيار الحقول المطلوبة
+      select: 'name price imageUrl discount views quantity description'
     });
 
     if (!restaurant) {
@@ -173,12 +174,11 @@ exports.getRestaurantById = async (req, res) => {
       const imageObj = image.toObject();
       return {
         ...imageObj,
-        originalPrice: image.price / (1 - (image.discount?.percentage || 0) / 100),
-        discountedPrice: image.price.toString()
+        originalPrice: parseFloat(image.price) / (1 - (image.discount?.percentage || 0) / 100),
+        discountedPrice: image.price // نتركه كنص كما في الـ Model
       };
     });
 
-    // إرجاع بيانات المطعم مع المنتجات المعدلة
     const response = {
       ...restaurant.toObject(),
       images: formattedImages
@@ -186,14 +186,9 @@ exports.getRestaurantById = async (req, res) => {
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Error in getRestaurantById:", error);
-    res.status(500).json({ 
-      message: 'Server error',
-      error: error.message
-    });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-
 
 exports.addImageToRestaurant = async (req, res) => {
   const { restaurantId, imageId } = req.body; 
