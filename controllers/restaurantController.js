@@ -140,18 +140,70 @@ exports.getRestaurants = async (req, res) => {
 
 
 
-exports.getRestaurantById = async (req, res) => {
-  const { id } = req.params;
+// exports.getRestaurantById = async (req, res) => {
+//   const { id } = req.params;
 
-  try {
-      const restaurant = await Restaurant.findById(id);
-      if (!restaurant) {
-          return res.status(404).json({ message: 'Restaurant not found' });
-      }
-      res.status(200).json(restaurant);
-  } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
-  }
+//   try {
+//       const restaurant = await Restaurant.findById(id);
+//       if (!restaurant) {
+//           return res.status(404).json({ message: 'Restaurant not found' });
+//       }
+//       res.status(200).json(restaurant);
+//   } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
+
+
+
+exports.getRestaurantById = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const restaurant = await Restaurant.findById(id).populate('images'); 
+        if (!restaurant) {
+            return res.status(404).json({ message: 'Restaurant not found' });
+        }
+
+        // Fetch products associated with the restaurant
+        const products = await Image.find({ restaurant: restaurant._id });
+
+        // Format the response
+        const formattedProducts = products.map(product => ({
+            _id: product._id,
+            name: product.name,
+            sku: product.sku,
+            description: product.description,
+            price: product.price,
+            productionDate: product.productionDate,
+            expiryDate: product.expiryDate,
+            quantity: product.quantity,
+            imageUrl: product.imageUrl,
+            views: product.views,
+            flagged: product.flagged,
+            discount: product.discount,
+            category: product.category,
+            restaurant: product.restaurant,
+            lastStockStatus: product.lastStockStatus,
+            createdAt: product.createdAt,
+            updatedAt: product.updatedAt,
+            originalPrice: product.price / (1 - (product.discount?.percentage || 0) / 100), // Calculate original price
+            discountedPrice: product.price
+        }));
+
+        res.status(200).json({
+            success: true,
+            restaurant: {
+                _id: restaurant._id,
+                name: restaurant.name,
+                products: formattedProducts
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching restaurant by ID:", error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
 };
 
 
