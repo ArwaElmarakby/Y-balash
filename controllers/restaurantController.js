@@ -140,19 +140,19 @@ exports.getRestaurants = async (req, res) => {
 
 
 
-exports.getRestaurantById = async (req, res) => {
-  const { id } = req.params;
+// exports.getRestaurantById = async (req, res) => {
+//   const { id } = req.params;
 
-  try {
-      const restaurant = await Restaurant.findById(id);
-      if (!restaurant) {
-          return res.status(404).json({ message: 'Restaurant not found' });
-      }
-      res.status(200).json(restaurant);
-  } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
-  }
-};
+//   try {
+//       const restaurant = await Restaurant.findById(id);
+//       if (!restaurant) {
+//           return res.status(404).json({ message: 'Restaurant not found' });
+//       }
+//       res.status(200).json(restaurant);
+//   } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//   }
+// };
 
 
 exports.addImageToRestaurant = async (req, res) => {
@@ -191,16 +191,50 @@ exports.addImageToRestaurant = async (req, res) => {
 };
 
 
+// exports.getRestaurantById = async (req, res) => {
+//   const { id } = req.params;
+
+//   try {
+//     const restaurant = await Restaurant.findById(id).populate('images'); 
+//     if (!restaurant) {
+//       return res.status(404).json({ message: 'Restaurant not found' });
+//     }
+
+//     res.status(200).json(restaurant);
+//   } catch (error) {
+//     console.error("Error in getRestaurantById:", error);
+//     res.status(500).json({ 
+//       message: 'Server error',
+//       error: error.message
+//     });
+//   }
+// };
+
+
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const restaurant = await Restaurant.findById(id).populate('images'); 
+    const restaurant = await Restaurant.findById(id).populate({
+      path: 'images',
+      select: '-__v -createdAt -updatedAt' // Exclude these fields if you don't need them
+    }); 
+    
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    res.status(200).json(restaurant);
+    // Transform the images to include calculated prices
+    const restaurantWithFormattedImages = {
+      ...restaurant.toObject(),
+      images: restaurant.images.map(image => ({
+        ...image.toObject(),
+        originalPrice: image.price / (1 - (image.discount?.percentage || 0) / 100),
+        discountedPrice: image.price.toString()
+      }))
+    };
+
+    res.status(200).json(restaurantWithFormattedImages);
   } catch (error) {
     console.error("Error in getRestaurantById:", error);
     res.status(500).json({ 
@@ -209,7 +243,6 @@ exports.getRestaurantById = async (req, res) => {
     });
   }
 };
-
 
 exports.removeImageFromRestaurant = async (req, res) => {
   const { restaurantId, imageId } = req.body;
