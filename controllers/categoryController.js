@@ -170,8 +170,8 @@ exports.getCategoryItems = async (req, res) => {
   try {
     const category = await Category.findById(categoryId).populate({
       path: 'items',
-      match: { _id: { $exists: true } }, // تأكد من وجود العنصر في DB
-      options: { lean: true }, // تحسين الأداء
+      match: { _id: { $exists: true } }, // تأكد من وجود العنصر في قاعدة البيانات
+      options: { lean: true }, // لتحسين الأداء
       transform: (doc) => {
         if (!doc) return null;
         
@@ -194,13 +194,9 @@ exports.getCategoryItems = async (req, res) => {
     }
 
     // تصفية جميع القيم null والمكررة
-    const uniqueItems = category.items
-      .filter(item => item !== null)
-      .filter((item, index, self) => 
-        self.findIndex(i => i._id.toString() === item._id.toString()) === index
-      );
+    const validItems = category.items.filter(item => item !== null);
 
-    res.status(200).json(uniqueItems);
+    res.status(200).json(validItems);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
@@ -244,10 +240,9 @@ exports.removeItemFromCategory = async (req, res) => {
   const { categoryId, itemId } = req.body;
 
   try {
-    // حل أكثر قوة باستخدام $pull مباشرة في MongoDB
     await Category.findByIdAndUpdate(
       categoryId,
-      { $pull: { items: itemId } },
+      { $pull: { items: itemId } }, // إزالة العنصر مباشرة من المصفوفة
       { new: true }
     );
 
@@ -258,7 +253,6 @@ exports.removeItemFromCategory = async (req, res) => {
     res.status(500).json({ message: 'Server error', error });
   }
 };
-
 
 exports.getCategories = async (req, res) => {
     try {
