@@ -140,20 +140,59 @@ exports.getRestaurants = async (req, res) => {
 
 
 
+// exports.getRestaurantById = async (req, res) => {
+//   const { id } = req.params;
+
+//   try {
+//       const restaurant = await Restaurant.findById(id);
+//       if (!restaurant) {
+//           return res.status(404).json({ message: 'Restaurant not found' });
+//       }
+//       res.status(200).json(restaurant);
+//   } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
+
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
-      const restaurant = await Restaurant.findById(id);
-      if (!restaurant) {
-          return res.status(404).json({ message: 'Restaurant not found' });
-      }
-      res.status(200).json(restaurant);
+    // 1. البحث عن المطعم
+    const restaurant = await Restaurant.findById(id);
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    // 2. جلب جميع منتجات المطعم مع حساب الأسعار
+    const products = await Image.find({ restaurant: id });
+    
+    // 3. تنسيق المنتجات بنفس طريقة getImages
+    const formattedProducts = products.map(product => {
+      const productObj = product.toObject();
+      return {
+        ...productObj,
+        originalPrice: product.price / (1 - (product.discount?.percentage || 0) / 100),
+        discountedPrice: product.price.toString()
+      };
+    });
+
+    // 4. إرجاع المطعم مع المنتجات المنسقة
+    const response = {
+      ...restaurant.toObject(),
+      products: formattedProducts
+    };
+
+    res.status(200).json(response);
   } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+    console.error("Error in getRestaurantById:", error);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
-
 
 exports.addImageToRestaurant = async (req, res) => {
   const { restaurantId, imageId } = req.body; 
