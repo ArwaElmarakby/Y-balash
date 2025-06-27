@@ -161,14 +161,14 @@ exports.getRestaurantById = async (req, res) => {
   try {
     const restaurant = await Restaurant.findById(id).populate({
       path: 'images',
-      select: 'name price imageUrl discount views quantity description'
+      select: 'name price imageUrl discount views quantity description' // اختيار الحقول المطلوبة
     });
 
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // تحويل الصور إلى التنسيق المطلوب مع الأسعار الأصلية والمخفضة
+    // تحويل بيانات المنتجات بنفس طريقة getBestSelling
     const formattedImages = restaurant.images.map(image => {
       const imageObj = image.toObject();
       return {
@@ -178,7 +178,7 @@ exports.getRestaurantById = async (req, res) => {
       };
     });
 
-    // إرجاع بيانات المطعم مع الصور المعدلة
+    // إرجاع بيانات المطعم مع المنتجات المعدلة
     const response = {
       ...restaurant.toObject(),
       images: formattedImages
