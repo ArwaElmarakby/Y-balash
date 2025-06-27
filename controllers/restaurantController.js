@@ -140,17 +140,66 @@ exports.getRestaurants = async (req, res) => {
 
 
 
+// exports.getRestaurantById = async (req, res) => {
+//   const { id } = req.params;
+
+//   try {
+//       const restaurant = await Restaurant.findById(id);
+//       if (!restaurant) {
+//           return res.status(404).json({ message: 'Restaurant not found' });
+//       }
+//       res.status(200).json(restaurant);
+//   } catch (error) {
+//       res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
+
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
-      const restaurant = await Restaurant.findById(id);
-      if (!restaurant) {
-          return res.status(404).json({ message: 'Restaurant not found' });
-      }
-      res.status(200).json(restaurant);
+    const restaurant = await Restaurant.findById(id)
+      .populate({
+        path: 'images',
+        select: 'name price imageUrl discount quantity views description'
+      });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: 'Restaurant not found' });
+    }
+
+    // تنسيق المنتجات بنفس طريقة bestSelling
+    const formattedProducts = restaurant.images.map(image => {
+      const imageObj = image.toObject();
+      const originalPrice = image.price / (1 - (image.discount?.percentage || 0) / 100);
+      
+      return {
+        ...imageObj,
+        originalPrice: originalPrice.toFixed(2),
+        discountedPrice: image.price,
+        inStock: image.quantity > 0
+      };
+    });
+
+    // إرجاع بيانات المطعم مع المنتجات المنسقة
+    const response = {
+      _id: restaurant._id,
+      name: restaurant.name,
+      imageUrl: restaurant.imageUrl,
+      description: restaurant.description,
+      location: restaurant.location,
+      products: formattedProducts,
+      totalProducts: formattedProducts.length
+    };
+
+    res.status(200).json(response);
   } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+    console.error("Error in getRestaurantById:", error);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
