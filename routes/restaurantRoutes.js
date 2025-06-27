@@ -13,7 +13,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { addRestaurant, getRestaurants, deleteRestaurant, updateRestaurant, searchRestaurants, getTotalOrders ,getRestaurantById, addImageToRestaurant, removeImageFromRestaurant} = require('../controllers/restaurantController');
+const { addRestaurant, getRestaurants, deleteRestaurant, updateRestaurant, searchRestaurants, getTotalOrders ,getRestaurantById, addImageToRestaurant, removeImageFromRestaurant, getProductsByRestaurantName} = require('../controllers/restaurantController');
 const { authMiddleware } = require('./authRoutes');
 const adminMiddleware = require('../middleware/adminMiddleware');
 
@@ -26,6 +26,7 @@ router.get('/:id/orders', getTotalOrders);
 router.get('/:id', getRestaurantById);
 router.post('/add-image', addImageToRestaurant);
 router.delete('/remove-image', removeImageFromRestaurant);
+router.get('/products/:name', getProductsByRestaurantName);
 
 
 module.exports = router;
