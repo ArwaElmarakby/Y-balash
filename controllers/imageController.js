@@ -110,6 +110,88 @@ function calculateDiscountPercentage(originalPrice, discountedPrice) {
 }
 
 
+// exports.addImage = async (req, res) => {
+//   upload(req, res, async (err) => {
+//     if (err) {
+//       return res.status(500).json({ message: "Image upload failed", error: err });
+//     }
+
+//     const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantId, productionDate, expiryDate } = req.body;
+//     const imageUrl = req.file ? req.file.path : null;
+
+//     if (!name || !quantity || !price || !imageUrl || !categoryId || !productionDate || !expiryDate) {
+//       return res.status(400).json({ message: "All fields are required" });
+//     }
+
+//     try {
+//       const category = await Category.findById(categoryId);
+//       if (!category) {
+//         return res.status(404).json({ message: 'Category not found' });
+//       }
+
+      
+//       const discountedPrice = await exports.calculateDiscountedPrice(
+//         productionDate,
+//         expiryDate,
+//         price
+//       );
+
+//       const discount = {
+//         percentage: calculateDiscountPercentage(price, discountedPrice),
+//         startDate: discountStartDate || new Date(),
+//         endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+//         stock: quantity
+//       };
+
+//       if (!restaurantId) {
+//         return res.status(400).json({ message: "Restaurant ID is required" });
+//       }
+
+//       const newImage = new Image({ 
+//         name, 
+//         sku, 
+//         description, 
+//         quantity, 
+//         price: discountedPrice, 
+//         imageUrl, 
+//         category: categoryId, 
+//         restaurant: restaurantId, 
+//         discount,
+//         productionDate: productionDate ? productionDate.split('T')[0] : null, 
+//         expiryDate: expiryDate ? expiryDate.split('T')[0] : null 
+//       });
+
+//       await newImage.save();
+
+//       category.items.push(newImage._id);
+//       await category.save();
+
+//       await logActivity('product_added', req.user._id, {
+//     productName: name,
+//     productId: newImage._id
+// });
+
+
+//       res.status(201).json({ 
+//         message: 'Item added successfully', 
+//         image: newImage,
+//         originalPrice: price, 
+//         discountedPrice: discountedPrice 
+//       });
+//     } catch (error) {
+//       if (error.code === 11000 && error.keyPattern.sku) {
+//         return res.status(400).json({ 
+//           message: 'SKU must be unique', 
+//           error: 'Duplicate SKU' 
+//         });
+//       }
+//       res.status(500).json({ message: 'Server error', error });
+//     }
+//   });
+// };
+
+
+
 exports.addImage = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
@@ -119,17 +201,22 @@ exports.addImage = async (req, res) => {
     const { name, quantity, price, categoryId, discountPercentage, discountStartDate, discountEndDate, sku, description, restaurantId, productionDate, expiryDate } = req.body;
     const imageUrl = req.file ? req.file.path : null;
 
-    if (!name || !quantity || !price || !imageUrl || !categoryId || !productionDate || !expiryDate) {
+    if (!name || !quantity || !price || !imageUrl || !categoryId || !productionDate || !expiryDate || !restaurantId) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     try {
+      // التحقق من وجود المطعم
+      const restaurant = await Restaurant.findById(restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurant not found' });
+      }
+
       const category = await Category.findById(categoryId);
       if (!category) {
         return res.status(404).json({ message: 'Category not found' });
       }
 
-      
       const discountedPrice = await exports.calculateDiscountedPrice(
         productionDate,
         expiryDate,
@@ -142,10 +229,6 @@ exports.addImage = async (req, res) => {
         endDate: discountEndDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         stock: quantity
       };
-
-      if (!restaurantId) {
-        return res.status(400).json({ message: "Restaurant ID is required" });
-      }
 
       const newImage = new Image({ 
         name, 
@@ -163,20 +246,27 @@ exports.addImage = async (req, res) => {
 
       await newImage.save();
 
+      // إضافة الصورة إلى المطعم
+      if (!restaurant.images.includes(newImage._id)) { 
+        restaurant.images.push(newImage._id);
+        await restaurant.save();
+      }
+
+      // إضافة العنصر إلى الفئة
       category.items.push(newImage._id);
       await category.save();
 
       await logActivity('product_added', req.user._id, {
-    productName: name,
-    productId: newImage._id
-});
-
+        productName: name,
+        productId: newImage._id
+      });
 
       res.status(201).json({ 
-        message: 'Item added successfully', 
+        message: 'Item added successfully and linked to restaurant', 
         image: newImage,
         originalPrice: price, 
-        discountedPrice: discountedPrice 
+        discountedPrice: discountedPrice,
+        restaurant: restaurant
       });
     } catch (error) {
       if (error.code === 11000 && error.keyPattern.sku) {
@@ -189,7 +279,6 @@ exports.addImage = async (req, res) => {
     }
   });
 };
-
 
 
 // exports.addImage = async (req, res) => {
