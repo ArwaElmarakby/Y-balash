@@ -160,36 +160,24 @@ exports.getRestaurantById = async (req, res) => {
   try {
     const restaurant = await Restaurant.findById(id)
       .populate({
-        path: 'images',
+        path: 'menuItems',
         select: 'name price imageUrl quantity description discount category',
         populate: {
           path: 'category',
           select: 'name'
         }
-      })
-      .populate({
-        path: 'items',
-        select: 'name price imageUrl'
       });
 
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // دمج العناصر من images و items مع تجنب التكرار
-    const allProducts = [...restaurant.images];
-    restaurant.items.forEach(item => {
-      if (!allProducts.some(prod => prod._id.equals(item._id))) {
-        allProducts.push(item);
-      }
-    });
-
     const formattedRestaurant = {
       ...restaurant.toObject(),
-      images: allProducts.map(product => ({
-        ...product.toObject(),
-        originalPrice: product.price / (1 - (product.discount?.percentage || 0) / 100),
-        discountedPrice: product.price
+      menuItems: restaurant.menuItems.map(item => ({
+        ...item.toObject(),
+        originalPrice: item.price / (1 - (item.discount?.percentage || 0) / 100),
+        discountedPrice: item.price
       }))
     };
 
