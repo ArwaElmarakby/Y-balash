@@ -164,17 +164,20 @@ exports.getRestaurantById = async (req, res) => {
       transform: (doc) => {
         if (!doc) return null;
         
-        if (doc.discount) {
-          const originalPrice = parseFloat(doc.price) / (1 - doc.discount.percentage / 100);
-          const discountedPrice = parseFloat(doc.price);
-          
-          return {
-            ...doc.toObject(),
-            originalPrice: parseFloat(originalPrice.toFixed(2)),
-            discountedPrice: parseFloat(discountedPrice.toFixed(2))
-          };
-        }
-        return doc;
+        // حساب الأسعار بنفس طريقة المثال
+        const originalPrice = doc.discount 
+          ? parseFloat(doc.price) / (1 - doc.discount.percentage / 100)
+          : parseFloat(doc.price);
+        
+        const discountedPrice = doc.discount 
+          ? parseFloat(doc.price)
+          : parseFloat(doc.price);
+
+        return {
+          ...doc.toObject(),
+          originalPrice: originalPrice, // بدون تقريب لإظهار القيمة الدقيقة كما في المثال
+          discountedPrice: discountedPrice.toString() // كنص كما في المثال
+        };
       }
     });
 
@@ -182,24 +185,17 @@ exports.getRestaurantById = async (req, res) => {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // تصفية العناصر الفارغة وتنسيق البيانات
-    const formattedImages = restaurant.images
-      .filter(image => image !== null)
-      .map(image => ({
-        ...image,
-        originalPrice: image.originalPrice || parseFloat(image.price),
-        discountedPrice: image.discountedPrice || parseFloat(image.price)
-      }));
+    // تصفية العناصر الفارغة
+    const validImages = restaurant.images.filter(image => image !== null);
 
     res.status(200).json({
       ...restaurant.toObject(),
-      images: formattedImages
+      images: validImages
     });
   } catch (error) {
-    console.error("Error in getRestaurantById:", error);
     res.status(500).json({ 
       message: 'Server error',
-      error: error.message
+      error: error.message 
     });
   }
 };
