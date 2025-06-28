@@ -208,6 +208,11 @@ exports.addImage = async (req, res) => {
     }
 
     try {
+
+      const seller = req.user; // الحصول على معلومات البائع من التوكن
+            if (seller.managedRestaurant.toString() !== restaurantId) {
+                return res.status(403).json({ message: "You are not authorized to add images to this restaurant" });
+            }
       // التحقق من وجود المطعم
       const restaurant = await Restaurant.findById(restaurantId);
       if (!restaurant) {
