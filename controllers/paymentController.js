@@ -368,6 +368,8 @@ exports.createPayment = async (req, res) => {
             },
         });
 
+        await Cart.deleteOne({ _id: cart._id });
+
         res.status(200).json({ 
             clientSecret: paymentIntent.client_secret,
             totalPrice: totalPrice 
