@@ -605,21 +605,47 @@ exports.deleteImage = async (req, res) => {
 };
 
 
+  // exports.searchImage = async (req, res) => {
+  //   const { name } = req.query;
+  
+  //   try {
+  //     const images = await Image.find({ name: { $regex: name, $options: 'i' } });
+  
+  //     if (images.length === 0) {
+  //       return res.status(404).json({ message: 'No items found' });
+  //     }
+  
+  //     res.status(200).json(images);
+  //   } catch (error) {
+  //     res.status(500).json({ message: 'Server error', error });
+  //   }
+  // };
+
   exports.searchImage = async (req, res) => {
     const { name } = req.query;
   
     try {
-      const images = await Image.find({ name: { $regex: name, $options: 'i' } });
+        const images = await Image.find({ name: { $regex: name, $options: 'i' } });
   
-      if (images.length === 0) {
-        return res.status(404).json({ message: 'No items found' });
-      }
+        if (images.length === 0) {
+            return res.status(404).json({ message: 'No items found' });
+        }
+
+        // إضافة السعر الأصلي والسعر بعد الخصم لكل منتج
+        const formattedImages = images.map(image => {
+            const imageObj = image.toObject();
+            return {
+                ...imageObj,
+                originalPrice: image.price / (1 - (image.discount?.percentage || 0) / 100),
+                discountedPrice: image.price
+            };
+        });
   
-      res.status(200).json(images);
+        res.status(200).json(formattedImages);
     } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ message: 'Server error', error });
     }
-  };
+};
 
 
 exports.incrementViews = async (req, res) => {
