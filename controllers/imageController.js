@@ -388,7 +388,9 @@ exports.addImage = async (req, res) => {
 
 exports.getImages = async (req, res) => {
   try {
-    const images = await Image.find();
+    const images = await Image.find()
+    .populate('restaurant', 'name') // إضافة populate لجلب اسم المطعم فقط
+    .populate('category', 'name');
     
 
     const imagesWithPrices = images.map(image => ({
@@ -407,7 +409,9 @@ exports.getItemDetails = async (req, res) => {
   const { id } = req.body; 
 
   try {
-    const item = await Image.findById(id);
+    const item = await Image.findById(id)
+    .populate('restaurant', 'name') // إضافة populate لجلب اسم المطعم
+    .populate('category', 'name');
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
