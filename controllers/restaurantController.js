@@ -211,27 +211,77 @@ exports.addImageToRestaurant = async (req, res) => {
 // };
 
 
+// exports.getRestaurantById = async (req, res) => {
+//   const { id } = req.params;
+
+//   try {
+//     const restaurant = await Restaurant.findById(id).populate({
+//       path: 'images',
+//       select: '-__v -createdAt -updatedAt' // Exclude these fields if you don't need them
+//     }); 
+    
+//     if (!restaurant) {
+//       return res.status(404).json({ message: 'Restaurant not found' });
+//     }
+
+//     // Transform the images to include calculated prices
+//     const restaurantWithFormattedImages = {
+//       ...restaurant.toObject(),
+//       images: restaurant.images.map(image => ({
+//         ...image.toObject(),
+//         originalPrice: image.price / (1 - (image.discount?.percentage || 0) / 100),
+//         discountedPrice: image.price.toString()
+//       }))
+//     };
+
+//     res.status(200).json(restaurantWithFormattedImages);
+//   } catch (error) {
+//     console.error("Error in getRestaurantById:", error);
+//     res.status(500).json({ 
+//       message: 'Server error',
+//       error: error.message
+//     });
+//   }
+// };
+
+
 exports.getRestaurantById = async (req, res) => {
   const { id } = req.params;
 
   try {
     const restaurant = await Restaurant.findById(id).populate({
       path: 'images',
-      select: '-__v -createdAt -updatedAt' // Exclude these fields if you don't need them
+      select: '-__v -createdAt -updatedAt',
+      populate: [
+        { path: 'restaurant', select: 'name _id' }, // إضافة _id
+        { path: 'category', select: 'name _id' }    // إضافة _id
+      ]
     }); 
     
     if (!restaurant) {
       return res.status(404).json({ message: 'Restaurant not found' });
     }
 
-    // Transform the images to include calculated prices
+    // تحويل الصور لتشمل الأسعار المحسوبة
     const restaurantWithFormattedImages = {
       ...restaurant.toObject(),
-      images: restaurant.images.map(image => ({
-        ...image.toObject(),
-        originalPrice: image.price / (1 - (image.discount?.percentage || 0) / 100),
-        discountedPrice: image.price.toString()
-      }))
+      images: restaurant.images.map(image => {
+        const imageObj = image.toObject();
+        return {
+          ...imageObj,
+          originalPrice: image.price / (1 - (image.discount?.percentage || 0) / 100),
+          discountedPrice: image.price.toString(),
+          // الاحتفاظ بهيكل category و restaurant الكامل
+          category: {
+            _id: image.category?._id,
+            name: image.category?.name
+          },
+          restaurant: {
+            _id: image.restaurant?._id,
+            name: image.restaurant?.name
+          }
+        };
+      })
     };
 
     res.status(200).json(restaurantWithFormattedImages);
@@ -243,6 +293,7 @@ exports.getRestaurantById = async (req, res) => {
     });
   }
 };
+
 
 exports.removeImageFromRestaurant = async (req, res) => {
   const { restaurantId, imageId } = req.body;
