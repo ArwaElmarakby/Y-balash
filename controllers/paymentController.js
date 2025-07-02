@@ -368,13 +368,26 @@ exports.createPayment = async (req, res) => {
             },
         });
 
+        await updateProductQuantities(cart.items); // تحديث المخزون
+        await Order.create({
+            userId,
+            restaurantId: cart.restaurantId,
+            items: cart.items.map(item => ({
+                itemId: item.itemId._id,
+                quantity: item.quantity,
+                price: item.itemId.price
+            })),
+            totalAmount: totalPrice,
+            status: 'pending',
+            paymentMethod: 'card' 
+        });
+
         await Cart.deleteOne({ _id: cart._id });
 
         res.status(200).json({ 
             clientSecret: paymentIntent.client_secret,
             totalPrice: totalPrice 
         });
-
     } catch (error) {
         console.error("Error in createPayment:", error);
         res.status(500).json({ message: 'Payment failed', error: error.message });
