@@ -164,28 +164,78 @@ exports.addItemToCategory = async (req, res) => {
 // };
 
 
+// exports.getCategoryItems = async (req, res) => {
+//   const { categoryId } = req.body;
+
+//   try {
+//     const category = await Category.findById(categoryId).populate({
+//       path: 'items',
+//       match: { _id: { $exists: true } }, // تأكد من وجود العنصر في قاعدة البيانات
+//       options: { lean: true }, // لتحسين الأداء
+//       transform: (doc) => {
+//         if (!doc) return null;
+        
+//         if (doc.discount) {
+//           const originalPrice = parseFloat(doc.price);
+//           const discountedPrice = originalPrice * (1 - doc.discount.percentage / 100);
+          
+//           return {
+//             ...doc,
+//             originalPrice: parseFloat(originalPrice.toFixed(2)),
+//             discountedPrice: parseFloat(discountedPrice.toFixed(2))
+//           };
+//         }
+//         return doc;
+//       }
+//     });
+
+//     if (!category) {
+//       return res.status(404).json({ message: 'Category not found' });
+//     }
+
+//     // تصفية جميع القيم null والمكررة
+//     const validItems = category.items.filter(item => item !== null);
+
+//     res.status(200).json(validItems);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Server error', error });
+//   }
+// };
+
+
+
 exports.getCategoryItems = async (req, res) => {
   const { categoryId } = req.body;
 
   try {
     const category = await Category.findById(categoryId).populate({
       path: 'items',
-      match: { _id: { $exists: true } }, // تأكد من وجود العنصر في قاعدة البيانات
-      options: { lean: true }, // لتحسين الأداء
+      match: { _id: { $exists: true } },
+      options: { lean: true },
+      populate: [
+        { path: 'restaurant', select: 'name' },
+        { path: 'category', select: 'name' }
+      ],
       transform: (doc) => {
         if (!doc) return null;
         
+        let transformedDoc = {
+          ...doc,
+          restaurantName: doc.restaurant?.name,
+          categoryName: doc.category?.name
+        };
+
         if (doc.discount) {
           const originalPrice = parseFloat(doc.price);
           const discountedPrice = originalPrice * (1 - doc.discount.percentage / 100);
           
-          return {
-            ...doc,
+          transformedDoc = {
+            ...transformedDoc,
             originalPrice: parseFloat(originalPrice.toFixed(2)),
             discountedPrice: parseFloat(discountedPrice.toFixed(2))
           };
         }
-        return doc;
+        return transformedDoc;
       }
     });
 
@@ -193,9 +243,7 @@ exports.getCategoryItems = async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    // تصفية جميع القيم null والمكررة
     const validItems = category.items.filter(item => item !== null);
-
     res.status(200).json(validItems);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
