@@ -1213,9 +1213,19 @@ app.post("/reset-password", async (req, res) => {
 });
 
 // add origin
-app.use(cors());
+// app.use(cors());
 
-
+// بعد استيراد المكتبات (تحت const app = express();)
+app.use(cors({
+  origin: [
+    'https://y-balash-dashboard.vercel.app', // رابط الداشبورد
+    'http://localhost:3000', // للتطوير المحلي
+    'https://y-balash.vercel.app', // رابط التطبيق الرئيسي (إذا كان لديك)
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // كل الطرق المسموحة
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'], // السماح بهذه الهيدرات
+  credentials: true // إذا كنت تستخدمين جلسات أو كوكيز
+}));
 
 
 // Fallback route
