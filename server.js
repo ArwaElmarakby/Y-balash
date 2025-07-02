@@ -1215,17 +1215,12 @@ app.post("/reset-password", async (req, res) => {
 // add origin
 // app.use(cors());
 
-
 app.use(cors({
-  origin: [
-    'https://y-balash-dashboard.vercel.app', 
-    'http://localhost:3000',
-    'https://y-balash.vercel.app', 
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], 
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'], 
-  credentials: true 
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
 }));
+
+
 
 
 // Fallback route
