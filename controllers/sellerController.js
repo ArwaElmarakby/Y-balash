@@ -969,69 +969,131 @@ exports.getRestaurantProducts = async (req, res) => {
 };
 
 
-exports.getRevenueStats = async (req, res) => {
-  try {
-    const seller = req.user;
+// exports.getRevenueStats = async (req, res) => {
+//   try {
+//     const seller = req.user;
     
-    if (!seller.managedRestaurant) {
-      return res.status(200).json({
-        totalRevenue: 0,
-        percentageChange: "0%"
-      });
+//     if (!seller.managedRestaurant) {
+//       return res.status(200).json({
+//         totalRevenue: 0,
+//         percentageChange: "0%"
+//       });
+//     }
+
+//     const now = new Date();
+//     const currentWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+//     const lastWeekStart = new Date(currentWeekStart);
+//     lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+//     const [currentWeekRevenue, lastWeekRevenue] = await Promise.all([
+//       Order.aggregate([
+//         {
+//           $match: {
+//             restaurantId: seller.managedRestaurant,
+//             createdAt: { $gte: currentWeekStart },
+//             status: { $ne: 'cancelled' }
+//           }
+//         },
+//         { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+//       ]),
+//       Order.aggregate([
+//         {
+//           $match: {
+//             restaurantId: seller.managedRestaurant,
+//             createdAt: { $gte: lastWeekStart, $lt: currentWeekStart },
+//             status: { $ne: 'cancelled' }
+//           }
+//         },
+//         { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+//       ])
+//     ]);
+
+//     const current = currentWeekRevenue[0]?.total || 0;
+//     const last = lastWeekRevenue[0]?.total || 0;
+
+//     let percentageChange = "0%";
+//     if (last > 0) {
+//       const change = ((current - last) / last) * 100;
+//       percentageChange = change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
+//     } else if (current > 0) {
+//       percentageChange = "+100%";
+//     }
+
+//     res.status(200).json({
+//       totalRevenue: current,
+//       percentageChange
+//     });
+
+//   } catch (error) {
+//     res.status(200).json({
+//       totalRevenue: 0,
+//       percentageChange: "0%"
+//     });
+//   }
+// };
+
+exports.getRevenueStats = async (req, res) => {
+    try {
+        const currentDate = new Date();
+        const lastMonthDate = new Date();
+        lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+
+        // Get all earnings (excluding cancelled orders)
+        const totalEarningsStats = await Order.aggregate([
+            {
+                $match: {
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        // Get last month earnings
+        const lastMonthEarningsStats = await Order.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: lastMonthDate, $lt: currentDate },
+                    status: { $ne: 'cancelled' }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: "$totalAmount" }
+                }
+            }
+        ]);
+
+        const total = totalEarningsStats[0] || { totalEarnings: 0 };
+        const lastMonth = lastMonthEarningsStats[0] || { totalEarnings: 0 };
+
+        let percentageChange = 0;
+        if (lastMonth.totalEarnings > 0) {
+            percentageChange = ((total.totalEarnings - lastMonth.totalEarnings) / lastMonth.totalEarnings) * 100;
+        } else if (total.totalEarnings > 0) {
+            percentageChange = 100;
+        }
+
+        res.status(200).json({
+            success: true,
+            totalRevenue: total.totalEarnings,
+            percentageChange: percentageChange.toFixed(2),
+            currency: "EGP"
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch revenue stats',
+            error: error.message
+        });
     }
-
-    const now = new Date();
-    const currentWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-    const lastWeekStart = new Date(currentWeekStart);
-    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
-
-    const [currentWeekRevenue, lastWeekRevenue] = await Promise.all([
-      Order.aggregate([
-        {
-          $match: {
-            restaurantId: seller.managedRestaurant,
-            createdAt: { $gte: currentWeekStart },
-            status: { $ne: 'cancelled' }
-          }
-        },
-        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            restaurantId: seller.managedRestaurant,
-            createdAt: { $gte: lastWeekStart, $lt: currentWeekStart },
-            status: { $ne: 'cancelled' }
-          }
-        },
-        { $group: { _id: null, total: { $sum: "$totalAmount" } } }
-      ])
-    ]);
-
-    const current = currentWeekRevenue[0]?.total || 0;
-    const last = lastWeekRevenue[0]?.total || 0;
-
-    let percentageChange = "0%";
-    if (last > 0) {
-      const change = ((current - last) / last) * 100;
-      percentageChange = change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
-    } else if (current > 0) {
-      percentageChange = "+100%";
-    }
-
-    res.status(200).json({
-      totalRevenue: current,
-      percentageChange
-    });
-
-  } catch (error) {
-    res.status(200).json({
-      totalRevenue: 0,
-      percentageChange: "0%"
-    });
-  }
 };
-
 
 
 
@@ -1278,6 +1340,67 @@ exports.getBalance = async (req, res) => {
 };
 
 
+// exports.getSimplifiedMonthlyEarnings = async (req, res) => {
+//     try {
+//         const seller = req.user;
+        
+//         if (!seller.managedRestaurant) {
+//             return res.status(400).json({ 
+//                 success: false,
+//                 message: 'No restaurant assigned to this seller' 
+//             });
+//         }
+
+//         const now = new Date();
+//         const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+//         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+//         // Get current month earnings (from orders)
+//         const currentMonthStats = await Order.aggregate([
+//             {
+//                 $match: {
+//                     restaurantId: seller.managedRestaurant,
+//                     createdAt: { $gte: currentMonthStart },
+//                     status: { $ne: 'cancelled' }
+//                 }
+//             },
+//             {
+//                 $group: {
+//                     _id: null,
+//                     totalEarnings: { $sum: "$totalAmount" }
+//                 }
+//             }
+//         ]);
+
+//         const currentTotalEarnings = currentMonthStats[0]?.totalEarnings || 0;
+
+//         // Get total payouts that were paid this month
+//         const restaurant = await Restaurant.findById(seller.managedRestaurant);
+//         const currentMonthPaidPayouts = restaurant.payouts.filter(payout => {
+//             return payout.status === 'paid' && payout.date >= currentMonthStart;
+//         });
+
+//         const totalPaidPayouts = currentMonthPaidPayouts.reduce((acc, payout) => acc + payout.amount, 0);
+
+//         const netEarnings = currentTotalEarnings - totalPaidPayouts;
+
+//         res.status(200).json({
+//             success: true,
+//             totalEarnings: currentTotalEarnings,  // الاجمالي قبل خصم السحوبات
+//             totalWithdrawn: totalPaidPayouts,     // السحوبات المدفوعة خلال الشهر
+//             netEarnings: netEarnings < 0 ? 0 : netEarnings  // الصافي بعد الخصم
+//         });
+
+//     } catch (error) {
+//         console.error("Error in getSimplifiedMonthlyEarnings:", error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Failed to fetch monthly earnings',
+//             error: error.message
+//         });
+//     }
+// };
+
 exports.getSimplifiedMonthlyEarnings = async (req, res) => {
     try {
         const seller = req.user;
@@ -1338,7 +1461,6 @@ exports.getSimplifiedMonthlyEarnings = async (req, res) => {
         });
     }
 };
-
 
 exports.requestWithdrawal = async (req, res) => {
     try {
@@ -2328,6 +2450,52 @@ exports.getOrdersStats = async (req, res) => {
 
 
 
+// exports.getTotalEarningsSinceStart = async (req, res) => {
+//     try {
+//         const seller = req.user;
+        
+//         if (!seller.managedRestaurant) {
+//             return res.status(400).json({ 
+//                 success: false,
+//                 message: 'No restaurant assigned to this seller' 
+//             });
+//         }
+
+//         // Get all earnings since beginning (excluding cancelled orders)
+//         const totalEarningsStats = await Order.aggregate([
+//             {
+//                 $match: {
+//                     restaurantId: seller.managedRestaurant,
+//                     status: { $ne: 'cancelled' }
+//                 }
+//             },
+//             {
+//                 $group: {
+//                     _id: null,
+//                     totalEarnings: { $sum: "$totalAmount" }
+//                 }
+//             }
+//         ]);
+
+//         const total = totalEarningsStats[0] || { totalEarnings: 0 };
+
+//         res.status(200).json({
+//             success: true,
+//             totalEarnings: total.totalEarnings,
+//             message: 'Total earnings since beginning'
+//         });
+
+//     } catch (error) {
+//         console.error("Error in getTotalEarningsSinceStart:", error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Failed to fetch total earnings',
+//             error: error.message
+//         });
+//     }
+// };
+
+
 exports.getTotalEarningsSinceStart = async (req, res) => {
     try {
         const seller = req.user;
@@ -2372,6 +2540,53 @@ exports.getTotalEarningsSinceStart = async (req, res) => {
         });
     }
 };
+
+
+// exports.getTotalCashEarnings = async (req, res) => {
+//     try {
+//         const seller = req.user;
+        
+//         if (!seller.managedRestaurant) {
+//             return res.status(400).json({ 
+//                 success: false,
+//                 message: 'No restaurant assigned to this seller' 
+//             });
+//         }
+
+//         // Aggregate to sum only cash payments
+//         const cashEarnings = await Order.aggregate([
+//             {
+//                 $match: {
+//                     restaurantId: seller.managedRestaurant,
+//                     status: { $ne: 'cancelled' },
+//                     paymentMethod: 'cash' 
+//                 }
+//             },
+//             {
+//                 $group: {
+//                     _id: null,
+//                     totalCash: { $sum: "$totalAmount" }
+//                 }
+//             }
+//         ]);
+
+//         const total = cashEarnings[0] || { totalCash: 0 };
+
+//         res.status(200).json({
+//             success: true,
+//             totalCashEarnings: total.totalCash,
+//             message: 'Total cash earnings retrieved successfully'
+//         });
+
+//     } catch (error) {
+//         console.error("Error in getTotalCashEarnings:", error);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Failed to fetch cash earnings',
+//             error: error.message
+//         });
+//     }
+// };
 
 
 exports.getTotalCashEarnings = async (req, res) => {
