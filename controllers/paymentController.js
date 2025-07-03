@@ -174,62 +174,62 @@ async function updateProductQuantities(items) {
 }
 
 
-exports.createPayment = async (req, res) => {
-    const userId = req.user._id; 
+// exports.createPayment = async (req, res) => {
+//     const userId = req.user._id; 
 
-    try {
+//     try {
 
-        const cart = await Cart.findOne({ userId })
-            .populate('items.itemId')
-            .populate('offers.offerId');
+//         const cart = await Cart.findOne({ userId })
+//             .populate('items.itemId')
+//             .populate('offers.offerId');
         
-        if (!cart) {
-            return res.status(404).json({ message: 'Cart not found' });
-        }
+//         if (!cart) {
+//             return res.status(404).json({ message: 'Cart not found' });
+//         }
 
-        // 2. حساب السعر الإجمالي
-        let totalItemsPrice = 0;
-        cart.items.forEach(item => {
-            totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
-        });
+//         // 2. حساب السعر الإجمالي
+//         let totalItemsPrice = 0;
+//         cart.items.forEach(item => {
+//             totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
+//         });
 
-        let totalOffersPrice = 0;
-        cart.offers.forEach(offer => {
-            totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
-        });
+//         let totalOffersPrice = 0;
+//         cart.offers.forEach(offer => {
+//             totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
+//         });
 
-        const shippingCost = 0;
-        const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
-        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
-
-
-        cart.totalPrice = totalPrice;
-        await cart.save();
+//         const shippingCost = 0;
+//         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
+//         const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
 
-        const amount = Math.round(totalPrice * 100); 
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: amount,
-            currency: 'egp',
-            payment_method_types: ['card'],
-            metadata: {
-                userId: userId.toString(),
-                cartId: cart._id.toString()
-            },
-        });
+//         cart.totalPrice = totalPrice;
+//         await cart.save();
 
-        res.status(200).json({ 
-            clientSecret: paymentIntent.client_secret,
-            totalPrice: totalPrice 
-        });
-    } catch (error) {
-        console.error("Error in createPayment:", error);
-        res.status(500).json({ 
-            message: 'Payment failed', 
-            error: error.message 
-        });
-    }
-};
+
+//         const amount = Math.round(totalPrice * 100); 
+//         const paymentIntent = await stripe.paymentIntents.create({
+//             amount: amount,
+//             currency: 'egp',
+//             payment_method_types: ['card'],
+//             metadata: {
+//                 userId: userId.toString(),
+//                 cartId: cart._id.toString()
+//             },
+//         });
+
+//         res.status(200).json({ 
+//             clientSecret: paymentIntent.client_secret,
+//             totalPrice: totalPrice 
+//         });
+//     } catch (error) {
+//         console.error("Error in createPayment:", error);
+//         res.status(500).json({ 
+//             message: 'Payment failed', 
+//             error: error.message 
+//         });
+//     }
+// };
 
 
 
@@ -325,6 +325,63 @@ exports.createPayment = async (req, res) => {
 
 
 
+// exports.createPayment = async (req, res) => {
+//     const userId = req.user._id; 
+
+//     try {
+//         const cart = await Cart.findOne({ userId })
+//             .populate('items.itemId')
+//             .populate('offers.offerId');
+        
+//         if (!cart) {
+//             return res.status(404).json({ message: 'Cart not found' });
+//         }
+
+//         let totalItemsPrice = 0;
+//         cart.items.forEach(item => {
+//             totalItemsPrice += item.quantity * parseFloat(item.itemId.price);
+//         });
+
+//         let totalOffersPrice = 0;
+//         cart.offers.forEach(offer => {
+//             totalOffersPrice += offer.quantity * parseFloat(offer.offerId.price);
+//         });
+
+//         const shippingCost = 0;
+//         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
+//         const totalBeforeDiscount = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
+
+//         //  Apply points discount if available
+//         const totalPrice = Math.max(0, totalBeforeDiscount - (cart.pointsDiscount || 0));
+
+//         cart.totalPrice = totalPrice;
+//         await cart.save();
+
+//         const amount = Math.round(totalPrice * 100);
+//         const paymentIntent = await stripe.paymentIntents.create({
+//             amount: amount,
+//             currency: 'egp',
+//             payment_method_types: ['card'],
+//             metadata: {
+//                 userId: userId.toString(),
+//                 cartId: cart._id.toString()
+//             },
+//         });
+//         await order.save();
+
+//         await Cart.deleteOne({ _id: cart._id });
+
+//         res.status(200).json({ 
+//             clientSecret: paymentIntent.client_secret,
+//             totalPrice: totalPrice 
+//         });
+
+//     } catch (error) {
+//         console.error("Error in createPayment:", error);
+//         res.status(500).json({ message: 'Payment failed', error: error.message });
+//     }
+// };
+
 exports.createPayment = async (req, res) => {
     const userId = req.user._id; 
 
@@ -349,13 +406,7 @@ exports.createPayment = async (req, res) => {
 
         const shippingCost = 0;
         const importCharges = (totalItemsPrice + totalOffersPrice) * 0.1;
-        const totalBeforeDiscount = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
-
-        //  Apply points discount if available
-        const totalPrice = Math.max(0, totalBeforeDiscount - (cart.pointsDiscount || 0));
-
-        cart.totalPrice = totalPrice;
-        await cart.save();
+        const totalPrice = totalItemsPrice + totalOffersPrice + shippingCost + importCharges;
 
         const amount = Math.round(totalPrice * 100);
         const paymentIntent = await stripe.paymentIntents.create({
@@ -368,7 +419,26 @@ exports.createPayment = async (req, res) => {
             },
         });
 
+        // تأكدي من أن لديك restaurantId في cart
+        const restaurantId = cart.items[0].itemId.restaurant; // استخدمي restaurantId هنا
+
+        // بعد نجاح عملية الدفع، قم بتحديث حالة الطلب
+        const order = new Order({
+            userId: userId,
+            restaurantId: restaurantId, // استخدمي restaurantId هنا
+            items: cart.items.map(item => ({
+                itemId: item.itemId._id,
+                quantity: item.quantity,
+                price: item.itemId.price
+            })),
+            totalAmount: totalPrice,
+            status: 'pending', // استخدمي قيمة status صحيحة هنا
+            paymentMethod: 'card' // تأكدي من تسجيل طريقة الدفع
+        });
+
+        await order.save();
         await Cart.deleteOne({ _id: cart._id });
+        await updateProductQuantities(cart.items);
 
         res.status(200).json({ 
             clientSecret: paymentIntent.client_secret,
@@ -380,6 +450,7 @@ exports.createPayment = async (req, res) => {
         res.status(500).json({ message: 'Payment failed', error: error.message });
     }
 };
+
 
 
 exports.cashPayment = async (req, res) => {
