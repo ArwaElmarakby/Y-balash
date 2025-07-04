@@ -224,9 +224,108 @@ exports.getApprovedSellers = async (req, res) => {
 
 
 
+// exports.approveSeller = async (req, res) => {
+//     try {
+//         const { email, restaurantId, additionalNotes, name, password, phone } = req.body;
+
+//         const existingApproval = await ApprovedSeller.findOne({ email });
+//         if (existingApproval) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "Seller already approved",
+//                 existingApproval
+//             });
+//         }
+        
+        
+//         const restaurant = await Restaurant.findById(restaurantId);
+//         if (!restaurant) {
+//             return res.status(404).json({ 
+//                 success: false,
+//                 message: "Restaurant not found" 
+//             });
+//         }
+
+        
+//         let user = await User.findOne({ email });
+        
+//         if (!user) {
+            
+//             if (!name || !password || !phone) {
+//                 return res.status(400).json({
+//                     success: false,
+//                     message: "Name, password and phone are required"
+//                 });
+//             }
+
+//             user = new User({
+//                 email,
+//                 name,
+//                 password, 
+//                 phone: phone || "0000000000",
+//                 isSeller: true,
+//                 managedRestaurant: restaurantId
+//             });
+//         } else {
+        
+//             user.isSeller = true;
+//             user.managedRestaurant = restaurantId;
+//         }
+
+        
+//         const newApprovedSeller = new ApprovedSeller({
+//             email,
+//             adminId: req.user._id,
+//             restaurantId,
+//             restaurantName: restaurant.name,
+//             additionalNotes
+//         });
+
+//         await Promise.all([
+//             user.save(),
+//             newApprovedSeller.save()
+//         ]);
+
+//         await logActivity('new_seller', req.user._id, {
+//     sellerEmail: email,
+//     restaurantName: restaurant.name
+// });
+        
+
+//         res.status(201).json({
+//             success: true,
+//             message: "Seller approved successfully",
+//             data: {
+//                 seller: {
+//                     id: user._id,
+//                     email: user.email,
+//                     name: user.name,
+//                     isSeller: user.isSeller,
+//                     restaurant: {
+//                         id: restaurant._id,
+//                         name: restaurant.name
+//                     }
+//                 },
+//                 approvalRecord: {
+//                     id: newApprovedSeller._id,
+//                     approvedAt: newApprovedSeller.approvedAt,
+//                     approvedBy: newApprovedSeller.adminId
+//                 }
+//             }
+//         });
+
+//     } catch (error) {
+//         console.error("Error in approveSeller:", error);
+//         res.status(500).json({
+//             success: false,
+//             message: "Internal server error",
+//             error: error.message
+//         });
+//     }
+// };
 exports.approveSeller = async (req, res) => {
     try {
-        const { email, restaurantId, additionalNotes, name, password, phone } = req.body;
+        const { email, restaurantName, additionalNotes, name, password, phone } = req.body;
 
         const existingApproval = await ApprovedSeller.findOne({ email });
         if (existingApproval) {
@@ -236,9 +335,8 @@ exports.approveSeller = async (req, res) => {
                 existingApproval
             });
         }
-        
-        
-        const restaurant = await Restaurant.findById(restaurantId);
+
+        const restaurant = await Restaurant.findOne({ name: restaurantName });
         if (!restaurant) {
             return res.status(404).json({ 
                 success: false,
@@ -246,11 +344,9 @@ exports.approveSeller = async (req, res) => {
             });
         }
 
-        
         let user = await User.findOne({ email });
         
         if (!user) {
-            
             if (!name || !password || !phone) {
                 return res.status(400).json({
                     success: false,
@@ -264,19 +360,17 @@ exports.approveSeller = async (req, res) => {
                 password, 
                 phone: phone || "0000000000",
                 isSeller: true,
-                managedRestaurant: restaurantId
+                managedRestaurant: restaurant._id // Use restaurant ID
             });
         } else {
-        
             user.isSeller = true;
-            user.managedRestaurant = restaurantId;
+            user.managedRestaurant = restaurant._id; // Use restaurant ID
         }
 
-        
         const newApprovedSeller = new ApprovedSeller({
             email,
             adminId: req.user._id,
-            restaurantId,
+            restaurantId: restaurant._id, // Use restaurant ID
             restaurantName: restaurant.name,
             additionalNotes
         });
@@ -287,10 +381,9 @@ exports.approveSeller = async (req, res) => {
         ]);
 
         await logActivity('new_seller', req.user._id, {
-    sellerEmail: email,
-    restaurantName: restaurant.name
-});
-        
+            sellerEmail: email,
+            restaurantName: restaurant.name
+        });
 
         res.status(201).json({
             success: true,
