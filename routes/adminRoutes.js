@@ -231,13 +231,13 @@ router.get('/users-stats', authMiddleware, adminMiddleware, async (req, res) => 
             createdAt: { $gte: lastMonthDate, $lt: currentDate }
         });
 
-        // const percentageChange = lastMonthUsers > 0 
-        //     ? ((totalUsers - lastMonthUsers) / lastMonthUsers * 100).toFixed(2)
-        //     : '0';
+        const percentageChange = lastMonthUsers > 0 
+            ? ((totalUsers - lastMonthUsers) / lastMonthUsers * 100).toFixed(2)
+            : '0';
 
         res.status(200).json({
-            totalUsers
-            // percentageChange
+            totalUsers,
+            percentageChange
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
