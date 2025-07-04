@@ -432,7 +432,7 @@ exports.createPayment = async (req, res) => {
                 price: item.itemId.price
             })),
             totalAmount: totalPrice,
-            status: 'pending', // استخدمي قيمة status صحيحة هنا
+            status: 'confirmed', // استخدمي قيمة status صحيحة هنا
             paymentMethod: 'card' // تأكدي من تسجيل طريقة الدفع
         });
 
@@ -500,7 +500,7 @@ exports.cashPayment = async (req, res) => {
                 price: item.itemId.price
             })),
             totalAmount: totalPrice,
-            status: 'pending',
+            status: 'confirmed',
             paymentMethod: 'cash' 
         });
 
