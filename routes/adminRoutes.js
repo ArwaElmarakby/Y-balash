@@ -720,49 +720,9 @@ router.get('/seller/:id/products', authMiddleware, adminMiddleware, async (req, 
 //     }
 // });
 
-// router.get('/orders/all', authMiddleware, adminMiddleware, async (req, res) => {
-//     try {
-//         const orders = await Order.find()
-//             .populate('userId', 'email phone') 
-//             .populate('restaurantId', 'name') 
-//             .populate('items.itemId', 'name price') 
-//             .sort({ createdAt: -1 });
-
-//         if (!orders || orders.length === 0) {
-//             return res.status(404).json({ 
-//                 success: false,
-//                 message: 'No orders found' 
-//             });
-//         }
-
-//         const formattedOrders = orders.map(order => ({
-//             orderId: order._id,
-//             clientEmail: order.userId ? order.userId.email : 'N/A', // تحقق من وجود المستخدم
-//             restaurantName: order.restaurantId ? order.restaurantId.name : 'N/A', // تحقق من وجود المطعم
-//             date: order.createdAt.toLocaleDateString('en-GB'), 
-//             totalAmount: `${order.totalAmount} EGP`, 
-//             status: order.status
-//         }));
-
-//         res.status(200).json({
-//             success: true,
-//             count: formattedOrders.length,
-//             orders: formattedOrders
-//         });
-
-//     } catch (error) {
-//         console.error('Error fetching orders:', error);
-//         res.status(500).json({
-//             success: false,
-//             message: 'Server error',
-//             error: error.message
-//         });
-//     }
-// });
-
 router.get('/orders/all', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        const orders = await Order.find({ status: 'confirmed' }) // إضافة شرط الحالة المؤكدة
+        const orders = await Order.find()
             .populate('userId', 'email phone') 
             .populate('restaurantId', 'name') 
             .populate('items.itemId', 'name price') 
@@ -771,14 +731,14 @@ router.get('/orders/all', authMiddleware, adminMiddleware, async (req, res) => {
         if (!orders || orders.length === 0) {
             return res.status(404).json({ 
                 success: false,
-                message: 'No confirmed orders found' // تعديل الرسالة لتوضيح أنها للطلبات المؤكدة فقط
+                message: 'No orders found' 
             });
         }
 
         const formattedOrders = orders.map(order => ({
             orderId: order._id,
-            clientEmail: order.userId ? order.userId.email : 'N/A',
-            restaurantName: order.restaurantId ? order.restaurantId.name : 'N/A',
+            clientEmail: order.userId ? order.userId.email : 'N/A', // تحقق من وجود المستخدم
+            restaurantName: order.restaurantId ? order.restaurantId.name : 'N/A', // تحقق من وجود المطعم
             date: order.createdAt.toLocaleDateString('en-GB'), 
             totalAmount: `${order.totalAmount} EGP`, 
             status: order.status
@@ -791,10 +751,10 @@ router.get('/orders/all', authMiddleware, adminMiddleware, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error fetching confirmed orders:', error);
+        console.error('Error fetching orders:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error while fetching confirmed orders',
+            message: 'Server error',
             error: error.message
         });
     }
