@@ -273,31 +273,81 @@ router.get('/sellers-stats', authMiddleware, adminMiddleware, async (req, res) =
 
 
 
+// router.get('/orders-stats', authMiddleware, adminMiddleware, async (req, res) => {
+//     try {
+//         const currentDate = new Date();
+//         const lastMonthDate = new Date();
+//         lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+
+//         const totalOrders = await Order.countDocuments();
+//         const lastMonthOrders = await Order.countDocuments({
+//             createdAt: { $gte: lastMonthDate, $lt: currentDate }
+//         });
+
+//         const percentageChange = lastMonthOrders > 0 
+//             ? ((totalOrders - lastMonthOrders) / lastMonthOrders * 100).toFixed(2)
+//             : totalOrders > 0 ? '100.00' : '0.00';
+
+//         res.status(200).json({
+//             totalOrders,
+//             percentageChange
+//         });
+//     } catch (error) {
+//         res.status(500).json({ message: 'Server error', error });
+//     }
+// });
+
+
 router.get('/orders-stats', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const currentDate = new Date();
         const lastMonthDate = new Date();
         lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
 
+        // حساب جميع الطلبات
         const totalOrders = await Order.countDocuments();
         const lastMonthOrders = await Order.countDocuments({
             createdAt: { $gte: lastMonthDate, $lt: currentDate }
         });
 
-        const percentageChange = lastMonthOrders > 0 
-            ? ((totalOrders - lastMonthOrders) / lastMonthOrders * 100).toFixed(2)
-            : totalOrders > 0 ? '100.00' : '0.00';
+        // حساب الطلبات النقدية (كاش)
+        const cashOrders = await Order.countDocuments({ paymentMethod: 'cash' });
+        const lastMonthCashOrders = await Order.countDocuments({
+            paymentMethod: 'cash',
+            createdAt: { $gte: lastMonthDate, $lt: currentDate }
+        });
+
+        // حساب الطلبات بالبطاقة (كارد)
+        const cardOrders = await Order.countDocuments({ paymentMethod: 'card' });
+        const lastMonthCardOrders = await Order.countDocuments({
+            paymentMethod: 'card',
+            createdAt: { $gte: lastMonthDate, $lt: currentDate }
+        });
+
+        // حساب النسبة المئوية للتغير
+        const calculatePercentage = (current, last) => {
+            if (last > 0) return ((current - last) / last * 100).toFixed(2);
+            return current > 0 ? '100.00' : '0.00';
+        };
 
         res.status(200).json({
-            totalOrders,
-            percentageChange
+            total: {
+                count: totalOrders,
+                percentageChange: calculatePercentage(totalOrders, lastMonthOrders)
+            },
+            cash: {
+                count: cashOrders,
+                percentageChange: calculatePercentage(cashOrders, lastMonthCashOrders)
+            },
+            card: {
+                count: cardOrders,
+                percentageChange: calculatePercentage(cardOrders, lastMonthCardOrders)
+            }
         });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error });
     }
 });
-
-
 
 router.get('/revenue-stats', authMiddleware, adminMiddleware, async (req, res) => {
     try {
